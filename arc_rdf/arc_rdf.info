@@ -1,0 +1,6 @@
+; $Id $
+name = ARC RDF Library
+description = "Integration Module with the ARC2 RDF Library."
+package = "Calais"
+; version = "$Name$"
+

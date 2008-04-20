@@ -1,0 +1,68 @@
+<?php
+// $Id$
+
+// We need entities list from the API
+$modulepath = drupal_get_path('module', 'calais_api');
+require_once ("$modulepath/calais.module");
+require_once ("$modulepath/calais_api.module");
+
+/**
+ * Placeholder Implementation of hook_uninstall().
+ */
+function calais_uninstall() {
+  db_query("DROP TABLE IF EXISTS {calais_term}");
+  db_query("DROP TABLE IF EXISTS {calais_term_node}");
+  db_query("DELETE FROM {variable} where name like 'calais_%'");
+  
+  $entities = calais_get_entity_vocabularies();
+  foreach ($entities as $key => $value) {
+    db_query("DELETE FROM {vocabulary} where vid =%d ", $value);
+  }
+  
+  cache_clear_all();
+}
+
+/**
+ * hook_install implementation
+ *
+ * Create the vocabularies for all know Calais ENtities.
+ */
+function calais_install() {
+  
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      
+      //for debugging only
+      variable_set('calais_api_key', '62vw786ufatm63yxwg7k92mr');
+      
+      db_query("CREATE TABLE {calais_term} (
+                `tid` int(10) unsigned NOT NULL auto_increment,
+                `vid` int(10) unsigned NOT NULL default '0',
+                `name` varchar(255) NOT NULL default '',
+                PRIMARY KEY  (`tid`),
+                KEY `vid` (`vid`)
+                ) /*!40100 DEFAULT CHARACTER SET UTF8 */  ");
+      
+      db_query("CREATE TABLE {calais_term_node} (
+                `nid` int(10) unsigned NOT NULL default '0',
+                `tid` int(10) unsigned NOT NULL default '0',
+                PRIMARY KEY  (`tid`,`nid`),
+                KEY `nid` (`nid`),
+                KEY `tid` (`tid`)
+                ) /*!40100 DEFAULT CHARACTER SET UTF8 */  ");
+      
+      $entities = calais_api_get_all_entities();
+      $vocabularies = array();
+
+      foreach ($entities as $e) {
+        $vid = calais_create_entity_vocabulary($e);
+        $vocabularies[$e] = $vid;
+      }
+      
+      variable_set('calais_vocabulary_names', $vocabularies);
+      cache_clear_all();
+      break;
+  }
+}
+

@@ -1,0 +1,52 @@
+<?php
+// $Id$
+
+function arc_rdf_requirements($phase) {
+  $reqs = array();
+
+  // Ensure translations don't break at install time
+  $t = get_t();
+
+  switch ($phase) {
+    case 'install' :
+    case 'runtime' :
+
+      $path = realpath(drupal_get_path('module', 'arc_rdf')) . "/arc2";
+      if (!file_exists("$path/ARC2.php")) {
+        $reqs['calais'] = array(
+          'title' => $t('Calais RDF Parser'),
+          'description' => $t('The ARC2 RDF parser is not present. Please download it from <a href="@url">@url</a> and unpack it to the <em>modules/calais/arc_rdf/arc2</em> directory', array('@url' => 'http://arc.semsol.org/')),
+          'value' => $t('Install ARC2 RDF Parser'),
+          'severity' => REQUIREMENT_ERROR,
+        );
+      }
+      else {
+        $reqs['calais'] = array(
+          'title' => $t('Calais RDF Parser'),
+          'value' => $t('ARC2 RDF Parser installed'),
+          'severity' => REQUIREMENT_OK,
+        );      
+      }
+      break;
+  }
+ 
+  return $reqs; 
+}
+
+/**
+ * Stripped-down ARC-RDF integration
+ * http://arc.semsol.org/home
+ */
+function arc_rdf_init() {
+  
+  $path = realpath(drupal_get_path('module', 'arc_rdf'));
+  
+  define('RDF_ARC2_PATH', $path .'/arc2');
+  define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
+  define('RDF_SITE_URI', url(NULL, array('absolute' => TRUE)));
+  
+  if (!class_exists('ARC2') && file_exists(RDF_ARC2_PATH . '/ARC2.php')) {
+    require_once RDF_ARC2_PATH .'/ARC2.php';
+  }
+}
+

@@ -1,0 +1,7 @@
+; $Id $
+name = Calais
+description = "Calais Web Service Integration."
+package = "Calais"
+dependencies = calais_api taxonomy
+; version = "$Name$"
+
