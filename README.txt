@@ -13,11 +13,7 @@ INSTALLATION
 
 1) Place this module directory into your Drupal modules directory.
 
-2) Install the ARC2 RDF Parser.  Download it from http://arc.semsol.org/
-   and extract the contents into calais/arc_rdf/arc2. More instructions are
-   available in the arc_rdf/README.txt file.
-
-3) Enable the ARC RDF, Calais API, and Calais module in Drupal, at:
+2) Enable the Calais API, and Calais module in Drupal, at:
    administration -> site configuration -> modules (admin/build/modules)
 
 4) Add Calais API Key and tune other settings at:

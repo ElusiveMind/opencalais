@@ -1,5 +1,6 @@
 ; $Id $
-name = OpenCalais API
+name = Calais API
 description = "Calais Web Service API - Allows any Drupal code to integrate with Calais using a simple API"
 package = "Calais"
-dependencies = arc_rdf
+core = 6.x
+dependencies[] = rdf

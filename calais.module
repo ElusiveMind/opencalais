@@ -4,10 +4,8 @@
 define('CALAIS_PROCESS_NO', 'NO');
 define('CALAIS_PROCESS_AUTO', 'AUTO');
 define('CALAIS_PROCESS_MANUAL', 'MANUAL');
-function calais_init() {
-  $modulepath = drupal_get_path('module', 'calais');
-  require_once ("$modulepath/calais.ui.inc");
-}
+
+module_load_include('inc', 'calais', 'calais.ui');
 
 /**
  * Implementation of hook_perm().
@@ -19,31 +17,35 @@ function calais_perm() {
 /**
  * Implementation of hook_menu().
  */
-function calais_menu($may_cache) {
+function calais_menu() {
   $items = array();
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/settings/calais',
-      'title' => t('Calais Node Settings'),
-      'description' => t('Configurations for Calais Integration with content nodes'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('calais_admin_settings'),
-    );
-  }
-  else {
-    if (arg(0) == 'node' && is_numeric(arg(1))) {
-      $node = node_load(arg(1));
-      $items[] = array(
-        'path' => 'node/'. arg(1) .'/calais',
-        'title' => t('Calais'),
-        'callback' => 'drupal_get_form',
-        'callback arguments' => array('calais_keywords_form', arg(1)),
-        'access' => user_access('access calais') && calais_processing_type($node) != CALAIS_PROCESS_NO,
-        'type' => MENU_LOCAL_TASK,
-      );
-    }
-  }
+  
+  $items['admin/settings/calais'] = array(
+    'title' => 'Calais Node Settings',
+    'description' => 'Configurations for Calais Integration with content nodes',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('calais_admin_settings'),
+    'access arguments' => array('administer calais'),
+  );
+
+  $items['node/%node/calais'] = array(
+    'title' => 'Calais',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('calais_keywords_form', 1),
+    'access callback' => 'calais_access',
+    'access arguments' => array(1),
+    'weight' => 2,
+    'type' => MENU_LOCAL_TASK
+  );
+
   return $items;
+}
+
+/**
+ * Implementation of hook_access()
+ */
+function calais_access($node) {
+  return user_access('access calais') && calais_processing_type($node) != CALAIS_PROCESS_NO;
 }
 
 /**
@@ -55,6 +57,8 @@ function calais_admin_settings() {
   
   calais_build_entity_settings($form);
   calais_build_nodetype_settings($form);
+
+  $form['#submit'][] = 'calais_admin_settings_submit';
   
   $form = system_settings_form($form);
   return $form;
@@ -68,10 +72,10 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
   $entities = array_keys(calais_get_entity_vocabularies());
   sort($entities);
   
-  $disabled          = false;
+  $disabled = false;
   if ($allow_disable) {
-    $var_name        = "calais_use_global_{$type}";
-    $disabled        = variable_get($var_name, true);
+    $var_name = "calais_use_global_{$type}";
+    $disabled = variable_get($var_name, true);
     
     $form[$var_name] = array(
       '#type' => 'checkbox',
@@ -84,7 +88,7 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
       $entity_attributes['style'] = 'display:none';
     }
     
-    $field_id = form_clean_id("edit-{$var_name}");
+    $field_id = 'edit-' .  str_replace(array('][', '_', ' '), '-', $var_name);
     drupal_add_js("$(document).ready(function() {
       $('#$field_id').click(function() {
         $('.{$type}_entities').toggle();
@@ -156,10 +160,7 @@ function calais_build_nodetype_settings(&$form) {
     );
     
     calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, true);
-  }
-  
-  //Have to override so that we can manage vocabulary - node_type relationships.
-  $form['#submit'] = array('calais_admin_settings_submit' => array());
+  }  
 }
 
 /**
@@ -168,28 +169,25 @@ function calais_build_nodetype_settings(&$form) {
  * @param unknown_type $form_id
  * @param unknown_type $form_state
  */
-function calais_admin_settings_submit($form_id, &$form_state) {
-  if ($form_id == 'calais_admin_settings') {
-    
-    // default step
-    system_settings_form_submit($form, $form_state);
-    
-    // Also, set vocabulary-node relationships
-    $node_types = node_get_types('types', NULL, TRUE);
-    $all_vocabularies = calais_get_entity_vocabularies();
-    foreach ($node_types as $nt) {
-      $key = strtolower($nt->type);
-      $state = variable_get('calais_node_'. $key .'_process', CALAIS_PROCESS_NO);
-      foreach ($all_vocabularies as $entity => $vid) {
-        // Clean-up
-        db_query("DELETE FROM {vocabulary_node_types} WHERE vid='%d' and type='%s'", $vid, $key);
-      }
-      if ($state !== CALAIS_PROCESS_NO) {
-        // assign all configured calais vocabs to this node type
-        $node_vocabularies = calais_get_entity_vocabularies($key);
-        foreach ($node_vocabularies as $entity => $vid) {
-          db_query("INSERT INTO {vocabulary_node_types} (vid, type) values('%d','%s') ", $vid, $key);
-        }
+function calais_admin_settings_submit($form, &$form_state) {
+
+  system_settings_form_submit($form, $form_state);
+  
+  // Also, set vocabulary-node relationships
+  $node_types = node_get_types('types', NULL, TRUE);
+  $all_vocabularies = calais_get_entity_vocabularies();
+  foreach ($node_types as $nt) {
+    $key = strtolower($nt->type);
+    $state = variable_get('calais_node_'. $key .'_process', CALAIS_PROCESS_NO);
+    foreach ($all_vocabularies as $entity => $vid) {
+      // Clean-up
+      db_query("DELETE FROM {vocabulary_node_types} WHERE vid='%d' and type='%s'", $vid, $key);
+    }
+    if ($state !== CALAIS_PROCESS_NO) {
+      // assign all configured calais vocabs to this node type
+      $node_vocabularies = calais_get_entity_vocabularies($key);
+      foreach ($node_vocabularies as $entity => $vid) {
+        db_query("INSERT INTO {vocabulary_node_types} (vid, type) values('%d','%s') ", $vid, $key);
       }
     }
   }
@@ -209,50 +207,51 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     
     case "insert":
     case "update":
-      if (calais_processing_type($node) == CALAIS_PROCESS_NO) return;
-    cache_clear_all();
-    db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
-    $data          = "$node->title \n $node->body";
-    $node_settings = calais_get_node_settings($node);
-    $keywords      = calais_api_analyze($node, $data, $node_settings);
-    $vocabularies  = calais_get_entity_vocabularies();
+      if (calais_processing_type($node) == CALAIS_PROCESS_NO)
+        return;
+        
+      cache_clear_all();
+      db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
+      $data          = "$node->title \n $node->body";
+      $node_settings = calais_get_node_settings($node);
+      $keywords      = calais_api_analyze($node, $data, $node_settings);
+      $vocabularies  = calais_get_entity_vocabularies();
     
-    foreach ($keywords as $cat => $terms) {
-      $vid = $vocabularies[$cat];
+      foreach ($keywords as $cat => $terms) {
+        $vid = $vocabularies[$cat];
       
-      // Create a vocabulary if we come across an entity that we dont know of.
-      if (!$vid) {
-        $vid = calais_create_entity_vocabulary($cat);
-        $vocabularies[$cat] = $vid;
-        variable_set('calais_vocabulary_names', $vocabularies);
+        // Create a vocabulary if we come across an entity that we dont know of.
+        if (!$vid) {
+          $vid = calais_create_entity_vocabulary($cat);
+          $vocabularies[$cat] = $vid;
+          variable_set('calais_vocabulary_names', $vocabularies);
         
-        drupal_set_message(t('Added a new Vocabulary for new Calais Entity %entity. You may need to update your Calais Node Settings to take advantage of this new entity.', array('%entity' => $cat)));
-      }
-      
-      foreach ($terms as $term) {
-        $term = trim($term);
-        $tid = calais_verify_and_get_term($vid, $term, 'calais');
-        
-        if ($tid) {
-          calais_assign_node_calaisterm($node->nid, $tid);
+          drupal_set_message(t('Added a new Vocabulary for new Calais Entity %entity. You may need to update your Calais Node Settings to take advantage of this new entity.', array('%entity' => $cat)));
         }
-        else {
-          watchdog('Calais', "Could not create Calais Term: $term");
-        }
-        
-        //-- Auto-assign Taxonomy Terms
-        if (calais_processing_type($node) == CALAIS_PROCESS_AUTO) {
-          $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+
+        foreach ($terms as $term) {
+          $term = trim($term);
+          $tid = calais_verify_and_get_term($vid, $term, 'calais');
           if ($tid) {
-            calais_assign_node_taxonomyterm($node->nid, $tid);
+            calais_assign_node_calaisterm($node->nid, $tid);
           }
           else {
-            watchdog('Calais', "Could not assign Taxonomy Term: $term");
+            watchdog('Calais', "Could not create Calais Term: $term");
+          }
+        
+          //-- Auto-assign Taxonomy Terms
+          if (calais_processing_type($node) == CALAIS_PROCESS_AUTO) {
+            $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+            if ($tid) {
+              calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
+            }
+            else {
+              watchdog('Calais', "Could not assign Taxonomy Term: $term");
+            }
           }
         }
       }
-    }
-    break;
+      break;
   }
 }
 
@@ -295,7 +294,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
     
     switch ($module) {
       case 'calais':
-        db_query("INSERT INTO {". $tablename ."}(name,vid) values('%s',%d)", $term, $vid);
+        db_query("INSERT INTO {$tablename}(name,vid) values('%s',%d)", $term, $vid);
         break;
       
       case 'taxonomy':
@@ -314,12 +313,12 @@ function calais_verify_and_get_term($vid, $term, $module) {
 
 function calais_assign_node_calaisterm($nid, $tid) {
   db_query("DELETE FROM {calais_term_node} where nid=%d and tid=%d", $nid, $tid);
-  db_query("INSERT INTO {calais_term_node} (nid, tid) VALUES(%d,%d)", $nid, $tid);
+  db_query("INSERT INTO {calais_term_node} (nid, tid) VALUES(%d, %d)", $nid, $tid);
 }
 
-function calais_assign_node_taxonomyterm($nid, $tid) {
-  db_query("DELETE FROM {term_node} where nid=%d and tid=%d", $nid, $tid);
-  db_query("INSERT INTO {term_node} (nid, tid) VALUES(%d,%d)", $nid, $tid);
+function calais_assign_node_taxonomyterm($nid, $vid, $tid) {
+  db_query("DELETE FROM {term_node} where nid=%d and vid=%d and tid=%d", $nid, $vid, $tid);
+  db_query("INSERT INTO {term_node} (nid, vid, tid) VALUES(%d, %d, %d)", $nid, $vid, $tid);
 }
 
 /**
@@ -479,10 +478,9 @@ function calais_get_keywords($nid, $vid = null) {
  */
 function calais_create_entity_vocabulary($entity) {
     $description = t("Calais Entity Vocabulary: @name", array('@name' => $entity));
-    $vid         = db_next_id('{vocabulary}_vid');
-    db_query("INSERT INTO {vocabulary}(vid,name,description,module,tags) values(%d,'%s','%s','taxonomy',1)",
-              $vid, $entity, $description);
-    return $vid;
+    db_query("INSERT INTO {vocabulary} (name,description,module,tags) values('%s','%s','taxonomy',1)",
+              $entity, $description);
+    return db_last_insert_id('vocabulary', 'vid');
 }
 
 

@@ -3,14 +3,6 @@
 
 
 /**
- * Implementation of hook_init(). Make sure the right files are included.
- */
-function calais_api_init() {
-  $modulepath = drupal_get_path('module', 'calais');
-  require_once ("$modulepath/calais.test.inc");
-}
-
-/**
  * Implementation of hook_requirements(). Check to make sure the API key is specified.
  */
 function calais_api_requirements($phase) {
@@ -49,28 +41,17 @@ function calais_api_perm() {
 /**
  * Implementation of hook_menu().
  */
-function calais_api_menu($may_cache) {
+function calais_api_menu() {
   $items = array();
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/settings/calais-api',
-      'title' => t('Calais API Settings'),
-      'description' => t('Configurations for Calais API'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('calais_api_admin_settings'),
-      'access' => user_access('administer calais api'),
-    );
-    
-    $items[] = array(
-      'path' => 'calais/tester',
-      'title' => t('Calais Test'),
-      'description' => t('Calais Call Test'),
-      'callback' => 'calais_call_test',
-      'type' => MENU_CALLBACK,
-      'access' => TRUE,
-    );
-  }
   
+  $items['admin/settings/calais-api'] = array(
+    'title' => 'Calais API Settings',
+    'description' => 'Configurations for Calais API',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('calais_api_admin_settings'),
+    'access arguments' => array('administer calais api'),
+  );
+
   return $items;
 }
 
@@ -130,27 +111,11 @@ function calais_api_analyze($node, $content, $parameters = array()) {
   );
   
   $data_enc = http_build_query($data, '', '&');
-  
   $ret      = drupal_http_request($HOST . $URI, $headers, $method, $data_enc);
-  
   $xml      = $ret->data;
-  
   $rdfxml   = calais_api_extract_rdf($xml);
-  
-  //Allow Alternative Implementations of RDF Parsers
-  $rdf_parsers = module_invoke_all('calais_parse_rdf', $rdfxml);
-  
-  // If no suitable implementation returns an object, use
-  // the default (ours) ARC2 implementation
-  // @TODO: allow for several non-overriding implementations.
-  if (!is_array($rdf_parsers) || sizeof($rdf_parsers) == 0) {
-    $keywords = calais_api_parse_rdf($rdfxml);
-  }
-  else {
-    // Use the first one.
-    $keywords = $rdf_parsers[0];
-  }
-  
+  $keywords = calais_api_parse_rdf($rdfxml);
+
   return $keywords;
 }
 
@@ -225,10 +190,10 @@ EOD;
  *    )
  *  )
  */
-function calais_api_parse_rdf($rdfxml) {
+function calais_api_parse_rdf($rdf_xml) {
   
   $parser = ARC2::getRDFXMLParser();
-  $parser->parse(null, $rdfxml);
+  $parser->parse(null, $rdf_xml);
   $indexedTriples = $parser->getSimpleIndex();
   
   $keywords = new StdClass();
