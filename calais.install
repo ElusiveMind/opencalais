@@ -33,9 +33,6 @@ function calais_install() {
     case 'mysql':
     case 'mysqli':
       
-      //for debugging only
-      variable_set('calais_api_key', '62vw786ufatm63yxwg7k92mr');
-      
       db_query("CREATE TABLE {calais_term} (
                 `tid` int(10) unsigned NOT NULL auto_increment,
                 `vid` int(10) unsigned NOT NULL default '0',
