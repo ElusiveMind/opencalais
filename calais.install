@@ -23,6 +23,9 @@ function calais_uninstall() {
 function calais_install() {
   drupal_install_schema('calais');
   calais_create_vocabularies();
+  
+  // Module weights: put calais after taxonomy for form altering.
+  db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
 }
 
 /**
@@ -55,6 +58,14 @@ function calais_schema() {
   );
   return $schema;
 }
+
+function calais_update_2() {
+  // Module weights: put calais after taxonomy for form altering.
+  $ret = array();
+  $ret[] = update_sql('UPDATE {system} SET weight = 10 WHERE name = "calais"');
+  return $ret;
+}
+
 
 /**
  * Create new vocabularies for all currently known Calais Entities
