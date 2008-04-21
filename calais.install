@@ -1,8 +1,6 @@
 <?php
 // $Id$
 
-//require_once (drupal_get_path('module', 'calais') . '/calais.module');
-//require_once (drupal_get_path('module', 'calais_api') . '/calais_api.module');
 module_load_include('module', 'calais');
 module_load_include('module', 'calais_api');
 
