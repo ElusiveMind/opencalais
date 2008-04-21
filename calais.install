@@ -28,6 +28,9 @@ function calais_uninstall() {
  * Create the vocabularies for all know Calais ENtities.
  */
 function calais_install() {
+
+  // Module weights: put calais after taxonomy for form altering.
+  db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
   
   switch ($GLOBALS['db_type']) {
     case 'mysql':
@@ -61,5 +64,13 @@ function calais_install() {
       cache_clear_all();
       break;
   }
+
+}
+
+function calais_update_2() {
+  // Module weights: put calais after taxonomy for form altering.
+  $ret = array();
+  $ret[] = update_sql("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
+  return $ret;
 }
 
