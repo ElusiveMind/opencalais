@@ -282,19 +282,15 @@ function calais_verify_and_get_term($vid, $term, $module) {
   $bool = false;
   $term = trim($term);
   
-  $bool = db_result(db_query("SELECT count(*)
-                       FROM {". $tablename ."} where name='%s' and vid=%d", $term, $vid));
+  $bool = db_result(db_query("SELECT count(*) FROM {".$tablename."} where name='%s' and vid=%d", $term, $vid));
   
   if (!$bool) {
     
-    $form_values = array(
-      'vid' => $vid,
-      'name' => $term
-      );
+    $form_values = array('vid' => $vid, 'name' => $term);
     
     switch ($module) {
       case 'calais':
-        db_query("INSERT INTO {$tablename}(name,vid) values('%s',%d)", $term, $vid);
+        db_query("INSERT INTO {".$tablename."}(name,vid) values('%s',%d)", $term, $vid);
         break;
       
       case 'taxonomy':
@@ -303,9 +299,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
     }
   }
   
-  $tid = db_result(db_query("SELECT tid 
-                                FROM {". $tablename ."} 
-                                WHERE name='%s' and vid=%d", $term, $vid));
+  $tid = db_result(db_query("SELECT tid FROM {".$tablename."} WHERE name='%s' and vid=%d", $term, $vid));
   
   cache_clear_all();
   return $tid;
