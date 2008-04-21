@@ -4,6 +4,7 @@
 define('CALAIS_PROCESS_NO', 'NO');
 define('CALAIS_PROCESS_AUTO', 'AUTO');
 define('CALAIS_PROCESS_MANUAL', 'MANUAL');
+
 function calais_init() {
   $modulepath = drupal_get_path('module', 'calais');
   require_once ("$modulepath/calais.ui.inc");
@@ -39,6 +40,7 @@ function calais_menu($may_cache) {
         'callback' => 'drupal_get_form',
         'callback arguments' => array('calais_keywords_form', arg(1)),
         'access' => user_access('access calais') && calais_processing_type($node) != CALAIS_PROCESS_NO,
+        'weight' => 2,
         'type' => MENU_LOCAL_TASK,
       );
     }
@@ -283,15 +285,11 @@ function calais_verify_and_get_term($vid, $term, $module) {
   $bool = false;
   $term = trim($term);
   
-  $bool = db_result(db_query("SELECT count(*)
-                       FROM {". $tablename ."} where name='%s' and vid=%d", $term, $vid));
+  $bool = db_result(db_query("SELECT count(*) FROM {". $tablename ."} where name='%s' and vid=%d", $term, $vid));
   
   if (!$bool) {
     
-    $form_values = array(
-      'vid' => $vid,
-      'name' => $term
-      );
+    $form_values = array('vid' => $vid, 'name' => $term);
     
     switch ($module) {
       case 'calais':
@@ -304,9 +302,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
     }
   }
   
-  $tid = db_result(db_query("SELECT tid 
-                                FROM {". $tablename ."} 
-                                WHERE name='%s' and vid=%d", $term, $vid));
+  $tid = db_result(db_query("SELECT tid FROM {". $tablename ."} WHERE name='%s' and vid=%d", $term, $vid));
   
   cache_clear_all();
   return $tid;

@@ -19,12 +19,11 @@ function calais_api_requirements($phase) {
   $t = get_t();
   
   if ($phase == 'runtime') {
-    $apikey = variable_get('calais_api_key', False);
-    if ($apikey === False) {
+    $apikey = variable_get('calais_api_key', false);
+    if ($apikey === false || empty($apikey)) {
       
       $settings_uri = array(
-        '!calaissetturi' => l(t('admin/settings/calais'),
-          'admin/settings/calais')
+        '!calaissetturi' => l(t('Calais API Settings'), 'admin/settings/calais')
         );
       
       $requirements['drupal'] = array('title' => $t('Calais API Key is not set'),
@@ -255,7 +254,7 @@ function calais_api_parse_rdf($rdfxml) {
           $keywords->$keywordType = array();
         }
         //Gotta do "eval" to be able to use $arr[] = $nealemenet notation;
-        $keywordValue = mysql_real_escape_string($keywordValue);
+        $keywordValue = db_escape_string($keywordValue);
         eval("\$keywords->$keywordType". "[] = '$keywordValue';");
       }
     }
