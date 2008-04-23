@@ -1,6 +1,8 @@
 <?php
 // $Id$
 
+define('CALAIS_TERM_MAXLENGTH', 1000);
+
 /**
  * Implementation of hook_theme();
  */
@@ -19,13 +21,24 @@ function calais_theme() {
  */
 function calais_form_alter(&$form, $form_state, $form_id) {
   if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    
     $node = $form['#node'];
     $vocabs = calais_get_vocabularies($node->type);
     
     foreach ($vocabs as $vocabulary) {
-      unset($form['taxonomy']['tags'][$vocabulary->vid]);
+      _calais_disable_taxonomy_field($form['taxonomy']['tags'][$vocabulary->vid]);
     }
   }
+}
+
+/**
+ * This function implements what is essentially disabling of a taxonomy field, 
+ * but leaving it on the form so that values can be recreated by 
+ * <code>taxonomy_node_save()</code> upon save.
+ */
+function _calais_disable_taxonomy_field(&$field) {
+  $field['#type'] = 'hidden';
+  $field['#maxlength'] = CALAIS_TERM_MAXLENGTH;  
 }
 
 /**
@@ -44,14 +57,14 @@ function calais_keywords_form(&$form_state, $node) {
   $form['#node'] = $node;
   $form['nid']   = array('#type' => 'value', '#value' => $node->nid);
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
-  
+
   foreach ($vocabs as $vocabulary) {
     $keywords = calais_get_keywords($node->nid, $vocabulary->vid);
     $suggestions = theme('calais_suggestions', $vocabulary->vid, $keywords[$vocabulary->vid]);
     $current_tags = _calais_get_current_tags($node, $vocabulary->vid);
     $has_keywords = sizeof($keywords[$vocabulary->vid]);
     
-    $form['taxonomy']['tags'][$vocabulary->vid] = array(
+    $form['calais'][$vocabulary->vid] = array(
       '#type' => 'textfield',
       '#title' => $vocabulary->name,
       '#description' => $suggestions,
@@ -60,41 +73,78 @@ function calais_keywords_form(&$form_state, $node) {
       '#autocomplete_path' => 'taxonomy/autocomplete/'. $vocabulary->vid,
       '#weight' => $vocabulary->weight,
       '#size' => 75,
-      '#maxlength' => 500,
+      '#maxlength' => CALAIS_TERM_MAXLENGTH,
     );
     
     if ($has_keywords) {
-      $form['taxonomy']['tags'][$vocabulary->vid]['#attributes'] = array(
+      $form['calais'][$vocabulary->vid]['#attributes'] = array(
         'class' => 'keywords_available',
       );
     }
   }
   
-  $form['taxonomy']['#tree'] = TRUE;
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'), '#weight' => 45);
+  $form['calais']['#tree'] = TRUE;
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 45);
   
   return $form;
 }
 
 /**
  * Provide validation for the Calais free tagging taxonomy terms.
+ *
+ * The essence of this was clipped from <code>taxonomy_node_validate()</code>
  */
 function calais_keywords_form_validate($form, &$form_state) {
   $node = (object)$form_state['values'];
   
-  taxonomy_node_validate($node);
+  if (!empty($node->calais)) {
+    $terms = $node->calais;
+    foreach ($terms as $vid => $vid_value) {
+      $vocabulary = taxonomy_vocabulary_load($vid);
+      if (empty($vocabulary->tags)) {
+        // see form_get_error $key = implode('][', $element['#parents']);
+        // on why this is the key
+        form_set_error("calais][$vid", t('The %name vocabulary can not be modified in this way. It is not setup for Free Tagging.', array('%name' => $vocabulary->name)));
+      }
+    }
+  }
 }
 
 /**
  * Update the node for any Calais keyword modifications.
  */
 function calais_keywords_form_submit($form, &$form_state) {
-  
-  //____debug($form_state);
   $node = (object)$form_state['values'];
-  //____debug($node);
-  taxonomy_node_save($node, $node->taxonomy);
+
+  foreach ($node->calais as $vid => $vid_value) {
+    calais_remove_terms_for_node($node, $vid);
+    
+    $terms = drupal_explode_tags($vid_value);
+    foreach ($terms as $term) {
+      $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+      if ($tid) {
+        calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
+      }
+      else {
+        watchdog('Calais', "Could not assign Taxonomy Term: $term");
+      }
+    }
+  }
+
   $form_state['redirect'] = "node/{$node->nid}";
+}
+
+/**
+ * Remove all terms on a node for a particular vocabulary.
+ *
+ * @param $node The node to remove terms
+ * @param $vid The vocabulary whose terms will be removed from the node
+ */
+function calais_remove_terms_for_node($node, $vid) {
+  $result = db_query('SELECT tid FROM {term_data} WHERE vid = %d', $vid);
+  while ($term = db_fetch_object($result)) {
+    db_query('DELETE FROM {term_node} WHERE vid = %d AND tid = %d', $node->vid, $term->tid);
+  }  
 }
 
 /**
@@ -129,7 +179,7 @@ function theme_calais_suggestions($vid, $terms) {
     $suggestions .= "<div class='suggestions'>";
     $suggestions .= t('Calais Suggestions: ');
     foreach ($terms as $term) {
-      $suggestions .= "<label class='calais_keyword' for='edit-taxonomy-tags-$vid'>$term</label>";
+      $suggestions .= "<label class='calais_keyword' for='edit-calais-$vid'>$term</label>";
     }
     $suggestions .= "</div>";
   }
