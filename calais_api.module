@@ -15,7 +15,9 @@ function calais_api_requirements($phase) {
     if ($apikey === false || empty($apikey)) {
       
       $settings_uri = array(
-        '!calaissetturi' => l(t('Calais API Settings'), 'admin/settings/calais-api'));
+        '!calaissetturi' => l(t('Calais API Settings'),
+          'admin/settings/calais-api')
+        );
       
       $requirements['calais-api'] = array('title' => $t('Calais API Key is not set'),
         'description' => $t('Calais integration module is enabled, but
