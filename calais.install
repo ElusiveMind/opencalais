@@ -22,7 +22,6 @@ require_once ("$modulepath/calais_api.module");
 function calais_uninstall() {
   db_query("DROP TABLE IF EXISTS {calais_term}");
   db_query("DROP TABLE IF EXISTS {calais_term_node}");
-  db_query("DELETE FROM {variable} where name like 'calais_%'");
   
   $entities = calais_get_entity_vocabularies();
   foreach ($entities as $key => $value) {
