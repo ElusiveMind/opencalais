@@ -20,8 +20,6 @@ module_load_include('module', 'calais_api');
  */
 function calais_uninstall() {
   drupal_uninstall_schema('calais');
-
-  db_query("DELETE FROM {variable} where name like 'calais_%'");
   calais_remove_vocabularies();
 }
 
