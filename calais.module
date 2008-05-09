@@ -228,7 +228,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     
       module_invoke_all('calais_preprocess', $node, &$keywords);
 
-      $vocabularies = calais_get_entity_vocabularies();
+      $vocabularies = calais_get_entity_vocabularies($node->type);
     
       foreach ($keywords as $cat => $terms) {
         $vid = $vocabularies[$cat];
@@ -392,21 +392,23 @@ function calais_get_node_settings($node) {
 function calais_get_entity_vocabularies($type = NULL) {
   $all_vocabs = variable_get('calais_vocabulary_names', false);
   
-  $applied_entities = array();
   if ($type) {
     $applied_entities = variable_get('calais_applied_entities_global', false);
     if (!variable_get("calais_use_global_{$type}", true)) {
       $applied_entities = variable_get("calais_applied_entities_{$type}", false);
     }
-  }
-  
-  foreach ($applied_entities as $entity => $apply_entity) {
-    if (!$apply_entity) {
-      unset($all_vocabs[$entity]);
+
+    foreach ($applied_entities as $entity => $apply_entity) {
+      if ($apply_entity) {
+        $applied_vocabs[$entity] = $all_vocabs[$entity];
+      }
     }
   }
-  
-  return $all_vocabs;
+  else {
+    $applied_vocabs = $all_vocabs;    
+  }  
+
+  return $applied_vocabs;
 }
 
 /**
