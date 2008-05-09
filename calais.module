@@ -221,50 +221,71 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     
     case "insert":
     case "update":
-      if (calais_processing_type($node) == CALAIS_PROCESS_NO) return;
-    cache_clear_all();
-    db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
-    $data          = "$node->title \n $node->body";
-    $node_settings = calais_get_node_settings($node);
-    $keywords      = calais_api_analyze($node, $data, $node_settings);
-    $vocabularies  = calais_get_entity_vocabularies();
+      if (calais_processing_type($node) == CALAIS_PROCESS_NO) 
+        return;
+
+      cache_clear_all();
+      db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
+      $data          = "$node->title \n $node->body";
+      $node_settings = calais_get_node_settings($node);
+      $keywords      = calais_api_analyze($node, $data, $node_settings);
+  
+      module_invoke_all('calais_preprocess', $node, &$keywords);
+
+      $vocabularies = calais_get_entity_vocabularies($node->type);
     
-    foreach ($keywords as $cat => $terms) {
-      $vid = $vocabularies[$cat];
+      foreach ($keywords as $cat => $terms) {
+        $vid = $vocabularies[$cat];
       
-      // Create a vocabulary if we come across an entity that we dont know of.
-      if (!$vid) {
-        $vid = calais_create_entity_vocabulary($cat);
-        $vocabularies[$cat] = $vid;
-        variable_set('calais_vocabulary_names', $vocabularies);
-        
-        drupal_set_message(t('Added a new Vocabulary for new Calais Entity %entity. You may need to update your Calais Node Settings to take advantage of this new entity.', array('%entity' => $cat)));
-      }
+        if (!$vid) continue;
       
-      foreach ($terms as $term) {
-        $term = trim($term);
-        $tid = calais_verify_and_get_term($vid, $term, 'calais');
+        foreach ($terms as $term) {
+          $term = trim($term);
+          $tid = calais_verify_and_get_term($vid, $term, 'calais');
         
-        if ($tid) {
-          calais_assign_node_calaisterm($node->nid, $tid);
-        }
-        else {
-          watchdog('Calais', "Could not create Calais Term: $term");
-        }
-        
-        //-- Auto-assign Taxonomy Terms
-        if (calais_processing_type($node) == CALAIS_PROCESS_AUTO) {
-          $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
           if ($tid) {
-            calais_assign_node_taxonomyterm($node->nid, $tid);
+            calais_assign_node_calaisterm($node->nid, $tid);
           }
           else {
-            watchdog('Calais', "Could not assign Taxonomy Term: $term");
+            watchdog('Calais', "Could not create Calais Term: $term");
+          }
+        
+          //-- Auto-assign Taxonomy Terms
+          if (calais_processing_type($node) == CALAIS_PROCESS_AUTO) {
+            $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+            if ($tid) {
+              calais_assign_node_taxonomyterm($node->nid, $tid);
+            }
+            else {
+              watchdog('Calais', "Could not assign Taxonomy Term: $term");
+            }
           }
         }
       }
+      module_invoke_all('calais_postprocess', $node, $keywords);
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_calais_preprocess.
+ *
+ * Make sure that a vocabulary exists for all entities returned, if not, create it.
+ */
+function calais_calais_preprocess($node, &$keywords) {
+  $vocabularies = calais_get_entity_vocabularies();
+  
+  foreach ($keywords as $cat => $terms) {
+    $vid = $vocabularies[$cat];
+  
+    // Create a vocabulary if we come across an entity that we dont know of.
+    if (!$vid) {
+      $vid = calais_create_entity_vocabulary($cat);
+      $vocabularies[$cat] = $vid;
+      variable_set('calais_vocabulary_names', $vocabularies);
+    
+      drupal_set_message(t('Added a Vocabulary for the new Calais Entity %entity. You may need to update your Calais Node Settings to take advantage of this new entity.', array('%entity' => $cat)));
     }
-    break;
   }
 }
 
@@ -376,21 +397,23 @@ function calais_get_node_settings($node) {
 function calais_get_entity_vocabularies($type = NULL) {
   $all_vocabs = variable_get('calais_vocabulary_names', false);
   
-  $applied_entities = array();
   if ($type) {
     $applied_entities = variable_get('calais_applied_entities_global', false);
     if (!variable_get("calais_use_global_{$type}", true)) {
       $applied_entities = variable_get("calais_applied_entities_{$type}", false);
     }
-  }
-  
-  foreach ($applied_entities as $entity => $apply_entity) {
-    if (!$apply_entity) {
-      unset($all_vocabs[$entity]);
+
+    foreach ($applied_entities as $entity => $apply_entity) {
+      if ($apply_entity) {
+        $applied_vocabs[$entity] = $all_vocabs[$entity];
+      }
     }
   }
-  
-  return $all_vocabs;
+  else {
+    $applied_vocabs = $all_vocabs;    
+  }  
+
+  return $applied_vocabs;
 }
 
 /**
