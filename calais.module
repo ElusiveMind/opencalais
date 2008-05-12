@@ -30,7 +30,7 @@ function calais_perm() {
 function calais_menu() {
   $items = array();
   
-  $items['admin/settings/calais'] = array(
+  $items['admin/settings/calais/calais-node'] = array(
     'title' => 'Calais Node Settings',
     'description' => 'Configurations for Calais Integration with content nodes',
     'page callback' => 'drupal_get_form',
