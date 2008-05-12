@@ -120,22 +120,9 @@ function calais_keywords_form_submit($form_id, $form_values) {
   
   foreach ($node->calais as $vid => $vid_value) {
     calais_remove_terms_for_node($node, $vid);
-    
-    // This regexp allows the following types of user input:
-    // this, "somecmpany, llc", "and ""this"" w,o.rks", foo bar
-    $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
-    preg_match_all($regexp, $vid_value, $matches);
-    $terms = array_unique($matches[1]);
 
+    $terms = calais_explode_tags($vid_value);
     foreach ($terms as $term) {
-      
-      // If a user has escaped a term (to demonstrate that it is a group,
-      // or includes a comma or quote character), we remove the escape
-      // formatting so to save the term into the database as the user intends.
-      $term = str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $term));
-      $term = trim($term);
-      if ($term == "") { continue; }
-      
       $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
       if ($tid) {
         calais_assign_node_taxonomyterm($node->nid, $tid);
@@ -147,6 +134,30 @@ function calais_keywords_form_submit($form_id, $form_values) {
   }
 
   return 'node/'. $node->nid;
+}
+
+/**
+ * Functional equivalent of drupal_explode_tags, but that does not exist in D5.
+ */
+function calais_explode_tags($tags) {
+  // This regexp allows the following types of user input:
+  // this, "somecompany, llc", "and ""this"" w,o.rks", foo bar
+  $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+  preg_match_all($regexp, $tags, $matches);
+  $typed_tags = array_unique($matches[1]);
+
+  $tags = array();
+  foreach ($typed_tags as $tag) {
+    // If a user has escaped a term (to demonstrate that it is a group,
+    // or includes a comma or quote character), we remove the escape
+    // formatting so to save the term into the database as the user intends.
+    $tag = trim(str_replace('""', '"', preg_replace('/^"(.*)"$/', '\1', $tag)));
+    if ($tag != "") {
+      $tags[] = $tag;
+    }
+  }
+
+  return $tags;
 }
 
 /**
