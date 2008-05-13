@@ -39,6 +39,7 @@ function calais_menu($may_cache) {
       'description' => t('Configurations for Calais Integration with content nodes'),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('calais_admin_settings'),
+      'type' => MENU_LOCAL_TASK,
     );
   }
   else {

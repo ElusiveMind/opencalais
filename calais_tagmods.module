@@ -23,6 +23,7 @@ function calais_tagmods_menu($may_cache) {
       'description' => t('Configurations for Calais Tag Modifications'),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('calais_tagmods_settings'),
+      'type' => MENU_LOCAL_TASK,
     );
   }
   return $items;
@@ -42,6 +43,14 @@ function calais_tagmods_settings() {
     '#description' => t('A comma-separated list of terms to be removed from the Calais response. Example: funny, bungee jumping, "Company, Inc.".'),
   );
   
+  $form['calais_tag_substitution'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Calais Substitutions'),
+    '#default_value' => variable_get('calais_tag_substitution', NULL),
+    '#rows' => 6,
+    '#description' => t('A list of substitutions. One option per line. Key-value pairs may be entered separated by an equals. i.e. Calais Term=Some Local Substitution'),
+  );
+  
   $form = system_settings_form($form);
   return $form;
 }
@@ -53,6 +62,7 @@ function calais_tagmods_settings() {
  */
 function calais_tagmods_calais_preprocess($node, &$keywords) {
   _calais_tagmods_apply_blacklist(&$keywords);
+  _calais_tagmods_apply_substitutions(&$keywords);
 }
 
 /**
@@ -68,4 +78,29 @@ function _calais_tagmods_apply_blacklist(&$keywords) {
   }
 }
 
+/**
+ * Substitute keywords with others.
+ */
+function _calais_tagmods_apply_substitutions(&$keywords) {
+
+  $sub_string = variable_get('calais_tag_substitution', NULL);
+  $rows = explode("\n", $sub_string);
+  $subs = array();
+  foreach ($rows as $row) {
+    $row = trim($row);
+    if (!empty($row)) {
+      preg_match('/^(.*)=(.*)$/', $row, $matches);
+      $subs[$matches[1]] = $matches[2];
+    }
+  }
+
+  foreach ($keywords as $cat => $terms) {
+    foreach ($terms as $key => $term) {
+      if (array_key_exists($term, $subs)) {
+        $terms[$key] = $subs[$term];
+        $keywords->$cat = $terms;
+      }
+    }
+  }
+}
 

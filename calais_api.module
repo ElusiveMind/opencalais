@@ -73,9 +73,7 @@ function calais_api_menu($may_cache) {
       'path' => 'admin/settings/calais/calais-api',
       'title' => t('Calais API Settings'),
       'description' => t('Configurations for Calais API'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('calais_api_admin_settings'),
-      'access' => user_access('administer calais api'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
     );
   
     $items[] = array(
