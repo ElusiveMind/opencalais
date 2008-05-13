@@ -36,6 +36,7 @@ function calais_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('calais_admin_settings'),
     'access arguments' => array('administer calais'),
+    'type' => MENU_LOCAL_TASK
   );
 
   $items['node/%node/calais'] = array(

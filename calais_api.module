@@ -62,7 +62,7 @@ function calais_api_menu() {
   $items = array();
   
   $items['admin/settings/calais'] = array(
-    'title' => 'Calais',
+    'title' => 'Calais Configuration',
     'description' => 'Configurations for Calais',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('calais_api_admin_settings'),
@@ -72,9 +72,7 @@ function calais_api_menu() {
   $items['admin/settings/calais/calais-api'] = array(
     'title' => 'Calais API Settings',
     'description' => 'Configurations for Calais API',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('calais_api_admin_settings'),
-    'access arguments' => array('administer calais api'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
   return $items;
