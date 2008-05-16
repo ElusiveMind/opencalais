@@ -226,10 +226,13 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         return;
 
       cache_clear_all();
-      db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
       $data          = "$node->title \n $node->body";
       $node_settings = calais_get_node_settings($node);
       $keywords      = calais_api_analyze($node, $data, $node_settings);
+
+      if(sizeof($keywords) > 0) {
+        db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
+      }
   
       module_invoke_all('calais_preprocess', $node, &$keywords);
 
