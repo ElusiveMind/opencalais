@@ -144,28 +144,35 @@ function calais_api_analyze($node, $content, $parameters = array()) {
     'paramsXML' => calais_api_xml_params($node->type, $parameters),
   );
   
+  $keywords = array();
   $data_enc = http_build_query($data, '', '&');
-  
   $ret      = drupal_http_request($HOST . $URI, $headers, $method, $data_enc);
-  
-  $xml      = $ret->data;
-  
-  $rdfxml   = calais_api_extract_rdf($xml);
-  
-  //Allow Alternative Implementations of RDF Parsers
-  $rdf_parsers = module_invoke_all('calais_parse_rdf', $rdfxml);
-  
-  // If no suitable implementation returns an object, use
-  // the default (ours) ARC2 implementation
-  // @TODO: allow for several non-overriding implementations.
-  if (!is_array($rdf_parsers) || sizeof($rdf_parsers) == 0) {
-    $keywords = calais_api_parse_rdf($rdfxml);
+
+  if (isset($ret->error)) {
+    $msg = t('Calais processing error: @msg', array('@msg' => $ret->data));
+    $watchdog = t('Calais processing error: (@code - @error) @msg', array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $ret->data));
+    drupal_set_message($msg, 'error');
+    watchdog('calais', $watchdog, WATCHDOG_ERROR);
   }
   else {
-    // Use the first one.
-    $keywords = $rdf_parsers[0];
+    $xml      = $ret->data;
+    $rdfxml   = calais_api_extract_rdf($xml);
+
+    //Allow Alternative Implementations of RDF Parsers
+    $rdf_parsers = module_invoke_all('calais_parse_rdf', $rdfxml);
+
+    // If no suitable implementation returns an object, use
+    // the default (ours) ARC2 implementation
+    // @TODO: allow for several non-overriding implementations.
+    if (!is_array($rdf_parsers) || sizeof($rdf_parsers) == 0) {
+      $keywords = calais_api_parse_rdf($rdfxml);
+    }
+    else {
+      // Use the first one.
+      $keywords = $rdf_parsers[0];
+    }
   }
-  
+    
   return $keywords;
 }
 
