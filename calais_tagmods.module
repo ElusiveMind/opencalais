@@ -61,8 +61,8 @@ function calais_tagmods_settings() {
  * Make sure that a vocabulary exists for all entities returned, if not, create it.
  */
 function calais_tagmods_calais_preprocess($node, &$keywords) {
-  _calais_tagmods_apply_blacklist(&$keywords);
-  _calais_tagmods_apply_substitutions(&$keywords);
+  _calais_tagmods_apply_blacklist($keywords);
+  _calais_tagmods_apply_substitutions($keywords);
 }
 
 /**
