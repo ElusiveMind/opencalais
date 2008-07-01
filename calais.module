@@ -15,11 +15,6 @@ define('CALAIS_PROCESS_NO', 'NO');
 define('CALAIS_PROCESS_AUTO', 'AUTO');
 define('CALAIS_PROCESS_MANUAL', 'MANUAL');
 
-function calais_init() {
-  $modulepath = drupal_get_path('module', 'calais');
-  require_once ("$modulepath/calais.ui.inc");
-}
-
 /**
  * Implementation of hook_perm().
  */
@@ -43,6 +38,9 @@ function calais_menu($may_cache) {
     );
   }
   else {
+    $modulepath = drupal_get_path('module', 'calais');
+    require_once ("$modulepath/calais.ui.inc");
+
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       $items[] = array(

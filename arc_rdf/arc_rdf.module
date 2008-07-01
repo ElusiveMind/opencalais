@@ -48,15 +48,17 @@ function arc_rdf_requirements($phase) {
  * http://arc.semsol.org/home
  */
 function arc_rdf_init() {
+  // ensure we are not serving a cached page
+  if (function_exists('drupal_get_path')) {  
+    $path = realpath(drupal_get_path('module', 'arc_rdf'));
   
-  $path = realpath(drupal_get_path('module', 'arc_rdf'));
+    define('RDF_ARC2_PATH', $path .'/arc2');
+    define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
+    define('RDF_SITE_URI', url(NULL, array('absolute' => TRUE)));
   
-  define('RDF_ARC2_PATH', $path .'/arc2');
-  define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
-  define('RDF_SITE_URI', url(NULL, array('absolute' => TRUE)));
-  
-  if (!class_exists('ARC2') && file_exists(RDF_ARC2_PATH . '/ARC2.php')) {
-    require_once RDF_ARC2_PATH .'/ARC2.php';
+    if (!class_exists('ARC2') && file_exists(RDF_ARC2_PATH . '/ARC2.php')) {
+      require_once RDF_ARC2_PATH .'/ARC2.php';
+    }
   }
 }
 

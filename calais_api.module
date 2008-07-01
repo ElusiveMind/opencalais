@@ -12,14 +12,6 @@
 */
 
 /**
- * Implementation of hook_init(). Make sure the right files are included.
- */
-function calais_api_init() {
-  $modulepath = drupal_get_path('module', 'calais');
-  require_once ("$modulepath/calais.test.inc");
-}
-
-/**
  * Implementation of hook_requirements(). Check to make sure the API key is specified.
  */
 function calais_api_requirements($phase) {
@@ -74,8 +66,12 @@ function calais_api_menu($may_cache) {
       'title' => t('Calais API Settings'),
       'description' => t('Configurations for Calais API'),
       'type' => MENU_DEFAULT_LOCAL_TASK,
-    );
-  
+    );  
+  }
+  else {
+    $modulepath = drupal_get_path('module', 'calais');
+    require_once ("$modulepath/calais.test.inc");
+    
     $items[] = array(
       'path' => 'calais/tester',
       'title' => t('Calais Test'),
