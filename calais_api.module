@@ -91,7 +91,7 @@ function calais_api_menu($may_cache) {
 function calais_api_admin_settings() {
   $form = array();
   $calais_url = array(
-    '!calaisurl' => l(t('Calais Website'), 'http://www.opencalais.com/member/register')
+    '!calaisurl' => l(t('Calais Website'), 'http://www.opencalais.com/user/register')
     );
   
   $form['calais_api_key'] = array(
