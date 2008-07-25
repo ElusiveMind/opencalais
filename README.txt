@@ -11,10 +11,23 @@ provides an API in which any contributed module can interact with Calais.
 INSTALLATION
 ============
 
-1) Place this module directory into your Drupal modules directory.
+1) Before you install Calais for Drupal 6, you need to install the RDF
+module (http://drupal.org/project/rdf). With the RDF Module you should
+also download the ARC2 library, which is a separate download. Please 
+refer to INSTALL.txt that comes with the RDF module for more details.
 
-2) Enable the Calais API, and Calais module in Drupal, at:
+As of the writing of this document, when you downlod the ARC2 library, 
+the ARC2_Reader.php  file should be under modules/rdf/vendors/arc2. 
+That is subject to change by RDF module maintainers, though, so read
+their installation instructions carefully.
+
+2) Place this module directory into your Drupal modules directory.
+
+3) Enable the Calais API, and Calais module in Drupal, at:
    administration -> site configuration -> modules (admin/build/modules)
+
+3) Obtain Calais API from their website: 
+   http://www.opencalais.com/user/register
 
 4) Add Calais API Key and tune other settings at:
    administration -> site configuration -> modules -> Calais
