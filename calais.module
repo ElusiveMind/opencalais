@@ -232,7 +232,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
       }
   
-      module_invoke_all('calais_preprocess', $node, $keywords);
+      module_invoke_all('calais_preprocess', &$node, &$keywords);
 
       $vocabularies = calais_get_entity_vocabularies($node->type);
     
