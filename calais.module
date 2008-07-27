@@ -221,7 +221,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       if (calais_processing_type($node) == CALAIS_PROCESS_NO)
         return;
         
-      cache_clear_all();
+      //cache_clear_all();  -- this is extra per issue 286923, but keeping commented to see if anything breaks
       $data          = "$node->title \n $node->body";
       $node_settings = calais_get_node_settings($node);
       $keywords      = calais_api_analyze($node, $data, $node_settings);
