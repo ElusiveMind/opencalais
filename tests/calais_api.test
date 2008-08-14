@@ -1,30 +1,68 @@
 <?php
-// $Id$
-/**
- * @file
- */
 
-function calais_call_test() {
-  
-  $data = calais_getTestContent();
-  
-  $body = filter_xss($data);
-	$date = format_date(time(), 'custom', 'r');
-	$request = calais_api_build_xml_request('Calais Call Test', $date, $body);
-	$keywords = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
-  
-  $rawmetadata .= "<pre>";
-  $rawmetadata .= print_r($keywords, TRUE);
-  $rawmetadata .= "</pre>";
-  
-  return $rawmetadata;
-}
+class CalaisApiTestCase extends DrupalWebTestCase {
 
-function calais_getTestContent() {
-  
-  return <<<EOD
+  function getInfo() {
+    return array(
+      'name' => t('Calais API Test'),
+      'description' => t('Verify that a Calais request returns expected results.'),
+      'group' => t('Calais')
+    );
+  }
+
+	function setUp() {
+		// Get the configured API key before generating a new $db_prefix
+		$api_key = variable_get('calais_api_key', '');
+
+		parent::setUp();
+			
+		variable_set('calais_api_key', $api_key);
+	}
+
+	function tearDown() {
+		parent::tearDown();
+	}
+
+	function testAnalyze() {
+		$body = filter_xss($this->get_test_content());
+		$date = format_date(time(), 'custom', 'r');
+		$request = calais_api_build_xml_request('Calais API Test', $date, $body);
+		$results = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
+		
+		$this->arrayContains($results->City, 'Denver', 'Denver is a City');
+		$this->arrayContains($results->City, 'Philadelphia', 'Philadelphia is a City');
+		$this->arrayContains($results->City, 'Chicago', 'Chicago is a City');
+
+		$this->arrayContains($results->Company, 'CBS', 'CBS is a Company');
+
+		$this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
+		$this->arrayContains($results->Person, 'Barack Obama', 'Barack Obama is a Person');
+		$this->arrayContains($results->Person, 'Howard Dean', 'Howard Dean is a Person');
+		$this->arrayContains($results->Person, 'Al Gore', 'Al Gore is a Person');
+
+		$this->arrayContains($results->PublishedMedium, 'The Wall Street Journal', 'The Wall Street Journal is a PublishedMedium');
+
+		$this->arrayContains($results->ProvinceOrState, 'Indiana', 'Indiana is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Ohio', 'Ohio is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Florida', 'Florida is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'North Carolina', 'North Carolina is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Iowa', 'Iowa is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Pennsylvania', 'Pennsylvania is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Michigan', 'Michigan is a ProvinceOrState');
+		$this->arrayContains($results->ProvinceOrState, 'Vermont', 'Vermont is a ProvinceOrState');
+
+		$this->arrayContains($results->TVShow, '60 Minutes', '60 Minutes is a TVShow');
+		$this->arrayContains($results->Organization, 'Democratic National Committee', 'Democratic National Committee is a Organization');
+	}
+
+	function arrayContains($haystack, $needle, $message) {
+		$this->assertTrue(in_array($needle, array_values($haystack)), t($message));
+	}
+
+	function get_test_content() {
+		  $str = <<<EOD
 Democratic politicians should have three dates circled on their calendars: April 22, May 6 and July 1. Each represents a potential turning point in the nomination battle between Barack Obama and Hillary Clinton.
-
+ 
 April 22, the day of the Pennsylvania primary, is Clinton's next change to make a strong case for staying in the race to the end. Conversely, it is a critical opportunity for Obama to show that he continues to expand his appeal within the party, as someone who hopes to become the nominee must do.
 
 May 6 is when North Carolina and Indiana hold their primaries. It has gained significance over the past two weeks as a potential make-or-break day for both candidates, perhaps the only date between now and the end of the primaries that could deliver a seismic jolt to the trajectory of the nomination battle.
@@ -62,7 +100,8 @@ Whether Dean has the clout to push the superdelegates to a conclusion by July 1,
 Al Gore, on CBS's "60 Minutes" Sunday, laughed when asked by correspondent Lesley Stahl whether he would step in to try to resolve the nomination. "I'm not applying for the job of broker," he said. Perhaps Gore still harbors a smidgen of hope that the party might eventually turn to him, not to broker a deal, but to become the nominee to unite a party fractured by the Obama-Clinton duel.
 
 Depending on what happens on April 22, May 6 and by July 1, Democrats will know whether they have their nominee, or whether they are truly in need of either a broker or a uniter
-
 EOD;
+		
+		return $str;		
+	}
 }
-

@@ -225,9 +225,12 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         return;
 
       //cache_clear_all();  -- this is extra per issue 286923, but keeping commented to see if anything breaks
-      $data          = "$node->title \n $node->body";
+      $date = format_date($node->created, 'custom', 'r');
+      $body = filter_xss($node->body, array());
+      $data = calais_api_build_xml_request($node->title, $date, $body);
       $node_settings = calais_get_node_settings($node);
-      $keywords      = calais_api_analyze($data, $node_settings);
+      $node_settings['contentType'] = 'TEXT/XML';
+      $keywords = calais_api_analyze($data, $node_settings);
 
       if (sizeof($keywords) > 0) {
         db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);

@@ -14,7 +14,7 @@
  * @file
  */
 
-//module_load_include('inc', 'calais_api', 'calais.test');
+module_load_include('inc', 'calais_api', 'calais.test');
 
 /**
  * Implementation of hook_requirements(). Check to make sure the API key is specified.
@@ -80,12 +80,14 @@ function calais_api_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-  // $items['admin/settings/calais/calais-test'] = array(
-  //   'title' => 'Calais Tester Page',
-  //   'description' => 'Calais Test Call',
-  //   'page callback' => 'calais_call_test',
-  //   'access arguments' => array('administer calais api'),
-  // );
+  // Used for testing/debug
+  $items['admin/settings/calais/test'] = array(
+    'title' => 'Calais Tester Page',
+    'description' => 'Calais Test Call',
+    'page callback' => 'calais_call_test',
+    'access arguments' => array('administer calais api'),
+    'type' => MENU_CALLBACK,
+  );
 
   return $items;
 }
@@ -162,6 +164,20 @@ function calais_api_analyze($content, $parameters = array()) {
 }
 
 /**
+ * Build the XML document request format expected by Calais
+ *
+ * @return an xml string to be submitted to Calais
+ */
+function calais_api_build_xml_request($title, $date, $body) {
+  $req = "<DOCUMENT>";
+  $req .= "<TITLE>$title</TITLE>";
+  $req .= "<DATE>$date</DATE>";
+  $req .= "<BODY>$body</BODY>";
+  $req .= "</DOCUMENT>";
+  return $req;
+}
+
+/**
  * Get the XML Parameters required by the Calais Web-Service based on the node type.
  *
  * @return an XML Document
@@ -192,6 +208,7 @@ function calais_api_build_xml_params($options) {
   $defaults = array(
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
+    'calculateRelevanceScore' => 'true',
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'externalID' => time(),
@@ -258,7 +275,7 @@ function calais_api_parse_rdf($rdf_xml) {
         // nullify to avoid double-passes
         $is_keyword = FALSE;
         $keyword_value = $value[0];
-        if (!is_array($keywords->$keyword_type)) {
+        if (!property_exists($keywords, $keyword_type)) {
           $keywords->$keyword_type = array();
         }
         //Gotta do "eval" to be able to use $arr[] = $nealemenet notation;
