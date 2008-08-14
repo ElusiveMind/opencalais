@@ -227,7 +227,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       //cache_clear_all();  -- this is extra per issue 286923, but keeping commented to see if anything breaks
       $data          = "$node->title \n $node->body";
       $node_settings = calais_get_node_settings($node);
-      $keywords      = calais_api_analyze($node, $data, $node_settings);
+      $keywords      = calais_api_analyze($data, $node_settings);
 
       if (sizeof($keywords) > 0) {
         db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
@@ -318,7 +318,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
   $bool = FALSE;
   $term = trim($term);
 
-  $bool = db_result(db_query("SELECT count(*) FROM {$tablename} where name='%s' and vid=%d", $term, $vid));
+  $bool = db_result(db_query("SELECT count(*) FROM {".$tablename."} where name='%s' and vid=%d", $term, $vid));
 
   if (!$bool) {
 
@@ -326,7 +326,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
 
     switch ($module) {
       case 'calais':
-        db_query("INSERT INTO {$tablename}(name,vid) values('%s',%d)", $term, $vid);
+        db_query("INSERT INTO {".$tablename."}(name,vid) values('%s',%d)", $term, $vid);
         break;
 
       case 'taxonomy':
@@ -335,7 +335,7 @@ function calais_verify_and_get_term($vid, $term, $module) {
     }
   }
 
-  $tid = db_result(db_query("SELECT tid FROM {$tablename} WHERE name='%s' and vid=%d", $term, $vid));
+  $tid = db_result(db_query("SELECT tid FROM {".$tablename."} WHERE name='%s' and vid=%d", $term, $vid));
 
   cache_clear_all();
   return $tid;

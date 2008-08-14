@@ -127,11 +127,10 @@ function calais_api_admin_settings() {
  * Analyze the content via Calais.
  *
  * @param $content The content to ship off to Calais for analysis
- * @param $node_type The node type for this content, if applicable.
  * @param $parameters Array of Calais parameters for overriding defaults.
  * @see calais_api_build_xml_params for applicable Parameter values.
  */
-function calais_api_analyze($node, $content, $parameters = array()) {
+function calais_api_analyze($content, $parameters = array()) {
   
   $HOST    = "http://api.opencalais.com";
   $URI     = "/enlighten/calais.asmx/Enlighten";
@@ -142,7 +141,7 @@ function calais_api_analyze($node, $content, $parameters = array()) {
   $data    = array(
     'licenseID' => variable_get('calais_api_key', NULL),
     'content' => $content,
-    'paramsXML' => calais_api_xml_params($node->type, $parameters),
+    'paramsXML' => calais_api_xml_params($parameters),
   );
   
   $keywords = array();
@@ -159,8 +158,6 @@ function calais_api_analyze($node, $content, $parameters = array()) {
     $keywords = calais_api_parse_rdf($rdfxml);    
   }
 
-  print $xml;
-  exit;
   return $keywords;
 }
 
@@ -169,7 +166,7 @@ function calais_api_analyze($node, $content, $parameters = array()) {
  *
  * @return an XML Document
  */
-function calais_api_xml_params($node_type, $parameters) {
+function calais_api_xml_params($parameters) {
   
   $global_params = array(
     'allowSearch' => variable_get('calais_api_allow_searching', FALSE) ? 'true' : 'false',
