@@ -9,14 +9,17 @@
   but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
 
   $Id$
-*/
+ */
+/**
+ * @file
+ */
 
 module_load_include('module', 'calais');
 module_load_include('module', 'calais_api');
 
 
 /**
- * Placeholder Implementation of hook_uninstall().
+ * Implementation of hook_uninstall().
  */
 function calais_uninstall() {
   drupal_uninstall_schema('calais');
@@ -31,16 +34,16 @@ function calais_uninstall() {
 function calais_install() {
   drupal_install_schema('calais');
   calais_create_vocabularies();
-  
+
   // Module weights: put calais after taxonomy for form altering.
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
 }
 
 /**
- * Implementation of hook_schema()
+ * Implementation of hook_schema().
  */
 function calais_schema() {
-  
+
   $schema['calais_term'] = array(
     'fields' => array(
       'tid'   => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
@@ -86,9 +89,9 @@ function calais_create_vocabularies() {
     $vid = calais_create_entity_vocabulary($e);
     $vocabularies[$e] = $vid;
   }
-  
+
   variable_set('calais_vocabulary_names', $vocabularies);
-  cache_clear_all();  
+  cache_clear_all();
 }
 
 /**
@@ -99,6 +102,6 @@ function calais_remove_vocabularies() {
   foreach ($entities as $key => $value) {
     db_query("DELETE FROM {vocabulary} where vid =%d ", $value);
   }
-  
-  cache_clear_all();  
+
+  cache_clear_all();
 }

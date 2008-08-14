@@ -1,13 +1,16 @@
 <?php
 // $Id$
+/**
+ * @file
+ */
 
 function calais_call_test() {
   
   $data = calais_getTestContent();
-  $keywords = calais_analyze($data);
+  $keywords = calais_api_analyze(NULL, $data);
   
   $rawmetadata .= "<pre>";
-  $rawmetadata .= print_r($keywords, true);
+  $rawmetadata .= print_r($keywords, TRUE);
   $rawmetadata .= "</pre>";
   
   return $rawmetadata;

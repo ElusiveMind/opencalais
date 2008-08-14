@@ -10,6 +10,11 @@
 
   $Id$
 */
+/**
+ * @file
+ */
+
+//module_load_include('inc', 'calais_api', 'calais.test');
 
 /**
  * Implementation of hook_requirements(). Check to make sure the API key is specified.
@@ -20,8 +25,8 @@ function calais_api_requirements($phase) {
   $t = get_t();
   
   if ($phase == 'runtime') {
-    $apikey = variable_get('calais_api_key', false);
-    if ($apikey === false || empty($apikey)) {
+    $apikey = variable_get('calais_api_key', FALSE);
+    if ($apikey === FALSE || empty($apikey)) {
       
       $settings_uri = array(
         '!calaissetturi' => l(t('Calais API Settings'),
@@ -74,6 +79,13 @@ function calais_api_menu() {
     'description' => 'Configurations for Calais API',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
+
+  // $items['admin/settings/calais/calais-test'] = array(
+  //   'title' => 'Calais Tester Page',
+  //   'description' => 'Calais Test Call',
+  //   'page callback' => 'calais_call_test',
+  //   'access arguments' => array('administer calais api'),
+  // );
 
   return $items;
 }
@@ -142,11 +154,13 @@ function calais_api_analyze($node, $content, $parameters = array()) {
     watchdog('calais', 'Calais processing error: (@code - @error) @msg', array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $ret->data), WATCHDOG_ERROR);
   }
   else {
-    $xml      = $ret->data;
+    $xml      = $ret->data;    
     $rdfxml   = calais_api_extract_rdf($xml);
     $keywords = calais_api_parse_rdf($rdfxml);    
   }
 
+  print $xml;
+  exit;
   return $keywords;
 }
 
@@ -158,8 +172,8 @@ function calais_api_analyze($node, $content, $parameters = array()) {
 function calais_api_xml_params($node_type, $parameters) {
   
   $global_params = array(
-    'allowSearch' => variable_get('calais_api_allow_searching', false) ? 'true' : 'false',
-    'allowDistribution' => variable_get('calais_api_allow_distribution', false) ? 'true' : 'false',
+    'allowSearch' => variable_get('calais_api_allow_searching', FALSE) ? 'true' : 'false',
+    'allowDistribution' => variable_get('calais_api_allow_distribution', FALSE) ? 'true' : 'false',
   );
   
   $options = array_merge($global_params, $parameters);
@@ -224,35 +238,35 @@ EOD;
 function calais_api_parse_rdf($rdf_xml) {
   
   $parser = ARC2::getRDFXMLParser();
-  $parser->parse(null, $rdf_xml);
-  $indexedTriples = $parser->getSimpleIndex();
+  $parser->parse(NULL, $rdf_xml);
+  $indexed_triples = $parser->getSimpleIndex();
   
-  $keywords = new StdClass();
+  $keywords = new stdClass();
   
-  foreach ($indexedTriples as $indx) {
-    $isKeyword = false;
+  foreach ($indexed_triples as $indx) {
+    $is_keyword = FALSE;
     
     foreach ($indx as $key => $value) {
       
       if ($key == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
-        $keywordType = $value[0];
+        $keyword_type = $value[0];
         // take the last part only
-        $keywordType = preg_replace('/.*\//ims', '', $keywordType);
-        //$keywordType = strtolower($keywordType);
+        $keyword_type = preg_replace('/.*\//ims', '', $keyword_type);
+        //$keyword_type = strtolower($keyword_type);
         // Value of keyword will come in the next iteration, sorry.
-        $isKeyword = True;
+        $is_keyword = TRUE;
       }
       
-      if ($isKeyword == true && $key == 'http://s.opencalais.com/1/pred/name') {
+      if ($is_keyword == TRUE && $key == 'http://s.opencalais.com/1/pred/name') {
         // nullify to avoid double-passes
-        $isKeyword = False;
-        $keywordValue = $value[0];
-        if (!is_array($keywords->$keywordType)) {
-          $keywords->$keywordType = array();
+        $is_keyword = FALSE;
+        $keyword_value = $value[0];
+        if (!is_array($keywords->$keyword_type)) {
+          $keywords->$keyword_type = array();
         }
         //Gotta do "eval" to be able to use $arr[] = $nealemenet notation;
-        $keywordValue = db_escape_string($keywordValue);
-        eval("\$keywords->$keywordType". "[] = '$keywordValue';");
+        $keyword_value = db_escape_string($keyword_value);
+        eval("\$keywords->$keyword_type"."[] = '$keyword_value';");
       }
     }
   }

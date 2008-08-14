@@ -10,6 +10,9 @@
 
   $Id$
 */
+/**
+ * @file
+ */
 
 define('CALAIS_TERM_MAXLENGTH', 1000);
 
