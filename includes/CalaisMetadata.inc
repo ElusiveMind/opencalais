@@ -22,8 +22,8 @@ class CalaisMetadata {
     $this->type = $type;
   }
   
-  function add_term($guid, $subject) {
-    $this->terms[$guid] = new CalaisTerm($guid, $subject);
+  function add_term($guid, $subject, $relevance = 0.0) {
+    $this->terms[$guid] = new CalaisTerm($guid, $subject, $relevance);
   }
 
   function add_relevance($guid, $relevance) {
@@ -46,7 +46,7 @@ class CalaisMetadata {
   }
   
   function readable_type() {
-    return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $this->type);
+    return calais_api_make_readable($this->type);
   }
 }
 
@@ -56,12 +56,12 @@ class CalaisMetadata {
 class CalaisTerm {
   public $guid;
   public $value;
-  public $relevance = 0.0;
+  public $relevance;
   
   /**
    *
    */
-  function __construct($guid, $value, $relevance = NULL) {
+  function __construct($guid, $value, $relevance = 0.0) {
     $this->guid = $guid;
     $this->value = $value;
     $this->relevance = $relevance;
