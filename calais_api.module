@@ -112,6 +112,15 @@ function calais_api_build_xml_request($title, $body, $date, $parameters = array(
 }
 
 /**
+ * Takes a CamelCase word and adds spaces to make it Camel Case
+ *
+ * @return an formated string
+ */
+function calais_api_make_readable($camel_case) {
+  return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
+}
+
+/**
  * Declare the Calais namespace to the RDF API module (in case we use it)
  */
 function calais_api_rdf_namespaces() {
