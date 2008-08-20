@@ -72,10 +72,15 @@ function calais_keywords_form(&$form_state, $node) {
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
 
   foreach ($vocabs as $vocabulary) {
-    $keywords = calais_get_keywords($node->nid, $vocabulary->vid);
+    $keywords = calais_get_keywords($node->nid, $node->type, $vocabulary->vid);
     $suggestions = theme('calais_suggestions', $vocabulary->vid, $keywords[$vocabulary->vid]);
     $current_tags = _calais_get_current_tags($node, $vocabulary->vid);
     $has_keywords = sizeof($keywords[$vocabulary->vid]);
+    
+    // If there are keywords available, make these vocabs appear at the top of the long list
+    if ($has_keywords) {
+      $vocabulary->weight -= 100;
+    }
     
     $form['calais'][$vocabulary->vid] = array(
       '#type' => 'textfield',
@@ -133,14 +138,9 @@ function calais_keywords_form_submit($form, &$form_state) {
     calais_remove_terms_for_node($node, $vid);
     
     $terms = drupal_explode_tags($vid_value);
-    foreach ($terms as $term) {
-      $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
-      if ($tid) {
-        calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
-      }
-      else {
-        watchdog('Calais', "Could not assign Taxonomy Term: $term");
-      }
+    foreach ($terms as $term_name) {
+      $term = calais_get_node_term($node->nid, $term_name);
+      calais_assign_to_node($vid, $term, $node);
     }
   }
 

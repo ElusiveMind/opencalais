@@ -172,6 +172,13 @@ function calais_build_nodetype_settings(&$form) {
       '#default_value' => variable_get("calais_api_allow_distribution_{$key}", NULL),
       '#description' => t('Indicates whether the extracted metadata can be distributed by Calais'),
     );
+    $form["calais_{$key}_settings"]["calais_threshold_{$key}"] = array(
+      '#type' => 'textfield',
+      '#size' => 5,
+      '#title' => t('Relevancy Threshold'),
+      '#default_value' => variable_get("calais_threshold_{$key}", 0.0),
+      '#description' => t('The relevancy threshold for Calais term association. The relevancy score is based on an importance detection for each unique entity and assigns a relevance score in the range 0 - 1 (1 being the most relevant and important).'),
+    );
 
     calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, TRUE);
   }
@@ -224,13 +231,11 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       if (calais_processing_type($node) == CALAIS_PROCESS_NO)
         return;
 
-      //cache_clear_all();  -- this is extra per issue 286923, but keeping commented to see if anything breaks
       $date = format_date($node->created, 'custom', 'r');
       $body = filter_xss($node->body, array());
-      $data = calais_api_build_xml_request($node->title, $date, $body);
       $node_settings = calais_get_node_settings($node);
-      $node_settings['contentType'] = 'TEXT/XML';
-      $keywords = calais_api_analyze($data, $node_settings);
+      $calais = new Calais($node_settings);
+      $keywords = $calais->analyzeXML($node->title, $body, $date);
 
       if (sizeof($keywords) > 0) {
         db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
@@ -239,29 +244,16 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       module_invoke_all('calais_preprocess', $node, $keywords);
 
       $vocabularies = calais_get_entity_vocabularies($node->type);
+      $threshold = calais_get_node_threshold($node->type);
 
-      foreach ($keywords as $cat => $terms) {
+      foreach ($keywords as $cat => $metadata) {
         $vid = $vocabularies[$cat];
 
-        foreach ($terms as $term) {
-          $term = trim($term);
-          $tid = calais_verify_and_get_term($vid, $term, 'calais');
-          if ($tid) {
-            calais_assign_node_calaisterm($node->nid, $tid);
-          }
-          else {
-            watchdog('Calais', "Could not create Calais Term: $term");
-          }
-
-          //-- Auto-assign Taxonomy Terms
-          if (calais_processing_type($node) == CALAIS_PROCESS_AUTO) {
-            $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
-            if ($tid) {
-              calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
-            }
-            else {
-              watchdog('Calais', "Could not assign Taxonomy Term: $term");
-            }
+        foreach ($metadata->terms as $term) {
+          calais_associate_term($vid, $term, $node);
+          calais_populate_term_guid($vid, $term);
+          if (calais_processing_type($node) == CALAIS_PROCESS_AUTO && $term->relevance >= $threshold) {
+            calais_assign_to_node($vid, $term, $node);
           }
         }
       }
@@ -273,6 +265,51 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 }
 
 /**
+ * Associates a retrieved Calais term with a node.
+ *
+ * @param $vid  The vocabulary id of the term
+ * @param $term The CalaisTerm object
+ * @param $node The node for association
+ */
+function calais_associate_term($vid, $term, $node) {
+  $tid = calais_verify_and_get_term($vid, $term, 'calais');
+  if ($tid) {
+    calais_assign_node_calaisterm($node->nid, $tid, $term->relevance);
+  }
+  else {
+    watchdog('Calais', "Could not create Calais Term: $term->value");
+  }  
+}
+
+/**
+ * For legacy terms with no guid, set the guid if the term name matches.
+ *
+ * @param $vid  The vocabulary id of the term
+ * @param $term The CalaisTerm object
+ */
+function calais_populate_term_guid($vid, $term) {
+  db_query("UPDATE {term_data} SET guid = '%s' WHERE vid = %d AND name = '%s' AND guid IS NULL", $term->guid, $vid, $term->value);  
+}
+
+/**
+ * Assign the taxonomy term to the node.
+ *
+ * @param $vid  The vocabulary id of the term
+ * @param $term The CalaisTerm object
+ * @param $node The node for association
+ */
+function calais_assign_to_node($vid, $term, $node) {
+  $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+  if ($tid) {
+    calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
+  }
+  else {
+    watchdog('Calais', "Could not assign Taxonomy Term: $term->value");
+  }
+}
+
+
+/**
  * Implementation of hook_calais_preprocess().
  *
  * Make sure that a vocabulary exists for all entities returned, if not, create it.
@@ -280,12 +317,12 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 function calais_calais_preprocess($node, &$keywords) {
   $vocabularies = calais_get_entity_vocabularies();
 
-  foreach ($keywords as $cat => $terms) {
+  foreach ($keywords as $cat => $metadata) {
     $vid = $vocabularies[$cat];
 
     // Create a vocabulary if we come across an entity that we dont know of.
     if (!$vid) {
-      $vid = calais_create_entity_vocabulary($cat);
+      $vid = calais_create_entity_vocabulary($metadata->readable_type());
       $vocabularies[$cat] = $vid;
       variable_set('calais_vocabulary_names', $vocabularies);
 
@@ -319,17 +356,15 @@ function calais_verify_and_get_term($vid, $term, $module) {
   }
 
   $bool = FALSE;
-  $term = trim($term);
-
-  $bool = db_result(db_query("SELECT count(*) FROM {".$tablename."} where name='%s' and vid=%d", $term, $vid));
+  $bool = db_result(db_query("SELECT count(*) FROM {".$tablename."} where guid='%s' and vid=%d", $term->guid, $vid));
 
   if (!$bool) {
 
-    $form_values = array('vid' => $vid, 'name' => $term);
+    $form_values = array('vid' => $vid, 'name' => $term->value, 'guid' => $term->guid);
 
     switch ($module) {
       case 'calais':
-        db_query("INSERT INTO {".$tablename."}(name,vid) values('%s',%d)", $term, $vid);
+        db_query("INSERT INTO {".$tablename."}(guid,name,vid) values('%s','%s',%d)", $term->guid, $term->value, $vid);
         break;
 
       case 'taxonomy':
@@ -338,15 +373,24 @@ function calais_verify_and_get_term($vid, $term, $module) {
     }
   }
 
-  $tid = db_result(db_query("SELECT tid FROM {".$tablename."} WHERE name='%s' and vid=%d", $term, $vid));
-
-  cache_clear_all();
+  $tid = db_result(db_query("SELECT tid FROM {".$tablename."} WHERE guid='%s' and vid=%d", $term->guid, $vid));
   return $tid;
 }
 
-function calais_assign_node_calaisterm($nid, $tid) {
+/**
+ * Implementation of hook_taxonomy();
+ *
+ * Post process the insert/update of taxonomy terms to make sure the proper guid gets inserted into the taxonomy tables.
+ */
+function calais_taxonomy($op, $type, $data) {
+  if ($type == 'term' && ($op == 'insert' || $op == 'update') && isset($data['guid'])) {
+    db_query("UPDATE {term_data} SET guid = '%s' WHERE tid = %d", $data['guid'], $data['tid']);
+  }
+}
+
+function calais_assign_node_calaisterm($nid, $tid, $relevance = 0.0) {
   db_query("DELETE FROM {calais_term_node} where nid=%d and tid=%d", $nid, $tid);
-  db_query("INSERT INTO {calais_term_node} (nid, tid) VALUES(%d, %d)", $nid, $tid);
+  db_query("INSERT INTO {calais_term_node} (nid, tid, relevance) VALUES(%d, %d, %f)", $nid, $tid, $relevance);
 }
 
 function calais_assign_node_taxonomyterm($nid, $vid, $tid) {
@@ -372,19 +416,31 @@ function calais_processing_type($var) {
   }
   $key = drupal_strtolower($nodetype);
 
-  return variable_get('calais_node_'. $key .'_process', CALAIS_PROCESS_NO);
+  return variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO);
 }
 
 /**
  * Return the Calais parameter settings for the specific node type.
  */
 function calais_get_node_settings($node) {
+  $key = drupal_strtolower($node->type);
   $settings = array(
-    'allowSearch' => variable_get("calais_api_allow_searching_{$node->type}", FALSE) ? 'true' : 'false',
-    'allowDistribution' => variable_get("calais_api_allow_distribution_{$node->type}", FALSE) ? 'true' : 'false',
+    'allowSearch' => variable_get("calais_api_allow_searching_{$key}", FALSE) ? 'true' : 'false',
+    'allowDistribution' => variable_get("calais_api_allow_distribution_{$key}", FALSE) ? 'true' : 'false',
   );
   return $settings;
 }
+
+/**
+ * Return the relevancy threshold settings for the specific node type.
+ *
+ * @param $node_type Node type.
+ */
+function calais_get_node_threshold($node_type) {
+  $type = drupal_strtolower($node_type);
+  return variable_get("calais_threshold_{$type}", 0.0);
+}
+
 
 /**
  * Get a list of the entities that Calais API defines:
@@ -475,22 +531,24 @@ function calais_get_vocabularies($type = NULL) {
 
 /**
  * Returns a map of suggested terms for a given vocabulary id. This will return
- * sugested terms for all vocabularies if no vid is specified.
+ * suggested terms for all vocabularies if no vid is specified.
  *
  * @param $nid The node id to get the calais keywords
+ * @param $type The node type
  * @param $vid Optional, a specific vocabulary id to return terms
  *
  * @return Array { $vid => array('term1', 'term2', 'term3') }
  */
-function calais_get_keywords($nid, $vid = NULL) {
+function calais_get_keywords($nid, $type, $vid = NULL) {
+  $threshold = calais_get_node_threshold(drupal_strtolower($type));
   $terms = array();
 
   if ($vid) {
     $res = db_query(" SELECT name
                         FROM {calais_term} t
                         JOIN {calais_term_node} tn ON tn.tid=t.tid
-                        WHERE tn.nid=%d and t.vid=%d
-                        ORDER BY name asc ", $nid, $vid);
+                        WHERE tn.nid=%d and t.vid=%d and tn.relevance >= %f
+                        ORDER BY name asc ", $nid, $vid, $threshold);
 
     $terms[$vid] = array();
     while ($obj = db_fetch_object($res)) {
@@ -500,7 +558,7 @@ function calais_get_keywords($nid, $vid = NULL) {
   else {
     $vocabularies = calais_get_entity_vocabularies();
     foreach ($vocabularies as $vid) {
-      $keys = calais_get_keywords($nid, $vid = NULL);
+      $keys = calais_get_keywords($nid, $type, $vid);
       $terms[$vid] = $keys[$vid];
     }
   }
@@ -509,11 +567,26 @@ function calais_get_keywords($nid, $vid = NULL) {
 }
 
 /**
+ * Get the CalaisTerm for the term name and node id. 
+ * NOTE: Columns were renamed here so that this object has the same attributes as CalaisTerm for consistency
+ *
+ * @param $nid The node id to limit the calais term look up
+ * @param $term_name The term name to look up
+ */
+function calais_get_node_term($nid, $term_name) {
+  $res = db_query(" SELECT t.name as value, t.guid, tn.relevance
+                      FROM {calais_term} t
+                      JOIN {calais_term_node} tn ON tn.tid=t.tid
+                      WHERE tn.nid=%d and t.name='%s'", $nid, $term_name);
+  return db_fetch_object($res);
+}
+
+/**
  * Creates a new vocabulary for the supplied Calais entity name.
  */
 function calais_create_entity_vocabulary($entity) {
     $description = t("Calais Entity Vocabulary: @name", array('@name' => $entity));
-    db_query("INSERT INTO {vocabulary} (name,description,module,tags) values('%s','%s','taxonomy',1)",
+    db_query("INSERT INTO {vocabulary} (name,description,module,tags) values('%s','%s','calais',1)",
               $entity, $description);
     return db_last_insert_id('vocabulary', 'vid');
 }
