@@ -10,8 +10,12 @@ function calais_call_test() {
   
   $body = filter_xss($data);
 	$date = format_date(time(), 'custom', 'r');
-	$request = calais_api_build_xml_request('Calais Call Test', $date, $body);
-	$keywords = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
+	
+	$calais = new Calais();
+	$keywords = $calais->analyzeXML('Calais Call Test', $body, $date);
+	
+  // $request = calais_api_build_xml_request('Calais Call Test', $date, $body);
+  // $keywords = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
   
   $rawmetadata .= "<pre>";
   $rawmetadata .= print_r($keywords, TRUE);
