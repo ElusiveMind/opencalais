@@ -18,6 +18,7 @@ function calais_call_test() {
   // $keywords = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
   
   $rawmetadata .= "<pre>";
+  $rawmetadata .= print_r($calais->rdf, TRUE);
   $rawmetadata .= print_r($keywords, TRUE);
   $rawmetadata .= "</pre>";
   

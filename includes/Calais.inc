@@ -170,7 +170,7 @@ EOD;
     $keywords = new stdClass();
     foreach ($indexed_triples as $guid => $indx) {
       $this->extract_entities($keywords, $guid, $indx);
-      //$this->extract_events($keywords, $guid, $indx);
+      $this->extract_events($keywords, $guid, $indx);
       $this->extract_relevance($keywords, $indx);
     }
 
@@ -178,7 +178,11 @@ EOD;
   }
 
   /**
-   *
+   * Extracts the entities from the returned data
+   * 
+   * @param $keywords The result array for CalaisMetadata
+   * @param $guid The guid for the current Calais Term
+   * @param $indx The indexed triple for the current Calais Term/GUID
    */
   protected function extract_entities(&$keywords, $guid, $indx) {
     $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
@@ -200,7 +204,37 @@ EOD;
   }
 
   /**
-   *
+   * Extracts the events & facts from the returned data. For now it is considered best that all
+   * Events & Facts are put into one Vocabulary and identified by their type.
+   * 
+   * @param $keywords The result array for CalaisMetadata
+   * @param $guid The guid for the current Calais Term
+   * @param $indx The indexed triple for the current Calais Term/GUID
+   */
+  protected function extract_events(&$keywords, $guid, $indx) {
+    $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
+    if (isset($type) && strpos($type[0], 'http://s.opencalais.com/1/type/em/r') === 0) {
+      
+      $type_guid = $type[0];
+      $type_value = preg_replace('/.*\//ims', '', $type_guid);
+      $type_value = calais_api_make_readable($type_value);
+      $type_value = db_escape_string($type_value);
+      
+      if (!property_exists($keywords, 'EventsFacts')) {
+        $keywords->EventsFacts = new CalaisMetadata('http://drupal.org/project/opencalais/EventsFacts', 'EventsFacts');
+      }
+
+      $metadata = &$keywords->EventsFacts;
+      // Not sure if the best number for relevance of an Event/Fact, for now 1 will always include
+      $metadata->add_term($type_guid, $type_value, 1.0);      
+    }
+  }
+
+  /**
+   * Extracts the relevance score from the returned data
+   * 
+   * @param $keywords The result array for CalaisMetadata
+   * @param $indx The indexed triple for the current Calais Term
    */
   protected function extract_relevance(&$keywords, $indx) {
     $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
