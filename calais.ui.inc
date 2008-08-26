@@ -58,7 +58,7 @@ function _calais_disable_taxonomy_field(&$field) {
  * Render the form for the Calais taxonomy & suggestions
  */
 function calais_keywords_form(&$form_state, $node) {
-  drupal_set_title(t('Calais Terms'));
+  drupal_set_title(t('Calais Terms: ') . $node->title);
   
   $path = drupal_get_path('module', 'calais');
   drupal_add_css("$path/calais.css");
@@ -80,6 +80,11 @@ function calais_keywords_form(&$form_state, $node) {
     // If there are keywords available, make these vocabs appear at the top of the long list
     if ($has_keywords) {
       $vocabulary->weight -= 100;
+    }
+
+    // If there are no keywords but existing terms, make these vocabs appear next
+    if (!$has_keywords && !empty($current_tags)) {
+      $vocabulary->weight -= 50;
     }
     
     $form['calais'][$vocabulary->vid] = array(
