@@ -14,9 +14,10 @@
  * @file
  */
 
-define('CALAIS_PROCESS_NO', 'NO');
-define('CALAIS_PROCESS_AUTO', 'AUTO');
-define('CALAIS_PROCESS_MANUAL', 'MANUAL');
+define('CALAIS_PROCESS_NO',         'NO');
+define('CALAIS_PROCESS_AUTO',       'AUTO');
+define('CALAIS_PROCESS_AUTO_ONCE',  'AUTO_ONCE');
+define('CALAIS_PROCESS_MANUAL',     'MANUAL');
 
 module_load_include('inc', 'calais', 'calais.ui');
 
@@ -138,7 +139,8 @@ function calais_build_nodetype_settings(&$form) {
   $options = array(
     CALAIS_PROCESS_NO => t('Not processed by Calais (default)'),
     CALAIS_PROCESS_MANUAL => t('Have keywords be suggested (manual term association)'),
-    CALAIS_PROCESS_AUTO => t('Have keywords automatically applied'),
+    CALAIS_PROCESS_AUTO => t('Have keywords automatically applied on every update'),
+    CALAIS_PROCESS_AUTO_ONCE => t('Have keywords automatically applied on creation only, and suggested on updates'),
   );
 
   foreach ($node_types as $nt) {
@@ -177,7 +179,7 @@ function calais_build_nodetype_settings(&$form) {
       '#size' => 5,
       '#title' => t('Relevancy Threshold'),
       '#default_value' => variable_get("calais_threshold_{$key}", 0.0),
-      '#description' => t('The relevancy threshold for Calais term association. The relevancy score is based on an importance detection for each unique entity and assigns a relevance score in the range 0 - 1 (1 being the most relevant and important).'),
+      '#description' => t('The relevancy threshold for Calais term association. The relevancy score is based on an importance detection for each unique entity and assigns a relevance score in the range 0 - 1 (0 being the least relevant; 1 being the most relevant; The lower the threshold the more terms will appear).'),
     );
 
     calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, TRUE);
@@ -228,7 +230,9 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 
     case "insert":
     case "update":
-      if (calais_processing_type($node) == CALAIS_PROCESS_NO)
+      $process_type = calais_processing_type($node);
+
+      if ($process_type == CALAIS_PROCESS_NO)
         return;
 
       $date = format_date($node->created, 'custom', 'r');
@@ -252,7 +256,9 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         foreach ($metadata->terms as $term) {
           calais_associate_term($vid, $term, $node);
           calais_populate_term_guid($vid, $term);
-          if (calais_processing_type($node) == CALAIS_PROCESS_AUTO && $term->relevance >= $threshold) {
+          if ($process_type == CALAIS_PROCESS_AUTO 
+              || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert") 
+              && $term->relevance >= $threshold) {
             calais_assign_to_node($vid, $term, $node);
           }
         }
