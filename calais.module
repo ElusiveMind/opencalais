@@ -20,6 +20,7 @@ define('CALAIS_PROCESS_AUTO_ONCE',  'AUTO_ONCE');
 define('CALAIS_PROCESS_MANUAL',     'MANUAL');
 
 module_load_include('inc', 'calais', 'calais.ui');
+module_load_include('inc', 'calais', 'calais.admin');
 
 /**
  * Implementation of hook_perm().
@@ -40,6 +41,16 @@ function calais_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('calais_admin_settings'),
     'access arguments' => array('administer calais'),
+    'type' => MENU_LOCAL_TASK
+  );
+
+  $items['admin/settings/calais/bulk-process'] = array(
+    'title' => 'Calais Bulk Processing',
+    'description' => 'Submits all Nodes of a specific type to Calais for processing',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('calais_bulk_process'),
+    'access arguments' => array('administer calais'),
+    'weight' => 10,
     'type' => MENU_LOCAL_TASK
   );
 
@@ -64,159 +75,6 @@ function calais_access($node) {
 }
 
 /**
- * Build the administration page for Calais and Content Types
- */
-function calais_admin_settings() {
-
-  $form = array();
-
-  calais_build_entity_settings($form);
-  calais_build_nodetype_settings($form);
-
-  $form['#submit'][] = 'calais_admin_settings_submit';
-
-  $form = system_settings_form($form);
-  return $form;
-}
-
-/**
- * Build the Entity selector. Used for Entity suppression.
- */
-function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global', $allow_disable = FALSE) {
-  $entity_attributes = array();
-  $entities = array_keys(calais_get_entity_vocabularies());
-  sort($entities);
-
-  $disabled = FALSE;
-  if ($allow_disable) {
-    $var_name = "calais_use_global_{$type}";
-    $disabled = variable_get($var_name, TRUE);
-
-    $form[$var_name] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Use Calais Global Entity defaults'),
-      '#default_value' => $disabled,
-      '#description' => t('If checked, this content type will use the Global Calais Entities.'),
-    );
-
-    if ($disabled) {
-      $entity_attributes['style'] = 'display:none';
-    }
-
-    $field_id = 'edit-'. str_replace(array('][', '_', ' '), '-', $var_name);
-    drupal_add_js("$(document).ready(function() {
-      $('#$field_id').click(function() {
-        $('.{$type}_entities').toggle();
-      });
-    });", 'inline');
-  }
-
-  $params = array('@name' => $name);
-  $form["calais_entity_settings_{$type}"] = array(
-    '#type' => 'fieldset',
-    '#title' => t('@name Calais Entities', $params),
-    '#attributes' => array_merge(array('class' => "{$type}_entities"), $entity_attributes),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  );
-
-  $form["calais_entity_settings_{$type}"]["calais_applied_entities_{$type}"] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Which Calais Entities do you wish to use?'),
-    '#default_value' => variable_get("calais_applied_entities_{$type}", $entities),
-    '#options' => drupal_map_assoc($entities),
-    '#description' => t('These are the entities that will get applied to content. If an Entity is not selected then the Calais suggestions will be ignored'),
-  );
-}
-
-/**
- * Build the node type settings form for Calais integration.
- */
-function calais_build_nodetype_settings(&$form) {
-  node_types_rebuild();
-
-  $node_types = node_get_types('types', NULL, TRUE);
-  $options = array(
-    CALAIS_PROCESS_NO => t('Not processed by Calais (default)'),
-    CALAIS_PROCESS_MANUAL => t('Have keywords be suggested (manual term association)'),
-    CALAIS_PROCESS_AUTO => t('Have keywords automatically applied on every update'),
-    CALAIS_PROCESS_AUTO_ONCE => t('Have keywords automatically applied on creation only, and suggested on updates'),
-  );
-
-  foreach ($node_types as $nt) {
-    $key = drupal_strtolower($nt->type);
-    $name = $nt->name;
-    $param_name = array('@node' => $name);
-    
-    $form["calais_{$key}_settings"] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Processing Settings for @node', $param_name),
-      '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
-    );
-
-    $form["calais_{$key}_settings"]["calais_node_{$key}_process"] = array(
-      '#type' => 'radios',
-      '#parents' => array('calais_node_'. $key .'_process'),
-      '#title' => t('Calais Processing'),
-      '#default_value' => variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO),
-      '#options' => $options,
-    );
-    $form["calais_{$key}_settings"]["calais_api_allow_searching_{$key}"] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow Calais Searching'),
-      '#default_value' => variable_get("calais_api_allow_searching_{$key}", NULL),
-      '#description' => t('Indicates whether future searches can be performed on the extracted metadata by Calais'),
-    );
-    $form["calais_{$key}_settings"]["calais_api_allow_distribution_{$key}"] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow Calais Distribution'),
-      '#default_value' => variable_get("calais_api_allow_distribution_{$key}", NULL),
-      '#description' => t('Indicates whether the extracted metadata can be distributed by Calais'),
-    );
-    $form["calais_{$key}_settings"]["calais_threshold_{$key}"] = array(
-      '#type' => 'textfield',
-      '#size' => 5,
-      '#title' => t('Relevancy Threshold'),
-      '#default_value' => variable_get("calais_threshold_{$key}", 0.0),
-      '#description' => t('The relevancy threshold for Calais term association. The relevancy score is based on an importance detection for each unique entity and assigns a relevance score in the range 0 - 1 (0 being the least relevant; 1 being the most relevant; The lower the threshold the more terms will appear).'),
-    );
-
-    calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, TRUE);
-  }
-}
-
-/**
- * Have to override so that we can manage vocabulary - node_type relationships.
- *
- * @param unknown_type $form_id
- * @param unknown_type $form_state
- */
-function calais_admin_settings_submit($form, &$form_state) {
-
-  system_settings_form_submit($form, $form_state);
-
-  // Also, set vocabulary-node relationships
-  $node_types = node_get_types('types', NULL, TRUE);
-  $all_vocabularies = calais_get_entity_vocabularies();
-  foreach ($node_types as $nt) {
-    $key = drupal_strtolower($nt->type);
-    $state = variable_get('calais_node_'. $key .'_process', CALAIS_PROCESS_NO);
-    foreach ($all_vocabularies as $entity => $vid) {
-      // Clean-up
-      db_query("DELETE FROM {vocabulary_node_types} WHERE vid='%d' and type='%s'", $vid, $key);
-    }
-    if ($state !== CALAIS_PROCESS_NO) {
-      // assign all configured calais vocabs to this node type
-      $node_vocabularies = calais_get_entity_vocabularies($key);
-      foreach ($node_vocabularies as $entity => $vid) {
-        db_query("INSERT INTO {vocabulary_node_types} (vid, type) values('%d','%s') ", $vid, $key);
-      }
-    }
-  }
-}
-
-/**
  * Implementation of hook_nodeapi().
  *
  * Process node updates and if applicable, update the Calais terms.
@@ -231,44 +89,54 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case "insert":
     case "update":
       $process_type = calais_processing_type($node);
-
-      if ($process_type == CALAIS_PROCESS_NO)
-        return;
-
-      $date = format_date($node->created, 'custom', 'r');
-      $body = filter_xss($node->body, array());
-      $node_settings = calais_get_node_settings($node);
-      $calais = new Calais($node_settings);
-      $keywords = $calais->analyzeXML($node->title, $body, $date);
-
-      if (sizeof($keywords) > 0) {
-        db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
-      }
-
-      module_invoke_all('calais_preprocess', $node, $keywords);
-
-      $vocabularies = calais_get_entity_vocabularies($node->type);
-      $threshold = calais_get_node_threshold($node->type);
-
-      foreach ($keywords as $cat => $metadata) {
-        $vid = $vocabularies[$cat];
-
-        foreach ($metadata->terms as $term) {
-          calais_associate_term($vid, $term, $node);
-          calais_populate_term_guid($vid, $term);
-          if ($process_type == CALAIS_PROCESS_AUTO 
-              || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert") 
-              && $term->relevance >= $threshold) {
-            calais_assign_to_node($vid, $term, $node);
-          }
-        }
-      }
-
-      module_invoke_all('calais_postprocess', $node, $keywords);
-
+      calais_process_node($node, $process_type);
       break;
   }
 }
+
+/**
+ * Process the provided node according to the processing type.
+ *
+ * @param $node The node to process
+ * @param $process_type The processing type for this node.
+ */
+function calais_process_node(&$node, $process_type) {
+
+  if ($process_type == CALAIS_PROCESS_NO)
+    return;
+
+  $date = format_date($node->created, 'custom', 'r');
+  $body = filter_xss($node->body, array());
+  $node_settings = calais_get_node_settings($node);
+  $calais = new Calais($node_settings);
+  $keywords = $calais->analyzeXML($node->title, $body, $date);
+
+  if (sizeof($keywords) > 0) {
+    db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
+  }
+
+  module_invoke_all('calais_preprocess', $node, $keywords);
+
+  $vocabularies = calais_get_entity_vocabularies($node->type);
+  $threshold = calais_get_node_threshold($node->type);
+
+  foreach ($keywords as $cat => $metadata) {
+    $vid = $vocabularies[$cat];
+
+    foreach ($metadata->terms as $term) {
+      calais_associate_term($vid, $term, $node);
+      calais_populate_term_guid($vid, $term);
+      if ( ($process_type == CALAIS_PROCESS_AUTO || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert")) 
+          && round($term->relevance * 1000) >= round($threshold * 1000)) {
+        calais_assign_to_node($vid, $term, $node);
+      }
+    }
+  }
+
+  module_invoke_all('calais_postprocess', $node, $keywords);
+
+}
+
 
 /**
  * Associates a retrieved Calais term with a node.
