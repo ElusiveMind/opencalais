@@ -140,7 +140,7 @@ function calais_create_vocabularies() {
   $vocabularies = array();
 
   foreach ($entities as $e) {
-    $vid = calais_create_entity_vocabulary($e);
+    $vid = calais_create_entity_vocabulary(calais_api_make_readable($e));
     $vocabularies[$e] = $vid;
   }
 
@@ -154,7 +154,7 @@ function calais_create_vocabularies() {
 function calais_remove_vocabularies() {
   $entities = calais_get_entity_vocabularies();
   foreach ($entities as $key => $value) {
-    db_query("DELETE FROM {vocabulary} where vid =%d ", $value);
+    taxonomy_del_vocabulary($value);
   }
 
   cache_clear_all();
