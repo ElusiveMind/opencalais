@@ -7,7 +7,7 @@
 
 class Calais {
   
-  const PATH = '/enlighten/calais.asmx/Enlighten';
+  const PATH = '/enlighten/rest/';
   
   private $defaults = array(
     'host' => 'http://api.opencalais.com',
@@ -80,8 +80,7 @@ class Calais {
       return array();
     }
 
-    $xml       = $ret->data;    
-    $this->rdf = $this->extract_rdf($xml);
+    $this->rdf = $ret->data;
     $keywords  = $this->parse_rdf($this->rdf);    
     return $keywords;    
   }
@@ -130,18 +129,6 @@ EOD;
     $req .= "<BODY>$body</BODY>";
     $req .= "</DOCUMENT>";
     return $req;
-  }
-  
-  /**
-   * Calais returns an XML envelope around the RDF, instead of
-   * pure RDF/XML, so we need to remove it.
-   *
-   * @return RDF/XML
-   */
-  protected function extract_rdf($data) {
-    $xml     = html_entity_decode($data);
-    $success = preg_match('/<rdf:RDF.+\/rdf:RDF>/ims', $xml, $matches);
-    return $matches[0];
   }
   
   /**
