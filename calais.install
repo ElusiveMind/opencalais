@@ -60,20 +60,36 @@ function calais_install() {
                 KEY `nid` (`nid`),
                 KEY `tid` (`tid`)
                 ) /*!40100 DEFAULT CHARACTER SET UTF8 */  ");
-      
-      $entities = calais_api_get_all_entities();
-      $vocabularies = array();
+      break;
 
-      foreach ($entities as $e) {
-        $vid = calais_create_entity_vocabulary($e);
-        $vocabularies[$e] = $vid;
-      }
+    case 'pgsql':
+
+      db_query("CREATE TABLE {calais_term} (
+                tid serial,
+                vid int_unsigned NOT NULL default 0,
+                name varchar(255) NOT NULL default '',
+                PRIMARY KEY (tid)
+                )");
       
-      variable_set('calais_vocabulary_names', $vocabularies);
-      cache_clear_all();
+      db_query("CREATE TABLE {calais_term_node} (
+                nid int_unsigned NOT NULL default 0,
+                tid int_unsigned NOT NULL default '0',
+                PRIMARY KEY (tid, nid)
+                )");
+      // Need to add indexes
       break;
   }
 
+  $entities = calais_api_get_all_entities();
+  $vocabularies = array();
+
+  foreach ($entities as $e) {
+    $vid = calais_create_entity_vocabulary($e);
+    $vocabularies[$e] = $vid;
+  }
+  
+  variable_set('calais_vocabulary_names', $vocabularies);
+  cache_clear_all();
 }
 
 function calais_update_2() {
