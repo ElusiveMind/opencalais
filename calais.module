@@ -89,7 +89,8 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case "insert":
     case "update":
       $process_type = calais_processing_type($node);
-      calais_process_node($node, $process_type);
+      $threshold = calais_get_node_threshold($node->type);
+      calais_process_node($node, $process_type, $threshold);
       break;
   }
 }
@@ -100,7 +101,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  * @param $node The node to process
  * @param $process_type The processing type for this node.
  */
-function calais_process_node(&$node, $process_type) {
+function calais_process_node(&$node, $process_type, $threshold) {
 
   if ($process_type == CALAIS_PROCESS_NO)
     return;
@@ -118,8 +119,7 @@ function calais_process_node(&$node, $process_type) {
   module_invoke_all('calais_preprocess', $node, $keywords);
 
   $vocabularies = calais_get_entity_vocabularies($node->type);
-  $threshold = calais_get_node_threshold($node->type);
-
+  
   foreach ($keywords as $cat => $metadata) {
     $vid = $vocabularies[$cat];
 
