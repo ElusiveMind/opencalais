@@ -33,6 +33,8 @@ function calais_theme() {
  * TODO: Make this configurable so the user can specify how/where they want to edit calais terms.
  */
 function calais_form_alter(&$form, $form_state, $form_id) {
+
+  // Node edit form
   if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
     
     $node = $form['#node'];
@@ -40,6 +42,19 @@ function calais_form_alter(&$form, $form_state, $form_id) {
     
     foreach ($vocabs as $vocabulary) {
       _calais_disable_taxonomy_field($form['taxonomy']['tags'][$vocabulary->vid]);
+    }
+  }
+  // Display Calais GUI on Taxonomy Term Editor if it exists
+  else if ($form_id == 'taxonomy_form_term'){
+    $term = $form['#term'];
+    if(!empty($term['guid'])) {
+      $form['identification']['guid'] = array(
+        '#type' => 'markup',
+        '#prefix' => '<div class="form-item" id="calais-guid"><label>' .t('Calais GUID'). '</label>',
+        '#value' => $term['guid'],
+        '#suffix' => '</div>',
+        '#weight' => 10,
+      );
     }
   }
 }
