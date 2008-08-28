@@ -195,9 +195,18 @@ function calais_bulk_process() {
     '#description' => t('The number of Nodes to process per batch.'),
   );
 
+  $form["calais_bulk_threshold"] = array(
+    '#type' => 'textfield',
+    '#title' => t('Relevance Threshold'),
+    '#size' => 5,
+    '#default_value' => 0.650,
+    '#description' => t('The relevance threshold that each returned Calais term must meet or exceed in order to be applied to the node.  The problem with automated bulk processing is that is has the potential to generate a immense amount of tags that are not very relevent, tag noise, thus diluting the richness of a vocabulary.  This threshold (specified as a value between 0.000 and 1.000, with 1 being the most relevant) allows you to limit the Calais terms applied based on the relevance score returned with each Calais term.'),
+  );
+
   $form["calais_bulk_throttle"] = array(
     '#type' => 'checkbox',
     '#title' => t('Throttle processing'),
+    '#default_value' => TRUE,
     '#description' => t('Calais implements a throttle on the number of requests per second. If you see @error messages, you should throttle the requests to Calais so that all nodes will get processed.', array('@error' => "Developer Over Qps")),
   );
 
@@ -206,6 +215,13 @@ function calais_bulk_process() {
   $form['#submit'][] = 'calais_bulk_process_submit';
 
   return $form;
+}
+
+function calais_bulk_process_validate($form, &$form_state) {
+  $threshold = round($form_state['values']['calais_bulk_threshold'] * 1000);
+  if ($threshold < 0 || $threshold > 1000) {
+    form_set_error('calais_bulk_threshold', t('Threshold must be between 0.000 and 1.000'));
+  }
 }
 
 /**
@@ -217,10 +233,11 @@ function calais_bulk_process_submit($form, &$form_state) {
   $type = $values['calais_bulk_type'];
   $limit = $values['calais_bulk_limit'];
   $throttle = $values['calais_bulk_throttle'];
+  $threshold = $values['calais_bulk_threshold'];
  
   $batch = array(
     'operations' => array(
-      array('calais_batch_process', array($type, $limit, $throttle)),
+      array('calais_batch_process', array($type, $limit, $throttle, $threshold)),
     ),
     'finished' => 'calais_batch_finished',
     'title' => t('Calais Bulk Processing'),
@@ -241,6 +258,9 @@ function calais_bulk_process_submit($form, &$form_state) {
  *
  * @param throttle
  *   Flag indicating if Calais requests should be throttled (to stay below quota limits).
+ *
+ * @param threshold
+ *   Relevence threshold for Calais terms.
  *
  * @param context
  *   $context is an array that will contain information about the
@@ -268,7 +288,7 @@ function calais_bulk_process_submit($form, &$form_state) {
  *   1 (or no value explicitly set) means the operation is finished
  *   and the batch processing can continue to the next operation.
  */
-function calais_batch_process($type, $limit, $throttle, &$context) {
+function calais_batch_process($type, $limit, $throttle, $threshold, &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['progress'] = 0;
     $context['sandbox']['current_node'] = 0;
@@ -281,10 +301,10 @@ function calais_batch_process($type, $limit, $throttle, &$context) {
   while ($row = db_fetch_array($result)) {
 
     $node = node_load($row['nid'], NULL, TRUE);
-    calais_process_node($node, CALAIS_PROCESS_AUTO);
+    calais_process_node($node, CALAIS_PROCESS_AUTO, $threshold);
 
     if($throttle) {
-      usleep(10000);
+      usleep(100000);
     }
 
     $context['results'][] = $node->title;
