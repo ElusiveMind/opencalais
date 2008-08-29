@@ -179,7 +179,6 @@ EOD;
       $keyword_type = preg_replace('/.*\//ims', '', $keyword_type_guid);
 
       $keyword_value = $indx['http://s.opencalais.com/1/pred/name'][0];
-      $keyword_value = db_escape_string($keyword_value);
       
       if (!property_exists($keywords, $keyword_type)) {
         $keywords->$keyword_type = new CalaisMetadata($keyword_type_guid, $keyword_type);
@@ -205,7 +204,6 @@ EOD;
       $type_guid = $type[0];
       $type_value = preg_replace('/.*\//ims', '', $type_guid);
       $type_value = calais_api_make_readable($type_value);
-      $type_value = db_escape_string($type_value);
       
       if (!property_exists($keywords, 'EventsFacts')) {
         $keywords->EventsFacts = new CalaisMetadata('http://drupal.org/project/opencalais/EventsFacts', 'EventsFacts');
