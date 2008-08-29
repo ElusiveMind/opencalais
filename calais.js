@@ -34,7 +34,9 @@ $(document).ready(function() {
 function calaisAddKeyword(tags, keyword) {
   keyword = cleanKeyword(keyword);
 	var current = $.trim(tags.val());
-	if(current.indexOf(keyword) == -1) {
+  var regexp = keywordRegexp(keyword);
+
+	if(!regexp.test(current)) {
 		if(current == '') {
 			tags.val(keyword);				
 		}
@@ -50,27 +52,11 @@ function calaisAddKeyword(tags, keyword) {
 function calaisRemoveKeyword(tags, keyword) {
   keyword = cleanKeyword(keyword);
 	var current = $.trim(tags.val());
-	var index = current.indexOf(keyword); 
-	if(index >= 0) {
-		// Deal with funky spaces around commas
-		//current = current.replace(/ +,/, ',');
-		//current = current.replace(/, +/, ',');
-
-
-		// Remove the keyword with any amount of whitespace on either side
-		
-		// Later, remove keyword with whitespace that is either 
-		// * start -> keyword -> comma
-		// * comma -> keyword -> comma
-		// * comma -> keyword -> end
-
-		var keywordRegexp = new RegExp('\s*' + keyword + '\s*');
-		//alert(current + " -- " + keywordRegexp);
-		// Remove the keyword
-		current = current.replace(keywordRegexp, '');
-		
-		// Remove all only whitespace b/w commas
-		// replace ,<whitespace>, - with - ,,
+	var regexp = keywordRegexp(keyword);
+	
+	if(regexp.test(current)) {
+	
+		current = current.replace(regexp, '$1$2');
 		
 		// Deal with a remaining extra comma
 		current = current.replace(/^\s*,/, '');
@@ -79,6 +65,20 @@ function calaisRemoveKeyword(tags, keyword) {
 		tags.val(current);
 	}
 }
+
+/**
+ * Get a regular expression that matches a WHOLE term and not a term within another term.
+ * Example: United Refugee Rights and Refugee Rights
+ *
+ * A whole term will:
+ *    - start with either the beginning of the line (^) or a comma
+ *    - end with either a comma or the end of the line ($)
+ *    - it can also be padded with whitespace
+ */
+function keywordRegexp(keyword) {
+  return new RegExp('(^|,)\s*' + keyword + '\s*(,|$)');
+}
+
 
 /**
  * Perform any necessary functions to cleanup the keyword
