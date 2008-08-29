@@ -150,6 +150,9 @@ function calais_keywords_form_validate($form, &$form_state) {
 
 /**
  * Update the node for any Calais keyword modifications.
+ * NOTE: This only allows currently associated calis keywords to be assigned as terms. 
+ *       Do we want to allow any/all tags in addition to Calais or should these Calais
+ *       vocabularies be limited to the terms that the service returns. -FF
  */
 function calais_keywords_form_submit($form, &$form_state) {
   $node = (object)$form_state['values'];
@@ -160,7 +163,9 @@ function calais_keywords_form_submit($form, &$form_state) {
     $terms = drupal_explode_tags($vid_value);
     foreach ($terms as $term_name) {
       $term = calais_get_node_term($node->nid, $term_name);
-      calais_assign_to_node($vid, $term, $node);
+      if($term){
+        calais_assign_to_node($vid, $term, $node);
+      }
     }
   }
 
