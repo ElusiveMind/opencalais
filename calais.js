@@ -32,6 +32,7 @@ $(document).ready(function() {
  * Insert keyword, adding a comma if necessary
  */
 function calaisAddKeyword(tags, keyword) {
+  keyword = cleanKeyword(keyword);
 	var current = $.trim(tags.val());
 	if(current.indexOf(keyword) == -1) {
 		if(current == '') {
@@ -47,20 +48,45 @@ function calaisAddKeyword(tags, keyword) {
  * Remove the keyword and cleanup any comma nonsense
  */
 function calaisRemoveKeyword(tags, keyword) {
+  keyword = cleanKeyword(keyword);
 	var current = $.trim(tags.val());
 	var index = current.indexOf(keyword); 
 	if(index >= 0) {
 		// Deal with funky spaces around commas
-		current = current.replace(/ +,/, ',');
-		current = current.replace(/, +/, ',');
+		//current = current.replace(/ +,/, ',');
+		//current = current.replace(/, +/, ',');
+
+
+		// Remove the keyword with any amount of whitespace on either side
 		
+		// Later, remove keyword with whitespace that is either 
+		// * start -> keyword -> comma
+		// * comma -> keyword -> comma
+		// * comma -> keyword -> end
+
+		var keywordRegexp = new RegExp('\s*' + keyword + '\s*');
+		//alert(current + " -- " + keywordRegexp);
 		// Remove the keyword
-		current = current.replace(keyword, '');
+		current = current.replace(keywordRegexp, '');
+		
+		// Remove all only whitespace b/w commas
+		// replace ,<whitespace>, - with - ,,
 		
 		// Deal with a remaining extra comma
-		current = current.replace(/^,/, '');
-		current = current.replace(/,$/, '');
-		current = current.replace(/,,/, ',');
+		current = current.replace(/^\s*,/, '');
+		current = current.replace(/,\s*$/, '');
+		current = current.replace(/,\s*,/, ',');
 		tags.val(current);
 	}
+}
+
+/**
+ * Perform any necessary functions to cleanup the keyword
+ */
+function cleanKeyword(keyword) {
+  // If it has a comma IN it, surround with quotes
+	if(keyword.indexOf(',') != -1) {
+    keyword = '"' + keyword + '"'
+	}
+  return keyword;
 }
