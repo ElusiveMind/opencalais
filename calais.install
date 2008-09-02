@@ -157,18 +157,6 @@ function calais_uninstall() {
 // Update to 6.x-2.x (and migrate from 5.x if needed)
 function calais_update_6200() {
   $ret = array();
-
-  $ret[] = update_sql('UPDATE {system} SET weight = 10 WHERE name = "calais"');
-
-  // Check tables for columns that need to migrate to 6.x style
-  
- 
-  return $ret;
-}
-
-// Upgrades to incorporate relevancy and guid
-function calais_update_6200() {
-  $ret = array();
   
   if(!db_column_exists('calais_term', 'guid')) {
     db_add_field($ret, 'calais_term', 'guid', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'initial' => ''));
