@@ -95,6 +95,9 @@ function calais_api_admin_settings() {
  *
  * @param $content The content to ship off to Calais for analysis
  * @param $parameters Array of Calais parameters for overriding defaults.
+ * @see http://www.opencalais.com/APIcalls#inputparameters
+ *
+ * @return The analyzed content
  */
 function calais_api_analyze($content, $parameters = array()) {
   $calais = new Calais($parameters);
@@ -102,11 +105,18 @@ function calais_api_analyze($content, $parameters = array()) {
 }
 
 /**
- * Build the XML document request format expected by Calais
+ * Analyze the content via the Calais XML interface.
  *
- * @return an xml string to be submitted to Calais
+ * @param $title The title of the content
+ * @param $body The entire body of the content
+ * @param $date The date of the content (can be created or updated date) 
+ *    This date is used to base calculations of words like "tomorrow" or "yesterday"
+ * @param $parameters Array of Calais parameters for overriding defaults.
+ * @see http://www.opencalais.com/APIcalls#inputparameters
+ *
+ * @return The analyzed content
  */
-function calais_api_build_xml_request($title, $body, $date, $parameters = array()) {
+function calais_api_analyze_xml($title, $body, $date, $parameters = array()) {
   $calais = new Calais($parameters);
   return $calais->analyzeXML($title, $body, $date);
 }
