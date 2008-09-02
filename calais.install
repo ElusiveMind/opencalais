@@ -73,10 +73,31 @@ function calais_schema() {
   $schema['calais_term'] = array(
     'description' => 'Holds retrieved Calais terms and the Drupal vocabulary to which they are associated',
     'fields' => array(
-      'tid'   => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-      'vid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'name'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
-      'guid'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
+      'tid' => array(
+        'type' => 'serial', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Identifier for a Calais term')
+      ),
+      'vid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The Vocabulary this term is in')
+      ),
+      'name' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE,
+        'description' => t('The value of the term')
+      ),
+      'guid' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE,
+        'description' => t('The Calais GUID of this term')
+      ),
     ),
     'indexes' => array(
       'vid'    => array('vid'),
@@ -88,9 +109,29 @@ function calais_schema() {
   $schema['calais_term_node'] = array(
     'description' => 'Holds the association between a retrieved Calais term and a Node',
     'fields' => array(
-      'tid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'nid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-      'relevance' => array('type' => 'numeric', 'size' => 'normal', 'not null' => TRUE, 'default' => 0.0, 'precision' => 5, 'scale' => 3),
+      'tid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The term identifier')
+      ),
+      'nid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The node for this term')
+      ),
+      'relevance' => array(
+        'type' => 'numeric', 
+        'size' => 'normal', 
+        'not null' => TRUE, 
+        'default' => 0.0, 
+        'precision' => 5, 
+        'scale' => 3,
+        'description' => t('The relevence score from Calais for this term/node combination')
+        ),
     ),
     'indexes' => array(
       'tid'    => array('tid'),
@@ -113,19 +154,33 @@ function calais_uninstall() {
   db_drop_field($ret, 'term_data', 'guid');  
 }
 
-function calais_update_2() {
-  // Module weights: put calais after taxonomy for form altering.
+// Update to 6.x-2.x (and migrate from 5.x if needed)
+function calais_update_6200() {
   $ret = array();
+
   $ret[] = update_sql('UPDATE {system} SET weight = 10 WHERE name = "calais"');
+
+  // Check tables for columns that need to migrate to 6.x style
+  
+ 
   return $ret;
 }
 
 // Upgrades to incorporate relevancy and guid
-function calais_update_6001() {
+function calais_update_6200() {
   $ret = array();
-  db_add_field($ret, 'calais_term', 'guid', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'initial' => ''));
-  db_add_field($ret, 'calais_term_node', 'relevance', array('type' => 'numeric', 'size' => 'normal', 'not null' => TRUE, 'default' => 0.0, 'precision' => 5, 'scale' => 3, 'initial' => 1.000));
-  db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
+  
+  if(!db_column_exists('calais_term', 'guid')) {
+    db_add_field($ret, 'calais_term', 'guid', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'initial' => ''));
+  }
+  
+  if(!db_column_exists('calais_term_node', 'relevance')) {
+    db_add_field($ret, 'calais_term_node', 'relevance', array('type' => 'numeric', 'size' => 'normal', 'not null' => TRUE, 'default' => 0.0, 'precision' => 5, 'scale' => 3, 'initial' => 1.000));
+  }
+  
+  if(!db_column_exists('term_data', 'guid')) {
+    db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
+  }
   return $ret;
 }
 
