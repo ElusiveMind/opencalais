@@ -1,6 +1,6 @@
 ; $Id $
 name = Calais Tag Modifier
-description = "Provides functionality for Blacklist, Substitutions, etc."
+description = "Provides functionality for Blacklist, Renaming, etc."
 package = "Calais"
 core = 6.x
 dependencies[] = calais

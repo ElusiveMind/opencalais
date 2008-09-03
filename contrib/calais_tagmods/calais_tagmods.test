@@ -1,0 +1,206 @@
+<?php
+
+class CalaisTagmodsTestCase extends DrupalWebTestCase {
+
+	function setUp() {
+		parent::setUp('calais_api', 'calais', 'calais_tagmods');
+		
+		// Create and login user
+    $admin_user = $this->drupalCreateUser(array('administer taxonomy'));
+    $this->drupalLogin($admin_user);
+	}
+
+	function tearDown() {
+		parent::tearDown();
+	}
+
+	function createVocabulary() {
+		$vocab = array();
+	  $vocab['name'] = $this->randomName(20);
+    taxonomy_save_vocabulary($vocab);
+		return $vocab;
+	}
+	
+	function createTerm($vid) {
+		$term = array();
+		$term['vid'] = $vid;
+	  $term['name'] = $this->randomName(30);
+		$term['description'] = $this->randomName(200);
+    taxonomy_save_term($term);
+		return $term;
+	}
+}
+
+class CalaisTagmodsRenameTaxonomyTermTestCase extends CalaisTagmodsTestCase {
+
+  function getInfo() {
+    return array(
+      'name' => t('Rename Taxonomy Term Test'),
+      'description' => t('Verify that the rename propertly renames a Taxonomy term.'),
+      'group' => t('Calais')
+    );
+  }
+
+	function testRenameTaxonomyTerm() {
+		$vocab = $this->createVocabulary();
+		$term = $this->createTerm($vocab['vid']);
+		$term['guid'] = $this->randomName(30);
+    taxonomy_save_term($term);
+
+		$guid = db_result(db_query('SELECT guid FROM {term_data} WHERE tid = %d', $term['tid']));
+		$this->assertEqual($guid, $term['guid'], 'Term guid matches');
+
+    $rename = $this->randomName(30);
+		$calais_term = new CalaisTerm($term['guid'], $rename);
+
+    _calais_tagmods_rename_term($calais_term);    
+		
+		$name = db_result(db_query('SELECT name FROM {term_data} WHERE tid = %d', $term['tid']));
+		$this->assertEqual($name, $calais_term->value, 'Taxonomy Term name matches CalaisTerm');
+	}
+}
+
+class CalaisTagmodsRenameCalaisTermTestCase extends CalaisTagmodsTestCase {
+
+  function getInfo() {
+    return array(
+      'name' => t('Rename Calais Term Test'),
+      'description' => t('Verify that the rename propertly renames a Calais terms.'),
+      'group' => t('Calais')
+    );
+  }
+
+	function testRenameCalaisTerm() {
+    $term = array(
+      'vid' => 6999,
+      'guid' => $this->randomName(30),
+      'name' => $this->randomName(30),
+    );
+	
+    db_query("INSERT INTO {calais_term}(guid,name,vid) values('%s','%s',%d)", $term['guid'], $term['name'], $term['vid']);
+    $term['tid'] = db_last_insert_id('calais_term', 'tid');
+
+    $rename = $this->randomName(30);
+		$calais_term = new CalaisTerm($term['guid'], $rename);
+
+    _calais_tagmods_rename_term($calais_term);    
+		
+		$name = db_result(db_query('SELECT name FROM {calais_term} WHERE tid = %d', $term['tid']));
+		$this->assertEqual($name, $calais_term->value, 'Calais Term name matches CalaisTerm');
+	}
+}
+
+
+/*
+
+class CalaisAssociateTermTestCase extends CalaisTestCase {
+	
+	function getInfo() {
+    return array(
+      'name' => t('Associate Calais Term with Node'),
+      'description' => t('Test associating new Calais Terms with an existing node.'),
+      'group' => t('Calais')
+    );
+  }
+  
+	// Associating new calais terms with an existing node
+	function testAssociateTerms() {
+		$vocab = $this->createVocabulary();
+		$vid = $vocab['vid'];
+		$node = $this->drupalCreateNode();
+		$calais_term = new CalaisTerm($this->randomName(100), $term['name'], 0.5);
+		
+		$terms = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertTrue(empty($terms[$vid]), 'No Calais Terms Exist');
+		
+		calais_associate_term($vid, $calais_term, $node);
+		
+		$terms = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertTrue(count($terms[$vid]) == 1, 'One Calais Term Exists');
+		$this->assertEqual($terms[0], $calais_term->value, 'Calais Term name is correct');
+		
+		$relevance = db_result(db_query('SELECT relevance FROM {calais_term_node} WHERE nid = %d', $node->nid));
+		$this->assertEqual($relevance, 0.5, 'Calais Term relevance is correct');		
+	}
+}
+
+class CalaisAssignTermsToNodeTestCase extends CalaisTestCase {
+	
+	function getInfo() {
+    return array(
+      'name' => t('Assign Taxonomy Term to Node'),
+      'description' => t('Test associating Taxonomy Terms with an existing node.'),
+      'group' => t('Calais')
+    );
+  }
+
+	// Associating new calais terms with an existing node
+	function testAssignToNode() {
+		$vocab = $this->createVocabulary();
+		$vid = $vocab['vid'];
+		$node = $this->drupalCreateNode();		
+		$calais_term = new CalaisTerm($this->randomName(100), $this->randomName(20), 0.5);
+
+		$current_terms = taxonomy_get_term_by_name($calais_term->value);
+		$this->assertTrue(empty($current_terms), 'No Taxonomy Term Exist');
+
+		calais_assign_to_node($vid, $calais_term, $node);
+
+		$terms = taxonomy_get_term_by_name($calais_term->value);
+		$this->assertTrue(count($terms) == 1, 'Taxonomy Term was created');
+		
+		$node_terms = taxonomy_node_get_terms_by_vocabulary($node, $vid);
+		$this->assertTrue(count($node_terms) == 1, 'One Node Taxonomy Term Exists');
+		$this->assertEqual($terms[0]->name, $calais_term->value, 'Taxonomy Term name is correct');
+		$this->assertEqual($terms[0]->guid, $calais_term->guid, 'Taxonomy Term guid is correct');
+	}	
+}
+
+class CalaisGetKeywordsTestCase extends CalaisTestCase {
+	
+	function getInfo() {
+    return array(
+      'name' => t('Get Keywords'),
+      'description' => t('Test looking up locally cached Calais keywords with threshold filtering.'),
+      'group' => t('Calais')
+    );
+  }
+
+	// Associating new calais terms with an existing node
+	function testGetKeywords() {
+		$vocab = $this->createVocabulary();
+		$vid = $vocab['vid'];
+		$node = $this->drupalCreateNode();		
+		$calais_terms[] = new CalaisTerm($this->randomName(100), 'Low Relevance', 0.001);
+		$calais_terms[] = new CalaisTerm($this->randomName(100), 'Mid Relevance', 0.5);
+		$calais_terms[] = new CalaisTerm($this->randomName(100), 'High Relevance', 1.0);
+
+		foreach ($calais_terms as $calais_term) {
+			calais_associate_term($vid, $calais_term, $node);
+		}
+		
+	  $type = drupal_strtolower($node->type);
+		$thres_key = "calais_threshold_{$type}";
+		
+		variable_set($thres_key, 0.0);
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertEqual(count($keywords[$vid]), 3, "Three terms were returned for no threshold.");
+
+		variable_set($thres_key, 0.499);
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertEqual(count($keywords[$vid]), 2, "Two terms were returned for < 0.001.");
+
+		variable_set($thres_key, 0.500);
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertEqual(count($keywords[$vid]), 2, "Two terms were returned for < 0.001.");
+
+		variable_set($thres_key, 0.5001);
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertEqual(count($keywords[$vid]), 1, "One term was returned for > 0.001.");
+
+		variable_set($thres_key, 1.0);
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
+		$this->assertEqual(count($keywords[$vid]), 1, "One term was returned for max threshold.");
+	}	
+}
+*/

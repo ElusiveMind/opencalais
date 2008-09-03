@@ -46,12 +46,12 @@ function calais_tagmods_settings() {
     '#description' => t('A comma-separated list of terms to be removed from the Calais response. Example: funny, bungee jumping, "Company, Inc.".'),
   );
   
-  $form['calais_tag_substitution'] = array(
+  $form['calais_tag_rename'] = array(
     '#type' => 'textarea',
-    '#title' => t('Calais Substitutions'),
-    '#default_value' => variable_get('calais_tag_substitution', NULL),
+    '#title' => t('Calais Rename'),
+    '#default_value' => variable_get('calais_tag_rename', NULL),
     '#rows' => 6,
-    '#description' => t('A list of substitutions. One option per line. Key-value pairs may be entered separated by an equals. i.e. Calais Term=Some Local Substitution'),
+    '#description' => t('A list of key-value pair for renaming of Calais terms. One option per line. Key-value pairs may be entered separated by an equals. i.e. Calais Term=Some Rename'),
   );
   
   $form = system_settings_form($form);
@@ -65,7 +65,7 @@ function calais_tagmods_settings() {
  */
 function calais_tagmods_calais_preprocess($node, &$keywords) {
   _calais_tagmods_apply_blacklist($keywords);
-  _calais_tagmods_apply_substitutions($keywords);
+  _calais_tagmods_apply_rename($keywords);
 }
 
 /**
@@ -75,19 +75,19 @@ function _calais_tagmods_apply_blacklist(&$keywords) {
   
   $bl_string = variable_get('calais_tag_blacklist', NULL);
   $blacklist = drupal_explode_tags($bl_string);
-
-  foreach ($keywords as $cat => $terms) {
-    $diff = array_diff($terms, $blacklist);
-    $keywords->$cat = array_values($diff);
+  foreach ($keywords as $cat => &$metadata) {
+    foreach ($blacklist as $index => $blterm) {
+      $metadata->remove_term_by_name($blterm);
+    }
   }
 }
 
 /**
- * Substitute keywords with others.
+ * Rename keywords.
  */
-function _calais_tagmods_apply_substitutions(&$keywords) {
+function _calais_tagmods_apply_rename(&$keywords) {
 
-  $sub_string = variable_get('calais_tag_substitution', NULL);
+  $sub_string = variable_get('calais_tag_rename', NULL);
   $rows = explode("\n", $sub_string);
   $subs = array();
   foreach ($rows as $row) {
@@ -98,15 +98,26 @@ function _calais_tagmods_apply_substitutions(&$keywords) {
     }
   }
 
-  foreach ($keywords as $cat => $terms) {
-    foreach ($terms as $key => $term) {
-      if (array_key_exists($term, $subs)) {
-        $terms[$key] = $subs[$term];
-        $keywords->$cat = $terms;
+  $sub_keys = array_keys($subs);
+  foreach ($keywords as $cat => &$metadata) {
+    foreach ($metadata->terms as &$term) {
+      if (in_array($term->value, $sub_keys)) {
+        $term->value = $subs[$term->value];
+        _calais_tagmods_rename_term($term);
       }
     }
   }
 }
 
+/**
+ * Rename the term in both the calais term table and the taxonomy table, but only if the GUIDs match.
+ */
+function _calais_tagmods_rename_term($term) {
 
+  // Rename the calais term
+  db_query("UPDATE {calais_term} SET name = '%s' WHERE guid is not NULL AND guid = '%s' AND name != '%s'", $term->value, $term->guid, $term->value);
+  
+  // Rename the taxonomy term
+  db_query("UPDATE {term_data} SET name = '%s' WHERE guid is not NULL AND guid = '%s' AND name != '%s'", $term->value, $term->guid, $term->value);
+}
 
