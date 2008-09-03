@@ -45,8 +45,25 @@ class CalaisMetadata {
     return FALSE;
   }
   
+  function remove_term_by_name($name) {
+    $filter = new TermFilter($name);
+    $this->terms = array_filter($this->terms, array($filter, 'filter'));
+  }
+  
   function readable_type() {
     return calais_api_make_readable($this->type);
+  }
+}
+
+class TermFilter {
+  public $filter;
+
+  function __construct($filter) {
+    $this->filter = $filter;
+  }
+  
+  function filter($term) {
+    return $term->value != $this->filter;
   }
 }
 
