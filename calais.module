@@ -188,7 +188,7 @@ function calais_assign_to_node($vid, $term, $node) {
  *
  * Make sure that a vocabulary exists for all entities returned, if not, create it.
  */
-function calais_calais_preprocess($node, &$keywords) {
+function calais_calais_preprocess(&$node, &$keywords) {
   $vocabularies = calais_get_entity_vocabularies();
 
   foreach ($keywords as $cat => $metadata) {
@@ -206,8 +206,7 @@ function calais_calais_preprocess($node, &$keywords) {
 }
 
 /**
- * Checks if a specified term exists in a specified vocabulary.
- * If it does not exist - creates it.
+ * Checks if a specified term exists in a specified vocabulary by GUID.
  *
  * @param int $vid
  * @param name $term
