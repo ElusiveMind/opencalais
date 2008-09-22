@@ -14,10 +14,11 @@ class Calais {
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
-    'submitter' => "Drupal Calais",
+    'submitter' => 'Drupal',
     'calculateRelevanceScore' => 'true',
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
+    'caller' => 'Drupal',
   );
   
   public $parameters;
@@ -110,6 +111,7 @@ class Calais {
                       c:submitter="$attributes[submitter]">
     </c:userDirectives>
     <c:externalMetadata>
+      <c:caller>$attributes[caller]</c:caller>
     </c:externalMetadata>
     </c:params>
 EOD;
