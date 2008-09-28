@@ -1,0 +1,160 @@
+<?php
+/*
+  Copyright (C) 2008 by Phase2 Technology.
+  Author(s): Frank Febbraro
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
+
+  $Id$
+ */
+/**
+ * @file
+ */
+
+module_load_include('module', 'calais');
+module_load_include('module', 'calais_api');
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function calais_geo_uninstall() {
+  drupal_uninstall_schema('calais_geo');
+
+  variable_del('calais_geo_vocabularies');
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function calais_geo_install() {
+  drupal_install_schema('calais_geo');
+  
+  // Setup a default/minimal configuration
+  $entities = calais_get_entity_vocabularies();
+    
+  $geo_vocabs = array();
+  $default_vocabs = array('City', 'ProvinceOrState');
+  foreach ($default_vocabs as $vocab) {
+    $readable = calais_api_make_readable($vocab);
+    if(isset($entities[$vocab])) {
+      $geo_vocabs[$entities[$vocab]] = $entities[$vocab];
+    }
+    else if(isset($entities[$readable])) {
+      $geo_vocabs[$entities[$readable]] = $entities[$readable];
+    }
+  }
+  variable_set('calais_geo_vocabularies', $geo_vocabs);
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function calais_geo_schema() {
+  $schema['calais_geo'] = array(
+    'description' => 'Data associated with Calais Geomapping for nodes',
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The node id')
+      ),
+      'vid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The node revision id')
+      ),
+      'term_center' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The term to use as the map center')
+      ),
+      'latlon_center' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The manual Lat/Lon to use as the map center')
+      ),
+      'center_lat' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The internal cache of the latitude center. Either manual or look up')
+      ),
+      'center_lon' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The internal cache of the longitude center. Either manual or look up')
+      ),
+      'width' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('Width of the map')
+      ),
+      'height' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('Height of the map')
+      ),
+      'zoom' => array(
+        'type' => 'varchar', 
+        'length' => 10, 
+        'description' => t('Zoom level of the map')
+      ),
+    ),
+    'indexes' => array(
+      'nid' => array('nid'),
+    ),
+    'primary key' => array('vid'),
+  );
+  $schema['calais_geo_term'] = array(
+    'description' => 'Data associated with Calais Geo terms',
+    'fields' => array(
+      'gtid' => array(
+        'description' => t('The primary identifier for a geo term.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'nid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The node id')
+      ),
+      'vid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The node revision id')
+      ),
+      'term' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The term to map')
+      ),
+      'lat' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The Latitude')
+      ),
+      'lon' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The Longitude')
+      ),
+    ),
+    'indexes' => array(
+      'nid' => array('nid'),
+      'vid' => array('vid'),
+    ),
+    'primary key' => array('gtid'),
+  );
+  return $schema;
+}
