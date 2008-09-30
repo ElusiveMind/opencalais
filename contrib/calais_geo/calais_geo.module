@@ -15,6 +15,13 @@
  */
 
 /**
+ * Implementation of hook_perm().
+ */
+function calais_geo_perm() {
+  return array('administer calais geo');
+}
+
+/**
  * Implementation of hook_theme().
  */
 function calais_geo_theme() {
@@ -35,14 +42,14 @@ function calais_geo_menu() {
     'description' => 'Configuration for Calais based Geomapping.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('calais_geo_settings_form'),
-    'access arguments' => array('administer calais'),
+    'access arguments' => array('administer calais geo'),
     'file' => 'calais_geo.admin.inc',
   );
   /*
   $items['calais/geo/preview'] = array(
     'title' => 'Calais Geo Map Preview',
     'page callback' => 'calais_geo_preview',
-    'access arguments' => array('administer calais'),
+    'access arguments' => array('access calais geo'),
     'type' => MENU_CALLBACK,
   );
   */
