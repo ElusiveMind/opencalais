@@ -27,7 +27,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$body = filter_xss($this->get_test_content());
 		$date = format_date(time(), 'custom', 'r');
 		
-		$calais = new Calais();
+		$calais = new Calais(array('host' => 'http://beta.opencalais.com'));
 		$results = $calais->analyzeXML('Calais API Test', $body, $date);
 
 		$this->arrayContains($results->City, 'Denver', 'Denver is a City');
@@ -58,10 +58,20 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 
 		$this->arrayContains($results->EventsFacts, 'Person Political', 'Person Political is an Event/Fact');
 		$this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
+		
+		$this->assertFalse(property_exists($results, 'Geo'), 'Geo is not an entity type, mishandling of Geo data.');
+		$this->assertGeoData($results->ProvinceOrState, 'Indiana', '40.006603', '-86.2914');		
+		$this->assertGeoData($results->ProvinceOrState, 'North Carolina', '35.483364', '-79.40023');		
 	}
 
 	function arrayContains($haystack, $needle, $message) {
 		$this->assertTrue($haystack->has_term_value($needle), t($message));
+	}
+
+	function assertGeoData($data, $entity, $lat, $lon) {
+		$term = $data->get_term_by_value($entity);
+		$this->assertEqual($term->lat, $lat, "Latitude {$term->lat} for $entity was incorrect");
+		$this->assertEqual($term->lon, $lon, "Longitude {$term->lon} for $entity was incorrect");
 	}
 
 	function get_test_content() {
