@@ -2,14 +2,6 @@
 
 class CalaisTestCase extends DrupalWebTestCase {
 
-  function getInfo() {
-    return array(
-      'name' => t('Populate Existing Term GUID Test'),
-      'description' => t('Verify various pieces of integrating Calis data with Nodes & Taxonomy.'),
-      'group' => t('Calais')
-    );
-  }
-
 	function setUp() {
 		parent::setUp('calais_api', 'calais');
 		
@@ -39,7 +31,7 @@ class CalaisTestCase extends DrupalWebTestCase {
 	}
 }
 
-class CalaisPopulateTermGuidTestCase extends DrupalWebTestCase {
+class CalaisPopulateTermGuidTestCase extends CalaisTestCase {
 
   function getInfo() {
     return array(
@@ -81,7 +73,7 @@ class CalaisAssociateTermTestCase extends CalaisTestCase {
 		$vocab = $this->createVocabulary();
 		$vid = $vocab['vid'];
 		$node = $this->drupalCreateNode();
-		$calais_term = new CalaisTerm($this->randomName(100), $term['name'], 0.5);
+		$calais_term = new CalaisTerm($this->randomName(100), $this->randomName(30), 0.5);
 		
 		$terms = calais_get_keywords($node->nid, $node->type, $vid);
 		$this->assertTrue(empty($terms[$vid]), 'No Calais Terms Exist');
@@ -90,7 +82,7 @@ class CalaisAssociateTermTestCase extends CalaisTestCase {
 		
 		$terms = calais_get_keywords($node->nid, $node->type, $vid);
 		$this->assertTrue(count($terms[$vid]) == 1, 'One Calais Term Exists');
-		$this->assertEqual($terms[0], $calais_term->value, 'Calais Term name is correct');
+		$this->assertEqual($terms[$vid][0], $calais_term->value, 'Calais Term name is correct');
 		
 		$relevance = db_result(db_query('SELECT relevance FROM {calais_term_node} WHERE nid = %d', $node->nid));
 		$this->assertEqual($relevance, 0.5, 'Calais Term relevance is correct');		
