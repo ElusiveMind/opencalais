@@ -10,7 +10,8 @@ class Calais {
   const PATH = '/enlighten/rest/';
   
   private $defaults = array(
-    'host' => 'http://api.opencalais.com',
+    'host' => 'http://beta.opencalais.com',
+    //'host' => 'http://api.opencalais.com',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
@@ -23,6 +24,8 @@ class Calais {
   
   public $parameters;
   public $rdf;
+  public $triples;
+  public $keywords;
   
   /**
    * Constructs an instance of the Calais facade.
@@ -134,36 +137,37 @@ EOD;
   }
   
   /**
-   * You need to understand how Calais responses are structured to parse its
-   * RDF.
+   * Parse the RDF.  First render it into an indexed fashion, then have at it. We need to process
+   * in 2 stages. The first stage identifies all of the entities, events, and facts. The second
+   * stage then adds relevance and geo info to those previously identified terms.  The 2nd pass i
+   * is required b/c sometimes the relevance/geo data appears in the document before the term
+   * has been identified.
    *
-   * Samle element:
-   *  [http://d.opencalais.com/pershash-1/fc0ac3c8-5d95-3625-bbd2-6e6fc3f1d703] => Array (
-   *    'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' =>
-   *    array (
-   *       0 => 'http://s.opencalais.com/1/type/em/e/Person',
-   *    ),
-   *    'http://s.opencalais.com/1/pred/name' =>
-   *    array (
-   *       0 => 'Diana',
-   *    )
-   *  )
+   * @param $rdf_xml
+   *    The RDF to parse
+   * @return
+   *    An array of CalaisMetadata objects.
+   * @see 
+   *    CalaisMetadata.inc
    */
   protected function parse_rdf($rdf_xml) {
 
     $parser = ARC2::getRDFXMLParser();
     $parser->parse(NULL, $rdf_xml);
-    $indexed_triples = $parser->getSimpleIndex();
-    //return $indexed_triples;
+    $this->triples = $parser->getSimpleIndex();
 
-    $keywords = new stdClass();
-    foreach ($indexed_triples as $guid => $indx) {
-      $this->extract_entities($keywords, $guid, $indx);
-      $this->extract_events($keywords, $guid, $indx);
-      $this->extract_relevance($keywords, $indx);
+    $this->keywords = new stdClass();
+    foreach ($this->triples as $guid => $indx) {
+      $this->extract_entities($this->keywords, $guid, $indx);
+      $this->extract_events($this->keywords, $guid, $indx);
     }
 
-    return $keywords;
+    foreach ($this->triples as $guid => $indx) {
+      $this->extract_relevance($this->keywords, $indx);
+      $this->extract_geo($this->keywords, $indx);
+    }
+
+    return $this->keywords;
   }
 
   /**
@@ -175,7 +179,7 @@ EOD;
    */
   protected function extract_entities(&$keywords, $guid, $indx) {
     $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
-    if (isset($type) && array_key_exists("http://s.opencalais.com/1/pred/name", $indx)) {
+    if (isset($type) && strpos($type[0], "http://s.opencalais.com/1/type/em/e") !== FALSE) {
       
       $keyword_type_guid = $type[0];
       $keyword_type = preg_replace('/.*\//ims', '', $keyword_type_guid);
@@ -190,7 +194,7 @@ EOD;
       $metadata->add_term($guid, $keyword_value);        
     }
   }
-
+  
   /**
    * Extracts the events & facts from the returned data. For now it is considered best that all
    * Events & Facts are put into one Vocabulary and identified by their type.
@@ -233,12 +237,34 @@ EOD;
   }
 
   /**
-   *
+   * Assign a relevance score to the supplied subject.
    */
   protected function assign_relevance(&$keywords, $subject, $relevance) {
     foreach ($keywords as &$entity) {
       if ($entity->has_guid($subject)) {
         $entity->add_relevance($subject, $relevance);      
+      }
+    }
+  }
+
+  /**
+   * Extracts the geo disambiguation data
+   * 
+   * @param $keywords The result array for CalaisMetadata
+   * @param $indx The indexed triple for the current Calais Term
+   */
+  protected function extract_geo(&$keywords, $indx) {
+    $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
+    if (isset($type) && $type[0] == 'http://s.opencalais.com/1/type/er/Geo') {
+      $subject = $indx['http://s.opencalais.com/1/pred/subject'][0];
+      $normalized = $indx['http://s.opencalais.com/1/pred/name'][0];
+      $lat = $indx['http://s.opencalais.com/1/pred/lat'][0];
+      $lon = $indx['http://s.opencalais.com/1/pred/long'][0];
+      
+      foreach ($keywords as &$entity) {
+        if ($entity->has_guid($subject)) {
+          $entity->add_geo($subject, $normalized, $lat, $lon);      
+        }
       }
     }
   }
