@@ -38,12 +38,14 @@ function calais_geo_menu() {
     'access arguments' => array('administer calais'),
     'file' => 'calais_geo.admin.inc',
   );
+  /*
   $items['calais/geo/preview'] = array(
     'title' => 'Calais Geo Map Preview',
     'page callback' => 'calais_geo_preview',
     'access arguments' => array('administer calais'),
     'type' => MENU_CALLBACK,
   );
+  */
 
   return $items;
 }
@@ -56,12 +58,6 @@ function calais_geo_block($op = 'list', $delta = 0, $edit = array()) {
   switch ($op) {
     case 'list':
       return _calais_geo_block_list();
-      break;
-    case 'configure':
-      return _calais_geo_block_configure($delta);
-      break;
-    case 'save':
-      return _calais_geo_block_save($delta, $edit);
       break;
     case 'view':
       return _calais_geo_block_view($delta);
@@ -112,7 +108,7 @@ function calais_geo_block_contents($delta, $nid){
  * @return
  *    An object with the geo data to render
  */
-function calais_geo_load($vid){
+function calais_geo_load($vid) {
   $geo_data = db_fetch_object(db_query('SELECT * FROM {calais_geo} WHERE vid = %d', $vid));
   if($geo_data) {
     $geo_data->terms = array();
@@ -132,7 +128,7 @@ function calais_geo_load($vid){
  * @param $data
  *    The geo data to save. Can be an object or an array.
  */
-function calais_geo_save($node, $data){
+function calais_geo_save($node, $data) {
   $data = (array)$data;
   $data['nid'] = $node->nid;
   $data['vid'] = $node->vid;
@@ -148,7 +144,7 @@ function calais_geo_save($node, $data){
       $data['center_lon'] = $lon;
     }
     else {
-      $result = _calais_geo_get_latlon($center);
+      $result = calais_geo_get_latlon($node, $center);
       if($result) {
         $data['center_lat'] = $result['lat'];
         $data['center_lon'] = $result['lon'];
@@ -166,7 +162,7 @@ function calais_geo_save($node, $data){
   db_query('DELETE FROM {calais_geo_term} WHERE vid = %d', $node->vid);
 
   foreach ($data['terms'] as $term) {
-    $result = _calais_geo_get_latlon($term);
+    $result = calais_geo_get_latlon($node, $term);
     if($result) {
       $geoterm = array('nid' => $node->nid, 'vid' => $node->vid, 'term' => $term);
       $geoterm['lat'] = $result['lat'];
@@ -312,7 +308,7 @@ function calais_geo_nodeapi(&$node, $op) {
   switch ($op) {
     case 'insert':
     case 'update':
-      if($node->calais_geo) {
+      if(property_exists($node, 'calais_geo')) {
         calais_geo_save($node, $node->calais_geo);
       }
       break;
@@ -404,16 +400,50 @@ function calais_geo_calais_geo_map(&$map_data) {
 */
 
 /**
- * Execute a keyword search on the geonames service to retrieve lat/lon for a name.
+ * Find the latitude and longitude of a given term. This will first look for the data within
+ * the calais term tables based on the Calais geo disambiguation data. If that turns up no data,
+ * we proceed to execute a keyword search on the geonames service to retrieve lat/lon for a name.
  *
- * We are searching only on the following featureclasses:
+ * @param $node
+ *    The node for which we are looking up terms
+ * @param $term
+ *    The term we are querying got location
+ */
+function calais_geo_get_latlon($node, $term) {
+  $data = _cg_calais_latlon($node, $term);
+  if($data === FALSE) {
+    $data = _cg_geonames_latlon($term);
+  }
+  return $data;
+}
+
+/**
+ * Look up a lat/lon for a term name in the calais table
+ */
+function _cg_calais_latlon($node, $term) {
+
+  $sql = "SELECT ct.* FROM {calais_term} AS ct";
+  $sql .= " INNER JOIN {calais_term_node} AS ctn ON ct.tid = ctn.tid";
+  $sql .= " WHERE ctn.nid = %d AND ct.name = '%s'";
+
+  $calais_term = db_fetch_object(db_query($sql, $node->nid, $term));
+  if ($calais_term === FALSE || empty($calais_term->latitude) || empty($calais_term->longitude))
+    return FALSE;
+
+  return array('lat' => $calais_term->latitude, 'lon' => $calais_term->longitude);
+}
+
+/**
+ * Look up lat/lon for a term name in the geonames service.
+ *
+ * When using Geonames, we are searching only on the following featureclasses:
  *    p = city, village, ...
  *    a = country, state, region, ...
  *
  * @see http://www.geonames.org/export/geonames-search.html
- * @see http://www.geonames.org/export/codes.html
+ * @see http://www.geonames.org/export/codes.html 
  */
-function _calais_geo_get_latlon($term) {
+function _cg_geonames_latlon($term) {
   $params = array(
     'name' => $term, 
     'maxrows' => 1, 
@@ -432,6 +462,7 @@ function _calais_geo_get_latlon($term) {
   }
   return $data;
 }
+
 
 /**
  * Default theme function to rendering the text that goes in the Google Map marker bubble.
