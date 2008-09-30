@@ -98,6 +98,22 @@ function calais_schema() {
         'not null' => TRUE,
         'description' => t('The Calais GUID of this term')
       ),
+      'resolved_name' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The normalized/resolved name of the term')
+      ),
+      'latitude' => array(
+        'type' => 'varchar', 
+        'length' => 25, 
+        'description' => t('The latitude value of the term, if it is a geo term')
+      ),
+      'longitude' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE,
+        'description' => t('The longitude value of the term, if it is a geo term')
+      ),
     ),
     'indexes' => array(
       'vid'    => array('vid'),
@@ -172,6 +188,14 @@ function calais_update_6200() {
   return $ret;
 }
 
+// Add columns for geo disambiguation
+function calais_update_6201() {
+  $ret = array();
+  db_add_field($ret, 'calais_term', 'resolved_name', array('type' => 'varchar', 'length' => 255));
+  db_add_field($ret, 'calais_term', 'latitude', array('type' => 'varchar', 'length' => 25));
+  db_add_field($ret, 'calais_term', 'longitude', array('type' => 'varchar', 'length' => 25));
+  return $ret;
+}
 
 
 /******************************** Helpers ****************************/
