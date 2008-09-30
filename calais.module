@@ -146,7 +146,7 @@ function calais_process_node(&$node, $process_type, $threshold) {
  * @param $node The node for association
  */
 function calais_associate_term($vid, $term, $node) {
-  $tid = calais_verify_and_get_term($vid, $term, 'calais');
+  $tid = calais_get_calais_term($vid, $term);
   if ($tid) {
     calais_assign_node_calaisterm($node->nid, $tid, $term->relevance);
   }
@@ -173,7 +173,7 @@ function calais_populate_term_guid($vid, $term) {
  * @param $node The node for association
  */
 function calais_assign_to_node($vid, $term, $node) {
-  $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+  $tid = calais_get_taxonomy_term($vid, $term);
   if ($tid) {
     calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
   }
@@ -206,47 +206,58 @@ function calais_calais_preprocess(&$node, &$keywords) {
 }
 
 /**
- * Checks if a specified term exists in a specified vocabulary by GUID.
+ * Checks if a specified calais term exists in a specified vocabulary by GUID. If it
+ * does not exist it will create it and return the term id.
  *
  * @param int $vid
  * @param name $term
  *
- * @return int $tid Term id in {calais_term} table
+ * @return $tid 
+ *    Term id from the {calais_term} table
  */
-function calais_verify_and_get_term($vid, $term, $module) {
+function calais_get_calais_term($vid, $term) {
 
-  switch ($module) {
-    case 'calais':
-      $tablename = "calais_term";
-      break;
+  $tid = db_result(db_query("SELECT tid FROM {calais_term} where guid = '%s' and vid = %d", $term->guid, $vid));
 
-    case 'taxonomy':
-      $tablename = 'term_data';
-      break;
+  $calais_term = new stdClass();
+  $calais_term->guid = $term->guid;
+  $calais_term->name = $term->value;
+  $calais_term->vid = $vid;
+  $calais_term->resolved_name = $term->resolvedName;
+  $calais_term->latitude = $term->lat;
+  $calais_term->longitude = $term->lon;
 
-    default:
-      return NULL;
+  if ($tid === FALSE) {
+    drupal_write_record('calais_term', $calais_term);
+  }
+  else {
+    $calais_term->tid = $tid;
+    drupal_write_record('calais_term', $calais_term, 'tid');        
   }
 
-  $bool = FALSE;
-  $bool = db_result(db_query("SELECT count(*) FROM {".$tablename."} where guid='%s' and vid=%d", $term->guid, $vid));
+  return $calais_term->tid;
+}
 
-  if (!$bool) {
+/**
+ * Checks if a taxonomy term exists in a specified vocabulary by GUID. If it
+ * does not exist it will create it and return the term id.
+ *
+ * @param int $vid
+ * @param name $term
+ *
+ * @return $tid 
+ *    Term id from the {term_data} table
+ */
+function calais_get_taxonomy_term($vid, $term) {
 
-    $form_values = array('vid' => $vid, 'name' => $term->value, 'guid' => $term->guid);
+  $tid = db_result(db_query("SELECT tid FROM {term_data} where guid='%s' and vid=%d", $term->guid, $vid));
 
-    switch ($module) {
-      case 'calais':
-        db_query("INSERT INTO {".$tablename."}(guid,name,vid) values('%s','%s',%d)", $term->guid, $term->value, $vid);
-        break;
-
-      case 'taxonomy':
-        taxonomy_save_term($form_values);
-        break;
-    }
+  if($tid === FALSE) {
+    $tax_term = array('vid' => $vid, 'name' => $term->value, 'guid' => $term->guid);
+    taxonomy_save_term($tax_term);
+    $tid = $tax_term['tid'];
   }
 
-  $tid = db_result(db_query("SELECT tid FROM {".$tablename."} WHERE guid='%s' and vid=%d", $term->guid, $vid));
   return $tid;
 }
 
