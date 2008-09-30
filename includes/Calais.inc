@@ -10,8 +10,7 @@ class Calais {
   const PATH = '/enlighten/rest/';
   
   private $defaults = array(
-    'host' => 'http://beta.opencalais.com',
-    //'host' => 'http://api.opencalais.com',
+    'host' => 'http://api.opencalais.com',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
