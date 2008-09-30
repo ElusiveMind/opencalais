@@ -32,6 +32,9 @@ function calais_geo_uninstall() {
 function calais_geo_install() {
   drupal_install_schema('calais_geo');
   
+  // Module weights: put after calais (which is 10)
+  db_query("UPDATE {system} SET weight = 15 WHERE name = 'calais_geo'");
+  
   // Setup a default/minimal configuration
   $entities = calais_get_entity_vocabularies();
     
