@@ -14,9 +14,6 @@ class CalaisMetadata {
   public $type;
   public $terms = array();
   
-  /**
-   *
-   */
   function __construct($guid, $type) {
     $this->guid = $guid;
     $this->type = $type;
@@ -32,17 +29,30 @@ class CalaisMetadata {
     }
   }
   
+  function add_geo($guid, $resolvedName, $lat, $lon) {
+    if ($this->has_guid($guid)) {
+      $term = &$this->terms[$guid];
+      $term->resolvedName = $resolvedName;      
+      $term->lat = $lat;      
+      $term->lon = $lon;      
+    }
+  }
+  
   function has_guid($guid) {
     return array_key_exists($guid, $this->terms);
   }
-  
-  function has_term_value($value) {
+
+  function get_term_by_value($value) {
     foreach ($this->terms as $term) {
       if ($term->value == $value) {
-        return TRUE;
+        return $term;
       }
     }
     return FALSE;
+  }
+  
+  function has_term_value($value) {
+    return $this->get_term_by_value($value) !== FALSE;
   }
   
   function remove_term_by_name($name) {
@@ -74,6 +84,11 @@ class CalaisTerm {
   public $guid;
   public $value;
   public $relevance;
+  
+  // Extra data use for geo terms
+  public $resolvedName;
+  public $lat;
+  public $lon;
   
   /**
    *
