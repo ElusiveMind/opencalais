@@ -374,6 +374,10 @@ function calais_get_entity_vocabularies($type = NULL) {
 function calais_get_vocabularies($type = NULL) {
 
   $vocs = calais_get_entity_vocabularies($type);
+  
+  if(empty($vocs))
+    return array();
+  
   $pattern = implode(",", $vocs);
 
   if ($type) {
