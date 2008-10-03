@@ -150,9 +150,6 @@ function calais_keywords_form_validate($form, &$form_state) {
 
 /**
  * Update the node for any Calais keyword modifications.
- * NOTE: This only allows currently associated calis keywords to be assigned as terms. 
- *       Do we want to allow any/all tags in addition to Calais or should these Calais
- *       vocabularies be limited to the terms that the service returns. -FF
  */
 function calais_keywords_form_submit($form, &$form_state) {
   $node = (object)$form_state['values'];
@@ -163,9 +160,11 @@ function calais_keywords_form_submit($form, &$form_state) {
     $terms = drupal_explode_tags($vid_value);
     foreach ($terms as $term_name) {
       $term = calais_get_node_term($node->nid, $term_name);
-      if($term){
-        calais_assign_to_node($vid, $term, $node);
+      if(!$term){
+        $term = new stdClass;
+        $term->value = $term_name;
       }
+      calais_assign_to_node($vid, $term, $node);
     }
   }
 
@@ -189,23 +188,12 @@ function calais_remove_terms_for_node($node, $vid) {
  * Process the node and get all specified terms for the current vocabulary
  */
 function _calais_get_current_tags($node, $vid) {
-  $current_tags = '';
+  if (!isset($node->taxonomy))
+    return NULL;
   
-  if (isset($node->taxonomy)) {
-    $terms = $node->taxonomy;
-    $typed_terms = array();
-    foreach ($terms as $term) {
-      if ($term->vid == $vid) {
-        // Commas and quotes in terms are special cases, so encode 'em.
-        if (strpos($term->name, ',') !== FALSE || strpos($term->name, '"') !== FALSE) {
-          $term->name = '"'. str_replace('"', '""', $term->name) .'"';
-        }
-        $typed_terms[] = $term->name;
-      }
-      $current_tags = implode(',', $typed_terms) . (array_key_exists('tags', $terms) ? $terms['tags'][$vid] : NULL);
-    }
-  }
-  
+  $terms = $node->taxonomy;
+  $current_tags = taxonomy_implode_tags($terms, $vid);
+  $current_tags .= (array_key_exists('tags', $terms) ? $terms['tags'][$vid] : NULL);
   return $current_tags;
 }
 

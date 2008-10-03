@@ -55,7 +55,6 @@ function calaisRemoveKeyword(tags, keyword) {
 	var regexp = keywordRegexp(keyword);
 	
 	if(regexp.test(current)) {
-	
 		current = current.replace(regexp, '$1$2');
 		
 		// Deal with a remaining extra comma
@@ -76,7 +75,7 @@ function calaisRemoveKeyword(tags, keyword) {
  *    - it can also be padded with whitespace
  */
 function keywordRegexp(keyword) {
-  return new RegExp('(^|,)\s*' + keyword + '\s*(,|$)');
+  return new RegExp('(^|,)\\s*' + keyword + '\\s*(,|$)');
 }
 
 
