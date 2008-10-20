@@ -10,9 +10,6 @@
 
   $Id$
 */
-/**
- * @file
- */
 
 define('CALAIS_TERM_MAXLENGTH', 1000);
 
@@ -33,8 +30,6 @@ function calais_theme() {
  * TODO: Make this configurable so the user can specify how/where they want to edit calais terms.
  */
 function calais_form_alter(&$form, $form_state, $form_id) {
-
-  // Node edit form
   if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
     
     $node = $form['#node'];
@@ -42,19 +37,6 @@ function calais_form_alter(&$form, $form_state, $form_id) {
     
     foreach ($vocabs as $vocabulary) {
       _calais_disable_taxonomy_field($form['taxonomy']['tags'][$vocabulary->vid]);
-    }
-  }
-  // Display Calais GUI on Taxonomy Term Editor if it exists
-  else if ($form_id == 'taxonomy_form_term'){
-    $term = $form['#term'];
-    if(!empty($term['guid'])) {
-      $form['identification']['guid'] = array(
-        '#type' => 'markup',
-        '#prefix' => '<div class="form-item" id="calais-guid"><label>' .t('Calais GUID'). '</label>',
-        '#value' => $term['guid'],
-        '#suffix' => '</div>',
-        '#weight' => 10,
-      );
     }
   }
 }
@@ -73,7 +55,7 @@ function _calais_disable_taxonomy_field(&$field) {
  * Render the form for the Calais taxonomy & suggestions
  */
 function calais_keywords_form(&$form_state, $node) {
-  drupal_set_title(t('Calais Terms: ') . $node->title);
+  drupal_set_title(t('Calais Terms'));
   
   $path = drupal_get_path('module', 'calais');
   drupal_add_css("$path/calais.css");
@@ -87,20 +69,10 @@ function calais_keywords_form(&$form_state, $node) {
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
 
   foreach ($vocabs as $vocabulary) {
-    $keywords = calais_get_keywords($node->nid, $node->type, $vocabulary->vid);
+    $keywords = calais_get_keywords($node->nid, $vocabulary->vid);
     $suggestions = theme('calais_suggestions', $vocabulary->vid, $keywords[$vocabulary->vid]);
     $current_tags = _calais_get_current_tags($node, $vocabulary->vid);
     $has_keywords = sizeof($keywords[$vocabulary->vid]);
-    
-    // If there are keywords available, make these vocabs appear at the top of the long list
-    if ($has_keywords) {
-      $vocabulary->weight -= 100;
-    }
-
-    // If there are no keywords but existing terms, make these vocabs appear next
-    if (!$has_keywords && !empty($current_tags)) {
-      $vocabulary->weight -= 50;
-    }
     
     $form['calais'][$vocabulary->vid] = array(
       '#type' => 'textfield',
@@ -158,13 +130,14 @@ function calais_keywords_form_submit($form, &$form_state) {
     calais_remove_terms_for_node($node, $vid);
     
     $terms = drupal_explode_tags($vid_value);
-    foreach ($terms as $term_name) {
-      $term = calais_get_node_term($node->nid, $term_name);
-      if(!$term){
-        $term = new stdClass;
-        $term->value = $term_name;
+    foreach ($terms as $term) {
+      $tid = calais_verify_and_get_term($vid, $term, 'taxonomy');
+      if ($tid) {
+        calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
       }
-      calais_assign_to_node($vid, $term, $node);
+      else {
+        watchdog('Calais', "Could not assign Taxonomy Term: $term");
+      }
     }
   }
 
@@ -188,12 +161,23 @@ function calais_remove_terms_for_node($node, $vid) {
  * Process the node and get all specified terms for the current vocabulary
  */
 function _calais_get_current_tags($node, $vid) {
-  if (!isset($node->taxonomy))
-    return NULL;
+  $current_tags = '';
   
-  $terms = $node->taxonomy;
-  $current_tags = taxonomy_implode_tags($terms, $vid);
-  $current_tags .= (array_key_exists('tags', $terms) ? $terms['tags'][$vid] : NULL);
+  if (isset($node->taxonomy)) {
+    $terms = $node->taxonomy;
+    $typed_terms = array();
+    foreach ($terms as $term) {
+      if ($term->vid == $vid) {
+        // Commas and quotes in terms are special cases, so encode 'em.
+        if (strpos($term->name, ',') !== FALSE || strpos($term->name, '"') !== FALSE) {
+          $term->name = '"'. str_replace('"', '""', $term->name) .'"';
+        }
+        $typed_terms[] = $term->name;
+      }
+      $current_tags = implode(',', $typed_terms) . (array_key_exists('tags', $terms) ? $terms['tags'][$vid] : NULL);
+    }
+  }
+  
   return $current_tags;
 }
 

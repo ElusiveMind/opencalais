@@ -9,111 +9,43 @@
   but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
 
   $Id$
- */
-/**
- * @file
- */
+*/
 
 module_load_include('module', 'calais');
 module_load_include('module', 'calais_api');
 
+
 /**
- * Implementation of hook_requirements(). 
- * Check to make sure settings form has been saved.
+ * Placeholder Implementation of hook_uninstall().
  */
-function calais_requirements($phase) {
-
-  $requirements = array();
-  $t = get_t();
-
-  if ($phase == 'runtime') {
-    $settings = variable_get('calais_applied_entities_global', FALSE);
-    if ($settings === FALSE || empty($settings)) {
-
-      $settings_uri = array(
-        '!calaissetturi' => l(t('Calais Node Settings'),
-        'admin/settings/calais/calais-node')
-      );
-
-      $requirements['calais'] = array(
-        'title' => $t('Calais Node Settings'),
-        'value' => $t('Settings not saved.'),
-        'description' => $t('Calais integration module is enabled, but the settings have not been saved.
-                              The module will not function properly until the !calaissetturi page has been saved.', 
-                              $settings_uri),
-        'severity' => REQUIREMENT_ERROR);
-    }
-  }
-
-  return $requirements;
+function calais_uninstall() {
+  drupal_uninstall_schema('calais');
+  calais_remove_vocabularies();
 }
 
 /**
  * hook_install implementation
  *
- * Create the vocabularies for all know Calais Entities.
+ * Create the vocabularies for all know Calais ENtities.
  */
 function calais_install() {
   drupal_install_schema('calais');
   calais_create_vocabularies();
-
+  
   // Module weights: put calais after taxonomy for form altering.
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
-  
-  // Add necessary fields to the taxonomy term table
-  $ret = array();
-  db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
 }
 
 /**
- * Implementation of hook_schema().
+ * Implementation of hook_schema()
  */
 function calais_schema() {
-
+  
   $schema['calais_term'] = array(
-    'description' => 'Holds retrieved Calais terms and the Drupal vocabulary to which they are associated',
     'fields' => array(
-      'tid' => array(
-        'type' => 'serial', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE,
-        'description' => t('Identifier for a Calais term')
-      ),
-      'vid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
-        'default' => 0,
-        'description' => t('The Vocabulary this term is in')
-      ),
-      'name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => t('The value of the term')
-      ),
-      'guid' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => t('The Calais GUID of this term')
-      ),
-      'resolved_name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'description' => t('The normalized/resolved name of the term')
-      ),
-      'latitude' => array(
-        'type' => 'varchar', 
-        'length' => 25, 
-        'description' => t('The latitude value of the term, if it is a geo term')
-      ),
-      'longitude' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => t('The longitude value of the term, if it is a geo term')
-      ),
+      'tid'   => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+      'vid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'name'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE),
     ),
     'indexes' => array(
       'vid'    => array('vid'),
@@ -121,33 +53,10 @@ function calais_schema() {
     'primary key' => array('tid'),
   );
 
-  // Table to store the association b/w a calais term and the node for which it was retrieved 
   $schema['calais_term_node'] = array(
-    'description' => 'Holds the association between a retrieved Calais term and a Node',
     'fields' => array(
-      'tid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
-        'default' => 0,
-        'description' => t('The term identifier')
-      ),
-      'nid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
-        'default' => 0,
-        'description' => t('The node for this term')
-      ),
-      'relevance' => array(
-        'type' => 'numeric', 
-        'size' => 'normal', 
-        'not null' => TRUE, 
-        'default' => 0.0, 
-        'precision' => 5, 
-        'scale' => 3,
-        'description' => t('The relevence score from Calais for this term/node combination')
-        ),
+      'tid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+      'nid'   => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
     ),
     'indexes' => array(
       'tid'    => array('tid'),
@@ -158,47 +67,14 @@ function calais_schema() {
   return $schema;
 }
 
-/**
- * Implementation of hook_uninstall().
- */
-function calais_uninstall() {
-  drupal_uninstall_schema('calais');
-  calais_remove_vocabularies();
-
-  // Remove taxonomy modifications
+function calais_update_2() {
+  // Module weights: put calais after taxonomy for form altering.
   $ret = array();
-  db_drop_field($ret, 'term_data', 'guid');  
-}
-
-// Update to 6.x-2.x (and migrate from 5.x if needed)
-function calais_update_6200() {
-  $ret = array();
-  
-  if(!db_column_exists('calais_term', 'guid')) {
-    db_add_field($ret, 'calais_term', 'guid', array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'initial' => ''));
-  }
-  
-  if(!db_column_exists('calais_term_node', 'relevance')) {
-    db_add_field($ret, 'calais_term_node', 'relevance', array('type' => 'numeric', 'size' => 'normal', 'not null' => TRUE, 'default' => 0.0, 'precision' => 5, 'scale' => 3, 'initial' => 1.000));
-  }
-  
-  if(!db_column_exists('term_data', 'guid')) {
-    db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
-  }
-  return $ret;
-}
-
-// Add columns for geo disambiguation
-function calais_update_6201() {
-  $ret = array();
-  db_add_field($ret, 'calais_term', 'resolved_name', array('type' => 'varchar', 'length' => 255));
-  db_add_field($ret, 'calais_term', 'latitude', array('type' => 'varchar', 'length' => 25));
-  db_add_field($ret, 'calais_term', 'longitude', array('type' => 'varchar', 'length' => 25));
+  $ret[] = update_sql('UPDATE {system} SET weight = 10 WHERE name = "calais"');
   return $ret;
 }
 
 
-/******************************** Helpers ****************************/
 /**
  * Create new vocabularies for all currently known Calais Entities
  */
@@ -207,12 +83,12 @@ function calais_create_vocabularies() {
   $vocabularies = array();
 
   foreach ($entities as $e) {
-    $vid = calais_create_entity_vocabulary(calais_api_make_readable($e));
+    $vid = calais_create_entity_vocabulary($e);
     $vocabularies[$e] = $vid;
   }
-
+  
   variable_set('calais_vocabulary_names', $vocabularies);
-  cache_clear_all();
+  cache_clear_all();  
 }
 
 /**
@@ -221,8 +97,8 @@ function calais_create_vocabularies() {
 function calais_remove_vocabularies() {
   $entities = calais_get_entity_vocabularies();
   foreach ($entities as $key => $value) {
-    taxonomy_del_vocabulary($value);
+    db_query("DELETE FROM {vocabulary} where vid =%d ", $value);
   }
-
-  cache_clear_all();
+  
+  cache_clear_all();  
 }

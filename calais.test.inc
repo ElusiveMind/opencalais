@@ -1,25 +1,13 @@
 <?php
 // $Id$
-/**
- * @file
- */
 
 function calais_call_test() {
   
   $data = calais_getTestContent();
-  
-  $body = filter_xss($data);
-	$date = format_date(time(), 'custom', 'r');
-	
-	$calais = new Calais();
-	$keywords = $calais->analyzeXML('Calais Call Test', $body, $date);
-	
-  // $request = calais_api_build_xml_request('Calais Call Test', $date, $body);
-  // $keywords = calais_api_analyze($request, array('contentType' => 'TEXT/XML'));
+  $keywords = calais_analyze($data);
   
   $rawmetadata .= "<pre>";
-  $rawmetadata .= print_r($calais->rdf, TRUE);
-  $rawmetadata .= print_r($keywords, TRUE);
+  $rawmetadata .= print_r($keywords, true);
   $rawmetadata .= "</pre>";
   
   return $rawmetadata;
@@ -27,6 +15,8 @@ function calais_call_test() {
 
 function calais_getTestContent() {
   
+  //return "London and Paris were favorite cities of Princess Diana";
+  //  return "The office of Serbian President Boris Tadic today said he will attend the 10th anniversary of the massacre of Bosnian Muslims by Serbian troops.";
   return <<<EOD
 Democratic politicians should have three dates circled on their calendars: April 22, May 6 and July 1. Each represents a potential turning point in the nomination battle between Barack Obama and Hillary Clinton.
 
