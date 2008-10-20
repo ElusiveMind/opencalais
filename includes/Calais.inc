@@ -128,9 +128,9 @@ EOD;
    */
   protected function build_xml_content($title, $body, $date) {
     $req = "<DOCUMENT>";
-    $req .= "<TITLE>$title</TITLE>";
+    $req .= "<TITLE><![CDATA[$title]]></TITLE>";
     $req .= "<DATE>$date</DATE>";
-    $req .= "<BODY>$body</BODY>";
+    $req .= "<BODY><![CDATA[$body]]></BODY>";
     $req .= "</DOCUMENT>";
     return $req;
   }
