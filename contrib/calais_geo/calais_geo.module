@@ -352,7 +352,7 @@ function _calais_geo_render_map($node, $geo_data) {
   
   $geo_data = (array)$geo_data;
 
-  if(!isset($geo_data['terms']))
+  if(!isset($geo_data['terms']) || count($geo_data['terms']) == 0)
     return; // Nothing to map
   
   foreach($geo_data['terms'] as $term) {
