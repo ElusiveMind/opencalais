@@ -220,7 +220,7 @@ function calais_geo_form_alter(&$form, $form_state, $form_id) {
       '#title' => t('Calais Geotagging'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
+      '#collapsed' => TRUE,
     );
 
     $form['calais_geo']['terms'] = array(

@@ -432,7 +432,7 @@ function calais_get_vocabularies($type = NULL) {
 function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   $terms = array();
 
-  if(!$threshold) {
+  if(!isset($threshold)) {
     $threshold = calais_get_node_threshold(drupal_strtolower($type));
   }
 
@@ -451,7 +451,7 @@ function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   else {
     $vocabularies = calais_get_entity_vocabularies();
     foreach ($vocabularies as $vid) {
-      $keys = calais_get_keywords($nid, $type, $vid);
+      $keys = calais_get_keywords($nid, $type, $vid, $threshold);
       $terms[$vid] = $keys[$vid];
     }
   }
