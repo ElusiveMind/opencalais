@@ -424,12 +424,17 @@ function calais_get_vocabularies($type = NULL) {
  * @param $nid The node id to get the calais keywords
  * @param $type The node type
  * @param $vid Optional, a specific vocabulary id to return terms
+ * @param $threshold 
+ *    Optional, A relevance threshold for suggestions. If not specified the default for the node type will be used.
  *
  * @return Array { $vid => array('term1', 'term2', 'term3') }
  */
-function calais_get_keywords($nid, $type, $vid = NULL) {
-  $threshold = calais_get_node_threshold(drupal_strtolower($type));
+function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   $terms = array();
+
+  if(!$threshold) {
+    $threshold = calais_get_node_threshold(drupal_strtolower($type));
+  }
 
   if ($vid) {
     $res = db_query(" SELECT name
