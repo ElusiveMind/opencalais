@@ -113,7 +113,9 @@ class Calais {
                       c:submitter="$attributes[submitter]">
     </c:userDirectives>
     <c:externalMetadata>
-      <c:caller>$attributes[caller]</c:caller>
+      <rdf:description>
+        <c:caller>$attributes[caller]</c:caller>
+      </rdf:description>
     </c:externalMetadata>
     </c:params>
 EOD;
