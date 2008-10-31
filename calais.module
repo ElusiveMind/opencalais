@@ -106,6 +106,12 @@ function calais_process_node(&$node, $process_type, $threshold) {
   if ($process_type == CALAIS_PROCESS_NO)
     return;
 
+  // On feedapi runs, updates are missing vid so get it.
+  if(!isset($node->vid)) {
+    $node->vid = db_result(db_query("SELECT vid FROM {node} WHERE nid=%d", $node->nid));
+  }
+
+
   $date = format_date($node->created, 'custom', 'r');
   $body = filter_xss($node->body, array());
   $node_settings = calais_get_node_settings($node);
