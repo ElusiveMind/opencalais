@@ -166,5 +166,8 @@ class CalaisGetKeywordsTestCase extends CalaisTestCase {
 		variable_set($thres_key, 1.0);
 		$keywords = calais_get_keywords($node->nid, $node->type, $vid);
 		$this->assertEqual(count($keywords[$vid]), 1, "One term was returned for max threshold.");
+
+		$keywords = calais_get_keywords($node->nid, $node->type, $vid, 0.002);
+		$this->assertEqual(count($keywords[$vid]), 2, "Two terms were returned for overriden threshold.");
 	}	
 }
