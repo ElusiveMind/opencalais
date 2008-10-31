@@ -174,10 +174,6 @@ function calais_populate_term_guid($vid, $term) {
  */
 function calais_assign_to_node($vid, $term, $node) {
   $tid = calais_get_taxonomy_term($vid, $term);
-  if($vid == '111') {
-    dvm($term);
-    dvm($tid);
-  }
   if ($tid) {
     calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
   }
