@@ -178,10 +178,7 @@ function calais_keywords_form_submit($form, &$form_state) {
  * @param $vid The vocabulary whose terms will be removed from the node
  */
 function calais_remove_terms_for_node($node, $vid) {
-  $result = db_query('SELECT tid FROM {term_data} WHERE vid = %d', $vid);
-  while ($term = db_fetch_object($result)) {
-    db_query('DELETE FROM {term_node} WHERE vid = %d AND tid = %d', $node->vid, $term->tid);
-  }  
+  db_query('DELETE FROM {term_node} WHERE vid = %d AND tid IN (SELECT d.tid FROM {term_data} AS d WHERE d.vid = %d)', $node->vid, $vid);
 }
 
 /**

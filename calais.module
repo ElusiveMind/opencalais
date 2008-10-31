@@ -174,6 +174,10 @@ function calais_populate_term_guid($vid, $term) {
  */
 function calais_assign_to_node($vid, $term, $node) {
   $tid = calais_get_taxonomy_term($vid, $term);
+  if($vid == '111') {
+    dvm($term);
+    dvm($tid);
+  }
   if ($tid) {
     calais_assign_node_taxonomyterm($node->nid, $node->vid, $tid);
   }
@@ -239,23 +243,38 @@ function calais_get_calais_term($vid, $term) {
 }
 
 /**
- * Checks if a taxonomy term exists in a specified vocabulary by GUID. If it
- * does not exist it will create it and return the term id.
+ * Checks if a taxonomy term exists in a specified vocabulary by GUID. If it is not found by GUID, 
+ * but found by name with no GUID, it will set the GUID for future reference. If it does not exist 
+ * at all it will create it and return the term id. 
  *
- * @param int $vid
- * @param name $term
- *
+ * @param $vid
+ *    The vocabulary id for the term to find.
+ * @param $term
+ *    The CalaisTerm to find a matching taxonomy term
  * @return $tid 
  *    Term id from the {term_data} table
  */
 function calais_get_taxonomy_term($vid, $term) {
 
-  $tid = db_result(db_query("SELECT tid FROM {term_data} where guid='%s' and vid=%d", $term->guid, $vid));
+  // Look for the term by GUID< but make sure a null GUID passed in does not match an '' (empty) one.
+  $tid = db_result(db_query("SELECT tid FROM {term_data} WHERE vid=%d AND guid='%s' AND guid != ''", $vid, $term->guid));
 
+  // If not found by GUID, then look by name
   if($tid === FALSE) {
-    $tax_term = array('vid' => $vid, 'name' => $term->value, 'guid' => $term->guid);
-    taxonomy_save_term($tax_term);
-    $tid = $tax_term['tid'];
+    $tid = db_result(db_query("SELECT tid FROM {term_data} WHERE name='%s' AND vid=%d", $term->value, $vid));
+
+    if($tid) {
+      // Was found by name, set GUID if there is one to set and the existing one is null/blank
+      if(!empty($term->guid)) {
+        db_query("UPDATE {term_data} SET guid='%s' WHERE tid=%d AND (guid IS NULL OR guid = '')", $term->guid, $tid);          
+      }
+    }
+    else {
+      // Nothing was found or updated, so create one, we need a term.
+      $tax_term = array('vid' => $vid, 'name' => $term->value, 'guid' => $term->guid);
+      taxonomy_save_term($tax_term);
+      $tid = $tax_term['tid'];
+    }
   }
 
   return $tid;

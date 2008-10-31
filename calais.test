@@ -21,13 +21,15 @@ class CalaisTestCase extends DrupalWebTestCase {
 		return $vocab;
 	}
 	
-	function createTerm($vid) {
-		$term = array();
-		$term['vid'] = $vid;
-	  $term['name'] = $this->randomName(30);
-		$term['description'] = $this->randomName(200);
+	function createTerm($vid, $overrides = array()) {
+		$term = array(
+			'vid' => $vid,
+			'name' => $this->randomName(30),
+			'description' => $this->randomName(200),
+		);
+		$term += $overrides;
     taxonomy_save_term($term);
-		return $term;
+		return (object)$term;
 	}
 }
 
@@ -46,13 +48,13 @@ class CalaisPopulateTermGuidTestCase extends CalaisTestCase {
 		$vocab = $this->createVocabulary();
 		$term = $this->createTerm($vocab['vid']);
 
-		$guid = db_result(db_query('SELECT guid FROM {term_data} WHERE tid = %d', $term['tid']));
+		$guid = db_result(db_query('SELECT guid FROM {term_data} WHERE tid = %d', $term->tid));
 		$this->assertNull($guid, 'Initial term guid should be NULL');
 
-		$calais_term = new CalaisTerm($this->randomName(100), $term['name']);
-		calais_populate_term_guid($term['vid'], $calais_term);
+		$calais_term = new CalaisTerm($this->randomName(100), $term->name);
+		calais_populate_term_guid($term->vid, $calais_term);
 		
-		$guid = db_result(db_query('SELECT guid FROM {term_data} WHERE tid = %d', $term['tid']));
+		$guid = db_result(db_query('SELECT guid FROM {term_data} WHERE tid = %d', $term->tid));
 		$this->assertEqual($guid, $calais_term->guid, 'Term guid matches CalaisTerm');
 	}
 }
@@ -118,6 +120,84 @@ class CalaisAssignTermsToNodeTestCase extends CalaisTestCase {
 		$this->assertTrue(count($node_terms) == 1, 'One Node Taxonomy Term Exists');
 		$this->assertEqual($terms[0]->name, $calais_term->value, 'Taxonomy Term name is correct');
 		$this->assertEqual($terms[0]->guid, $calais_term->guid, 'Taxonomy Term guid is correct');
+	}	
+}
+
+class CalaisTaxonomyTermLookupTestCase extends CalaisTestCase {
+	
+	function getInfo() {
+    return array(
+      'name' => t('Taxonomy Term Lookup'),
+      'description' => t('Test finding a Taxonomy Terms fpr a Calais suggestion. This test the fall back from a GUID lookup, to a name lookup, to creation.'),
+      'group' => t('Calais')
+    );
+  }
+
+	// Associating new calais terms with an existing node
+	function testLookupTerm() {
+		$vocab = $this->createVocabulary();
+		$vid = $vocab['vid'];
+		$calais_term = new CalaisTerm($this->randomName(100), $this->randomName(20), 0.5);
+
+		$current_terms = taxonomy_get_term_by_name($calais_term->value);
+		$this->assertTrue(empty($current_terms), 'No Taxonomy Term Exist');
+
+		// Find for term that does not exist
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertTrue($foundterm, 'Taxonomy Term was created');
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value was setup correctly');
+		
+		// FInd for term that exists and has GUID set
+		$term = $this->createTerm($vid, array('guid' => $this->randomName(100)));
+		$calais_term = new CalaisTerm($term->guid, $term->name, 0.5);
+		
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$this->assertEqual($tid, $term->tid, 'Correct Taxonomy Term was found by GUID');
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value matches');
+		$this->assertEqual($foundterm->guid, $calais_term->guid, 'Taxonomy Term guid matches');
+		
+		// Find for term that exists by name but does not have GUID set (null), GUID will get set
+		$term = $this->createTerm($vid);
+		$calais_term = new CalaisTerm($this->randomName(100), $term->name, 0.5);
+		
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$this->assertEqual($tid, $term->tid, 'Correct Taxonomy Term was found by NAME');
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value matches');
+		$this->assertEqual($foundterm->guid, $calais_term->guid, 'Taxonomy Term guid was set and matches');
+
+		// Find for term that exists by name but does not have GUID set (blank), GUID will get set
+		$term = $this->createTerm($vid, array('guid' => ''));
+		$calais_term = new CalaisTerm($this->randomName(100), $term->name, 0.5);
+		
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$this->assertEqual($tid, $term->tid, 'Correct Taxonomy Term was found by NAME');
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value matches');
+		$this->assertEqual($foundterm->guid, $calais_term->guid, 'Taxonomy Term guid was set and matches');
+
+		// Find for term that exists by name with no GUID. GUID should not get set
+		$term = $this->createTerm($vid);
+		//dvm(taxonomy_get_term($term->tid));
+		$calais_term = new CalaisTerm(NULL, $term->name, 0.5);
+		
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$this->assertEqual($tid, $term->tid, 'Correct Taxonomy Term was found by NAME');
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value matches');
+		$this->assertNull($foundterm->guid, 'Taxonomy Term guid was not set');
+
+		// Find for term that exists by name with diff GUID. GUID should not get overwritten
+		$term = $this->createTerm($vid, array('guid' => 'XxXxXxX'));
+		$calais_term = new CalaisTerm(NULL, $term->name, 0.5);
+		
+		$tid = calais_get_taxonomy_term($vid, $calais_term);
+		$this->assertEqual($tid, $term->tid, 'Correct Taxonomy Term was found by NAME');
+		$foundterm = taxonomy_get_term($tid);
+		$this->assertEqual($foundterm->name, $calais_term->value, 'Taxonomy Term value matches');
+		$this->assertEqual($foundterm->guid, 'XxXxXxX', 'Taxonomy Term guid was not overwritten');
 	}	
 }
 
