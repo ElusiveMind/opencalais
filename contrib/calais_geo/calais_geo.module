@@ -144,7 +144,7 @@ function calais_geo_save($node, $data) {
     
   // Process the map center (if needed)
   $center = $data['term_center'];
-  if(!empty($center)) {
+  if(!empty($center) && $center != 'default') {
     if($center == 'latlon' && !empty($data['latlon_center'])) {
       list($lat, $lon) = explode(',', $data['latlon_center']);
       $data['center_lat'] = $lat;
@@ -237,7 +237,7 @@ function calais_geo_form_alter(&$form, $form_state, $form_id) {
       '#title' => t('Center map on this specific term'),
       '#description' => t('Optionally, the map could be centered on the most relevant mapped term. Select <default> to use the map default which centers the map amongst your term markers, or <manual> to specify a latitude and longitude using the Manual center field below.'),
       '#default_value' => $geo_data->term_center,
-      '#options' => array_merge(array('' => '<default>', 'latlon' => '<manual>'), $options),
+      '#options' => array_merge(array('default' => '<default>', 'latlon' => '<manual>'), $options),
     );
     $form['calais_geo']['latlon_center'] = array(
       '#type' => 'textfield',
@@ -374,14 +374,25 @@ function _calais_geo_render_map($node, $geo_data) {
   if(!empty($geo_data['height'])) {
     $settings['height'] = $geo_data['height'];
   }
+  
+  // Setup the 
   if(!empty($geo_data['zoom'])) {
     $settings['zoom'] = $geo_data['zoom'];
   }
-  if(!empty($geo_data['center_lat'])) {
-    $settings['latitude'] = $geo_data['center_lat'];
+
+  // Setup default center if configured
+  if($geo_data['term_center'] == 'default') {
+    list($lat, $lon) = calais_geo_calc_map_center($markers);
+    $settings['latitude'] = $lat;
+    $settings['longitude'] = $lon;
   }
-  if(!empty($geo_data['center_lon'])) {
-    $settings['longitude'] = $geo_data['center_lon'];
+  else {
+    if(!empty($geo_data['center_lat'])) {
+      $settings['latitude'] = $geo_data['center_lat'];
+    }
+    if(!empty($geo_data['center_lon'])) {
+      $settings['longitude'] = $geo_data['center_lon'];
+    }
   }
 
   $map_data = array(
@@ -405,6 +416,26 @@ function calais_geo_calais_geo_map(&$map_data) {
   }
 }
 */
+
+/**
+ * Find a center point between all markers. Pretty basic approach, 
+ * take the max & min of lat/lon and average it.
+ */
+function calais_geo_calc_map_center($markers) {
+  if(empty($markers))
+    return array(0, 0);
+    
+  $latitude = array();
+  $longitude = array();
+  foreach ($markers as $marker) {
+    $latitude[] = $marker['latitude'];
+    $longitude[] = $marker['longitude'];
+  }
+  $lat = (min($latitude) + max($latitude)) / 2;
+  $lon = (min($longitude) + max($longitude)) / 2;
+  return array($lat, $lon);
+}
+
 
 /**
  * Find the latitude and longitude of a given term. This will first look for the data within
