@@ -63,6 +63,17 @@ function calais_install() {
   // Add necessary fields to the taxonomy term table
   $ret = array();
   db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
+  
+  calais_install_rdf_repository($ret);
+}
+
+/**
+ * Create the RDF repository for Calais RDF storage.
+ */
+function calais_install_rdf_repository(&$ret) {
+  module_load_include('inc', 'rdf', 'rdf.db');
+  rdf_db_create_repository(CALAIS_RDF_REPOSITORY, array('dc:title' => t('Calais Node'), 'dc:description' => t('Stores RDF data for nodes from the Calais Web Service.')));
+  $ret[] = array('success' => TRUE, 'query' => 'Added Calais Node RDF repository');
 }
 
 /**
@@ -168,6 +179,10 @@ function calais_uninstall() {
   // Remove taxonomy modifications
   $ret = array();
   db_drop_field($ret, 'term_data', 'guid');  
+  
+  if (function_exists('rdf_db_delete_repository')) {
+    rdf_db_delete_repository(CALAIS_RDF_REPOSITORY);
+  }
 }
 
 // Update to 6.x-2.x (and migrate from 5.x if needed)
@@ -194,6 +209,13 @@ function calais_update_6201() {
   db_add_field($ret, 'calais_term', 'resolved_name', array('type' => 'varchar', 'length' => 255));
   db_add_field($ret, 'calais_term', 'latitude', array('type' => 'varchar', 'length' => 25));
   db_add_field($ret, 'calais_term', 'longitude', array('type' => 'varchar', 'length' => 25));
+  return $ret;
+}
+
+// Migrate towards RDF storage
+function calais_update_6202() {
+  $ret = array();
+  calais_install_rdf_repository($ret);
   return $ret;
 }
 
