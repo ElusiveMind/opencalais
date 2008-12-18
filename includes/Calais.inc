@@ -24,6 +24,7 @@ class Calais {
   public $parameters;
   public $rdf;
   public $triples;
+  public $flatTriples;
   public $keywords;
   
   /**
@@ -156,6 +157,9 @@ EOD;
     $parser = ARC2::getRDFXMLParser();
     $parser->parse(NULL, $rdf_xml);
     $this->triples = $parser->getSimpleIndex();
+    // Use this method once http://drupal.org/node/348758 is resolved
+    //$this->flatTriples = array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
+    $this->flatTriples = array_map('_calais_api_deconstruct_arc2_triple', $parser->getTriples());
 
     $this->keywords = new stdClass();
     foreach ($this->triples as $guid => $indx) {
@@ -256,11 +260,11 @@ EOD;
    */
   protected function extract_geo(&$keywords, $indx) {
     $type = $indx['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'];
-    if (isset($type) && $type[0] == 'http://s.opencalais.com/1/type/er/Geo') {
+    if (isset($type) && strpos($type[0], 'http://s.opencalais.com/1/type/er/Geo') === 0) {
       $subject = $indx['http://s.opencalais.com/1/pred/subject'][0];
       $normalized = $indx['http://s.opencalais.com/1/pred/name'][0];
-      $lat = $indx['http://s.opencalais.com/1/pred/lat'][0];
-      $lon = $indx['http://s.opencalais.com/1/pred/long'][0];
+      $lat = $indx['http://s.opencalais.com/1/pred/latitude'][0];
+      $lon = $indx['http://s.opencalais.com/1/pred/longitude'][0];
       
       foreach ($keywords as &$entity) {
         if ($entity->has_guid($subject)) {
@@ -269,5 +273,4 @@ EOD;
       }
     }
   }
-  
 }
