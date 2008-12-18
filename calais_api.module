@@ -191,3 +191,33 @@ function calais_api_get_all_entities() {
   );
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// ARC2 interoperability
+// Copied from rdf.api.inc to fix bug http://drupal.org/node/348758
+// When that is resolved and in a release, remove this hackitude.
+
+function _calais_api_deconstruct_arc2_triple($triple) {
+  $subject   = _calais_api_deconstruct_arc2_value($triple, 's');
+  $predicate = _calais_api_deconstruct_arc2_value($triple, 'p');
+  $object    = _calais_api_deconstruct_arc2_value($triple, 'o');
+  return array($subject, $predicate, $object);
+}
+
+function _calais_api_deconstruct_arc2_value($triple, $name) {
+  switch ($name == 'p' ? 'iri' : $triple[$name .'_type']) {
+    case 'uri': // THIS IS THE FIX
+    case 'iri':
+      return rdf_uri($triple[$name]);
+    case 'bnode':
+      return rdf_bnode($triple[$name]);
+    case 'literal':
+    case 'literal1':
+    case 'literal2':
+    case 'literal_long1':
+    case 'literal_long2':
+      return rdf_literal($triple[$name], $triple[$name .'_lang'], $triple[$name .'_datatype']);
+    case 'var':
+      return rdf_var($triple[$name]);
+  }
+}
+
