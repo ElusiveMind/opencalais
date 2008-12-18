@@ -18,6 +18,7 @@ define('CALAIS_PROCESS_NO',         'NO');
 define('CALAIS_PROCESS_AUTO',       'AUTO');
 define('CALAIS_PROCESS_AUTO_ONCE',  'AUTO_ONCE');
 define('CALAIS_PROCESS_MANUAL',     'MANUAL');
+define('CALAIS_RDF_REPOSITORY',     'calais_node');
 
 module_load_include('inc', 'calais', 'calais.ui');
 module_load_include('inc', 'calais', 'calais.admin');
@@ -80,19 +81,27 @@ function calais_access($node) {
  * Process node updates and if applicable, update the Calais terms.
  */
 function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-
   switch ($op) {
     case "delete":
-      db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
+      calais_delete_node($node);
       break;
-
     case "insert":
     case "update":
       $process_type = calais_processing_type($node);
       $threshold = calais_get_node_threshold($node->type);
-      calais_process_node($node, $process_type, $threshold);
+      calais_process_node($node, $process_type, $threshold, $op);
       break;
   }
+}
+
+/**
+ * A node is getting removed so do some cleanup.
+ *
+ * @param $node The node for deletion
+ */
+function calais_delete_node($node) {
+  calais_remove_rdf($node);
+  db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
 }
 
 /**
@@ -101,8 +110,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  * @param $node The node to process
  * @param $process_type The processing type for this node.
  */
-function calais_process_node(&$node, $process_type, $threshold) {
-
+function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') {
   if ($process_type == CALAIS_PROCESS_NO)
     return;
 
@@ -125,7 +133,6 @@ function calais_process_node(&$node, $process_type, $threshold) {
   module_invoke_all('calais_preprocess', $node, $keywords);
 
   $vocabularies = calais_get_entity_vocabularies($node->type);
-  
   foreach ($keywords as $cat => $metadata) {
     $vid = $vocabularies[$cat];
 
@@ -139,9 +146,9 @@ function calais_process_node(&$node, $process_type, $threshold) {
     }
   }
 
+  calais_store_rdf($node, $calais->flatTriples);
   module_invoke_all('calais_postprocess', $node, $keywords);
 }
-
 
 /**
  * Associates a retrieved Calais term with a node.
@@ -504,6 +511,45 @@ function calais_create_entity_vocabulary($entity) {
     return db_last_insert_id('vocabulary', 'vid');
 }
 
+/**
+ * Get the standard RDF options array.
+ *
+ * @param $nid The node id
+ */
+function calais_rdf_options($nid) {
+  return array('graph' => "node/$nid", 'repository' => CALAIS_RDF_REPOSITORY);
+}
+
+/**
+ * Store the triples for this node in the local RDF store. Storing these allows for more
+ * Semantic Web functionality to be developed later by not losing all of the rich metadata
+ * returned by Calais. This could be used to batch process data that was missed originally
+ * or by querying it later for use in RDFa rendering, etc.
+ *
+ * @param $node The node for association
+ * @param $triples The flat set of triples
+ */
+function calais_store_rdf($node, $triples) {
+  if(variable_get('calais_store_rdf', TRUE)) {
+    calais_remove_rdf($node);
+    rdf_insert_all($triples, calais_rdf_options($node->nid));  
+  }
+}
+
+/**
+ * Store the triples for this node in the local RDF store. Storing these allows for more
+ * Semantic Web functionality to be developed later by not losing all of the rich metadata
+ * returned by Calais. This could be used to batch process data that was missed originally
+ * or by querying it later for use in RDFa rendering, etc.
+ *
+ * @param $node The node for association
+ * @param $triples The flat set of triples
+ */
+function calais_remove_rdf($node) {
+  if(variable_get('calais_store_rdf', TRUE)) {
+    rdf_delete(NULL, NULL, NULL, calais_rdf_options($node->nid));
+  }
+}
 
 function ____debug($array, $exit = TRUE) {
   echo "<pre>". print_r($array, TRUE) ."</pre>";
