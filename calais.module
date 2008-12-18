@@ -111,9 +111,9 @@ function calais_process_node(&$node, $process_type, $threshold) {
     $node->vid = db_result(db_query("SELECT vid FROM {node} WHERE nid=%d", $node->nid));
   }
 
-
+  $loaded_node = node_build_content($node);
+  $body = strip_tags(drupal_render($loaded_node->content));
   $date = format_date($node->created, 'custom', 'r');
-  $body = filter_xss($node->body, array());
   $node_settings = calais_get_node_settings($node);
   $calais = new Calais($node_settings);
   $keywords = $calais->analyzeXML($node->title, $body, $date);
@@ -140,7 +140,6 @@ function calais_process_node(&$node, $process_type, $threshold) {
   }
 
   module_invoke_all('calais_postprocess', $node, $keywords);
-
 }
 
 
