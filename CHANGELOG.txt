@@ -1,0 +1,11 @@
+$Id$
+
+From Version 6.x-2.1 -> 6.x-2.2
+-------------------------------
+ - API: Updated c:caller to be RDF compliant
+ - Added a threshold parameter to calais_get_keywords() - Allows external callers to not be beholden to the node type configuration.
+ - Fixed issues with Calais Geo Disambiguation data (predicates and object names were changed)
+ - #326077: Stopped manual term association in Calais vocabulary from creating duplicate terms.
+ - #328631: Duplicate entry due to problem with feedapi item updates.
+ - #344279: Added CDATA in XML request for supporting other character sets and html entities
+ - #328364: Added support for CCK field submission
