@@ -21,6 +21,13 @@ function calais_admin_settings() {
 
   $form = array();
 
+  $form['calais_store_rdf'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Store Calais RDF Locally'),
+    '#default_value' => variable_get('calais_store_rdf', TRUE),
+    '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data.'),
+  );
+
   calais_build_entity_settings($form);
   calais_build_nodetype_settings($form);
 
