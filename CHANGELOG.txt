@@ -9,3 +9,7 @@ From Version 6.x-2.1 -> 6.x-2.2
  - #328631: Duplicate entry due to problem with feedapi item updates.
  - #344279: Added CDATA in XML request for supporting other character sets and html entities
  - #328364: Added support for CCK field submission
+ - Upgraded to dev version of RDF. 12/5/2008 or later
+ - Added ability to store the Calais RDF locally. (Can be turned off)
+ - Added support for Calais Document Categorization, http://opencalais.com/APIresponses#DocCategorization
+ - Now captures the disambiguated company names. Stored in resolved_name column, not as the actual value.
