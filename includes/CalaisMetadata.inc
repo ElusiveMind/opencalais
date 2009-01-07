@@ -37,6 +37,21 @@ class CalaisMetadata {
       $term->lon = $lon;      
     }
   }
+
+  /**
+   * Set the resolved (normalized) name for the guid.
+   *
+   * @param $guid
+   *    The global identifier of a term
+   * @param $resolvedName
+   *    The normalized value of a term
+   */
+  function set_resolved_name($guid, $resolvedName) {
+    $term =  &$this->terms[$guid];
+    if(isset($term)) {
+      $term->resolvedName = $resolvedName;      
+    }
+  }
   
   function has_guid($guid) {
     return array_key_exists($guid, $this->terms);

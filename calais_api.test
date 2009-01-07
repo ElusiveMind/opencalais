@@ -30,6 +30,8 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$calais = new Calais(array('host' => 'http://beta.opencalais.com'));
 		$results = $calais->analyzeXML('Calais API Test', $body, $date);
 
+		$this->arrayContains($results->CalaisDocumentCategory, 'Technology', 'Technology is in Document Category');
+
 		$this->arrayContains($results->City, 'Denver', 'Denver is a City');
 		$this->arrayContains($results->City, 'Philadelphia', 'Philadelphia is a City');
 		$this->arrayContains($results->City, 'Chicago', 'Chicago is a City');

@@ -157,7 +157,6 @@ function calais_api_get_all_entities() {
     'Currency',
     'EmailAddress',
     'EntertainmentAwardEvent',
-    'EventsFacts', // Special reserved vocab for Events & Facts
     'Facility',
     'FaxNumber',
     'Holiday',
@@ -188,6 +187,8 @@ function calais_api_get_all_entities() {
     'TVShow',
     'TVStation',
     'URL',
+    'CalaisDocumentCategory', // Special reserved vocab for Calais Categorization
+    'EventsFacts', // Special reserved vocab for Events & Facts
   );
 }
 
