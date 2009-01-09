@@ -37,6 +37,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->arrayContains($results->City, 'Chicago', 'Chicago is a City');
 
 		$this->arrayContains($results->Company, 'CBS', 'CBS is a Company');
+		$this->assertDisambiguatedName($results->Company, 'CBS', 'Viacom International Inc', 'CBS disambiguates to Viacom International Inc');
 
 		$this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
 		$this->arrayContains($results->Person, 'Barack Obama', 'Barack Obama is a Person');
@@ -59,7 +60,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->arrayContains($results->EventsFacts, 'Person Career', 'Person Political is an Event/Fact');
 		$this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
 		
-		$this->assertFalse(property_exists($results, 'Geo'), 'Geo is not an entity type, mishandling of Geo data.');
+		$this->assertFalse(property_exists($results, 'Geo'), 'GEO data handled correctly');
 		$this->assertGeoData($results->ProvinceOrState, 'Indiana', '40.0066019668', '-86.2913991487');		
 		$this->assertGeoData($results->ProvinceOrState, 'North Carolina', '35.4833648675', '-79.4002284439');		
 	}
@@ -73,8 +74,14 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 
 	function assertGeoData($data, $entity, $lat, $lon) {
 		$term = $data->get_term_by_value($entity);
-		$this->assertEqual($term->lat, $lat, "Latitude {$term->lat} for $entity was incorrect");
-		$this->assertEqual($term->lon, $lon, "Longitude {$term->lon} for $entity was incorrect");
+		$this->assertEqual($term->lat, $lat, "Latitude for $entity is {$term->lat}");
+		$this->assertEqual($term->lon, $lon, "Longitude for $entity is {$term->lon}");
+	}
+
+	function assertDisambiguatedName($entitySet, $value, $resolved, $message) {
+		$term = $entitySet->get_term_by_value($value);
+		$this->assertTrue($term, "'$value' was found for disambiguation");
+		$this->assertEqual($term->resolvedName, $resolved, $message);
 	}
 
 	function get_test_content() {

@@ -246,6 +246,7 @@ EOD;
        $cat_guid = $indx['http://s.opencalais.com/1/pred/category'][0];
        $cat_val = $indx['http://s.opencalais.com/1/pred/categoryName'][0];
        $cat_score = $indx['http://s.opencalais.com/1/pred/score'][0];
+       $cat_score = $cat_score ? $cat_score : 1.000;
 
        if (!property_exists($keywords, 'CalaisDocumentCategory')) {
          $keywords->CalaisDocumentCategory = new CalaisMetadata($type[0], 'CalaisDocumentCategory');
