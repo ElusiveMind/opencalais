@@ -65,7 +65,49 @@ function calais_menu() {
     'type' => MENU_LOCAL_TASK
   );
 
+  $items['node/%/calais/rdf'] = array(
+    'title' => 'Calais',
+    'page callback' => 'calais_get_rdf',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK
+  );
+
   return $items;
+}
+
+/**
+ * Implementation of hook_preprocess_node().
+ *
+ * If RDF exists for a node, provide an autodiscovery link.
+ */
+function calais_preprocess_node(&$variables) {
+  $node = $variables['node'];
+  $count = rdf_count(NULL, NULL, NULL, calais_rdf_options($node->nid));
+  if($count) {
+    rdf_add_autodiscovery_link(t('Calais RDF'), url("node/$node->nid/calais/rdf"), 'rdf+xml');
+  }
+}
+
+/**
+ * Provide the Calais RDF describing a node.
+ *
+ * @param $nid
+ *    The node id
+ */
+function calais_get_rdf($nid) {
+  $format = 'rdf+xml';
+  $rdf_triples = rdf_query(NULL, NULL, NULL, calais_rdf_options($nid));
+  $xml = rdf_serialize($rdf_triples, array('format' => $format));
+  
+  // TODO: We need to add proper namespaces until http://drupal.org/node/350485 is resolved
+  $rdf = _calais_api_fix_rdf_namespaces($xml);
+
+  $formats  = rdf_get_formats();
+  $output_format = $formats[$format];
+  drupal_set_header('Content-Type: '. $output_format->mime_type .'; charset='. $output_format->encoding);
+  drupal_set_header('Content-Length: '. strlen($rdf));
+  print $rdf;
 }
 
 /**
@@ -517,7 +559,7 @@ function calais_create_entity_vocabulary($entity) {
  * @param $nid The node id
  */
 function calais_rdf_options($nid) {
-  return array('graph' => "node/$nid", 'repository' => CALAIS_RDF_REPOSITORY);
+  return array('graph' => "node/$nid/calais/rdf", 'repository' => CALAIS_RDF_REPOSITORY);
 }
 
 /**
