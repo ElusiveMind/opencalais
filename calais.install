@@ -72,7 +72,7 @@ function calais_install() {
  */
 function calais_install_rdf_repository(&$ret) {
   module_load_include('inc', 'rdf', 'rdf.db');
-  rdf_db_create_repository(CALAIS_RDF_REPOSITORY, array('dc:title' => t('Calais Node'), 'dc:description' => t('Stores RDF data for nodes from the Calais Web Service.')));
+  rdf_db_create_repository(CALAIS_RDF_REPOSITORY, array('dc:title' => t('Calais Node'), 'dc:description' => t('Stores a node\'s RDF data as provided from the Calais Web Service.')));
   $ret[] = array('success' => TRUE, 'query' => 'Added Calais Node RDF repository');
 }
 
