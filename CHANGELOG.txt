@@ -14,3 +14,4 @@ From Version 6.x-2.1 -> 6.x-2.2
  - Added support for Calais Document Categorization, http://opencalais.com/APIresponses#DocCategorization
  - Now captures the disambiguated company names. Stored in resolved_name column, not as the actual value.
  - Provides Calais node RDF as an autodiscovery link
+ - Expose GUID to Views
