@@ -27,7 +27,7 @@ module_load_include('inc', 'calais', 'calais.admin');
  * Implementation of hook_perm().
  */
 function calais_perm() {
-  return array('administer calais', 'access calais');
+  return array('administer calais', 'access calais', 'access calais rdf');
 }
 
 /**
@@ -69,7 +69,8 @@ function calais_menu() {
     'title' => 'Calais',
     'page callback' => 'calais_get_rdf',
     'page arguments' => array(1),
-    'access callback' => TRUE,
+    'access callback' => 'user_access',
+    'access arguments' => array('access calais rdf'),
     'type' => MENU_CALLBACK
   );
 
@@ -84,7 +85,9 @@ function calais_menu() {
 function calais_preprocess_node(&$variables) {
   $node = $variables['node'];
   $count = rdf_count(NULL, NULL, NULL, calais_rdf_options($node->nid));
-  if($count) {
+  
+  // Add an RDF autodiscovery link when the node is displayed by itself as a page:
+  if (user_access('access calais rdf') && $count) {
     rdf_add_autodiscovery_link(t('Calais RDF'), url("node/$node->nid/calais/rdf"), 'rdf+xml');
   }
 }
