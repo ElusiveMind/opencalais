@@ -51,7 +51,7 @@ function calais_form_alter(&$form, $form_state, $form_id) {
       $form['identification']['guid'] = array(
         '#type' => 'markup',
         '#prefix' => '<div class="form-item" id="calais-guid"><label>' .t('Calais GUID'). '</label>',
-        '#value' => $term['guid'],
+        '#value' => l($term['guid'], $term['guid'], array('attributes' => array('target' => '_blank'))),
         '#suffix' => '</div>',
         '#weight' => 10,
       );
