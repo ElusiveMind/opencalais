@@ -381,8 +381,8 @@ function calais_processing_type($var) {
 function calais_get_node_settings($node) {
   $key = drupal_strtolower($node->type);
   $settings = array(
-    'allowSearch' => variable_get("calais_api_allow_searching_{$key}", FALSE) ? 'true' : 'false',
-    'allowDistribution' => variable_get("calais_api_allow_distribution_{$key}", FALSE) ? 'true' : 'false',
+    'allowSearch' => variable_get("calais_api_allow_searching_{$key}", TRUE) ? 'true' : 'false',
+    'allowDistribution' => variable_get("calais_api_allow_distribution_{$key}", TRUE) ? 'true' : 'false',
   );
   return $settings;
 }

@@ -43,8 +43,8 @@ class Calais {
    */
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
-    $this->defaults['allowSearch'] = variable_get('calais_api_allow_searching', FALSE) ? 'true' : 'false';
-    $this->defaults['allowDistribution'] = variable_get('calais_api_allow_distribution', FALSE) ? 'true' : 'false';
+    $this->defaults['allowSearch'] = variable_get('calais_api_allow_searching', TRUE) ? 'true' : 'false';
+    $this->defaults['allowDistribution'] = variable_get('calais_api_allow_distribution', TRUE) ? 'true' : 'false';
     
     $this->parameters = array_merge($this->defaults, $options);
   }

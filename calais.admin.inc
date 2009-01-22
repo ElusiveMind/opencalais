@@ -123,13 +123,13 @@ function calais_build_nodetype_settings(&$form) {
     $form["calais_{$key}_settings"]["calais_api_allow_searching_{$key}"] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow Calais Searching'),
-      '#default_value' => variable_get("calais_api_allow_searching_{$key}", NULL),
+      '#default_value' => variable_get("calais_api_allow_searching_{$key}", TRUE),
       '#description' => t('Indicates whether future searches can be performed on the extracted metadata by Calais'),
     );
     $form["calais_{$key}_settings"]["calais_api_allow_distribution_{$key}"] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow Calais Distribution'),
-      '#default_value' => variable_get("calais_api_allow_distribution_{$key}", NULL),
+      '#default_value' => variable_get("calais_api_allow_distribution_{$key}", TRUE),
       '#description' => t('Indicates whether the extracted metadata can be distributed by Calais'),
     );
     $form["calais_{$key}_settings"]["calais_threshold_{$key}"] = array(
