@@ -4,6 +4,5 @@ description = "Provides Geo services & functionality based on the Calais Metadat
 package = "Calais"
 core = 6.x
 dependencies[] = calais
-dependencies[] = geonames
 dependencies[] = gmap
 

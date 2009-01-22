@@ -448,18 +448,6 @@ function calais_geo_calc_map_center($markers) {
  *    The term we are querying got location
  */
 function calais_geo_get_latlon($node, $term) {
-  $data = _cg_calais_latlon($node, $term);
-  if($data === FALSE) {
-    $data = _cg_geonames_latlon($term);
-  }
-  return $data;
-}
-
-/**
- * Look up a lat/lon for a term name in the calais table
- */
-function _cg_calais_latlon($node, $term) {
-
   $sql = "SELECT ct.* FROM {calais_term} AS ct";
   $sql .= " INNER JOIN {calais_term_node} AS ctn ON ct.tid = ctn.tid";
   $sql .= " WHERE ctn.nid = %d AND ct.name = '%s'";
@@ -470,37 +458,6 @@ function _cg_calais_latlon($node, $term) {
 
   return array('lat' => $calais_term->latitude, 'lon' => $calais_term->longitude);
 }
-
-/**
- * Look up lat/lon for a term name in the geonames service.
- *
- * When using Geonames, we are searching only on the following featureclasses:
- *    p = city, village, ...
- *    a = country, state, region, ...
- *
- * @see http://www.geonames.org/export/geonames-search.html
- * @see http://www.geonames.org/export/codes.html 
- */
-function _cg_geonames_latlon($term) {
-  $params = array(
-    'name' => $term, 
-    'maxrows' => 1, 
-    'featureclass' => array('p', 'a'),
-  );
-  
-  $result = geonames_query('search', $params);
-  if(count($result->results) > 0) {
-    $data = array(
-      'lat' => $result->results[0]['lat'],
-      'lon' => $result->results[0]['lng'],
-    );
-  }
-  else {
-    drupal_set_message(t('No Geoname results found for !term', array('!term' => $term)));
-  }
-  return $data;
-}
-
 
 /**
  * Default theme function to rendering the text that goes in the Google Map marker bubble.
