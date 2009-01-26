@@ -34,8 +34,10 @@ class CalaisGeoLookupTestCase extends CalaisGeoBase {
 
 		// Case 1: No term exists
 		$data = calais_geo_get_latlon($node, $term);
-		$this->assertEqual($data['lat'], '40.7062104');
-		$this->assertEqual($data['lon'], '-73.3062302');		
+		// Fallback was removed so test for no data
+		$this->assertFalse($data, 'No geo data was found');
+		// $this->assertEqual($data['lat'], '40.7062104');
+		// $this->assertEqual($data['lon'], '-73.3062302');		
 		
 		// Case 2: Term exists WITHOUT no geo data
 		$calais_term = new CalaisTerm($this->randomName(100), $term, 0.5);
@@ -43,8 +45,10 @@ class CalaisGeoLookupTestCase extends CalaisGeoBase {
 		calais_assign_node_calaisterm($node->nid, $tid, 1.0);
 		
 		$data = calais_geo_get_latlon($node, $term);
-		$this->assertEqual($data['lat'], '40.7062104');
-		$this->assertEqual($data['lon'], '-73.3062302');		
+		// Fallback was removed so test for no data
+		$this->assertFalse($data, 'No geo data was found');
+		// $this->assertEqual($data['lat'], '40.7062104');
+		// $this->assertEqual($data['lon'], '-73.3062302');		
 		
 		// Case 3: Term exists WITH geo data
 		$calais_term->lat = '99.6666';
