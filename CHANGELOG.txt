@@ -2,6 +2,12 @@ $Id$
 
 From Version 6.x-2.1 -> 6.x-2.2
 -------------------------------
+ - Allow admin UI configuration of which OpenCalais server to use
+ - Default server to api1.opencalais.com (R4.0)
+
+
+From Version 6.x-2.1 -> 6.x-2.2
+-------------------------------
  - API: Updated c:caller to be RDF and OpenCalais compliant
  - Added a threshold parameter to calais_get_keywords() - Allows external callers to not be beholden to the node type configuration.
  - Fixed issues with Calais Geo Disambiguation data (predicates and object names were changed)
