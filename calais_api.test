@@ -27,7 +27,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$body = filter_xss($this->get_test_content());
 		$date = format_date(time(), 'custom', 'r');
 		
-		$calais = new Calais(array('host' => 'http://beta.opencalais.com'));
+		$calais = new Calais(array('host' => 'api1.opencalais.com'));
 		$results = $calais->analyzeXML('Calais API Test', $body, $date);
 
 		$this->arrayContains($results->CalaisDocumentCategory, 'Technology', 'Technology is in Document Category');
