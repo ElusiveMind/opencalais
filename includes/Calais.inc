@@ -12,7 +12,7 @@ class Calais {
   const CALAIS_SUBJECT = 'http://s.opencalais.com/1/pred/subject';
   
   private $defaults = array(
-    'host' => 'http://api.opencalais.com',
+    'protocol' => 'http',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
@@ -45,6 +45,7 @@ class Calais {
     $this->defaults['externalID'] = time();
     $this->defaults['allowSearch'] = variable_get('calais_api_allow_searching', TRUE) ? 'true' : 'false';
     $this->defaults['allowDistribution'] = variable_get('calais_api_allow_distribution', TRUE) ? 'true' : 'false';
+    $this->defaults['host'] = variable_get('calais_api_server', 'api.opencalais.com');
     
     $this->parameters = array_merge($this->defaults, $options);
   }
@@ -79,7 +80,7 @@ class Calais {
     );
 
     $data_enc = http_build_query($data, '', '&');
-    $uri = $this->parameters['host'] . self::PATH;
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
     $ret = drupal_http_request($uri, $headers, 'POST', $data_enc);
     if (isset($ret->error)) {
       self::log_calais_error($ret);
@@ -88,7 +89,7 @@ class Calais {
 
     $this->rdf = $ret->data;
     $keywords  = $this->parse_rdf($this->rdf);    
-    
+
     return $keywords;    
   }
 
@@ -246,7 +247,7 @@ EOD;
        $cat_guid = $indx['http://s.opencalais.com/1/pred/category'][0];
        $cat_val = $indx['http://s.opencalais.com/1/pred/categoryName'][0];
        $cat_score = $indx['http://s.opencalais.com/1/pred/score'][0];
-       $cat_score = $cat_score ? $cat_score : 1.000;
+       $cat_score = $cat_score ? $cat_score : 0;
 
        if (!property_exists($keywords, 'CalaisDocumentCategory')) {
          $keywords->CalaisDocumentCategory = new CalaisMetadata($type[0], 'CalaisDocumentCategory');
