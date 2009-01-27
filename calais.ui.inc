@@ -198,15 +198,19 @@ function _calais_get_current_tags($node, $vid) {
  * Theme function to render the suggestions for a particular vocabulary
  */
 function theme_calais_suggestions($vid, $terms) {
+  $score_value = array(0 => 'Low', 1 => 'Low', 2 => 'Moderate', 3 => 'High');
   if (sizeof($terms)) {
     $suggestions .= "<div class='suggestions'>";
     $suggestions .= t('Calais Suggestions: ');
     foreach ($terms as $term) {
-      $suggestions .= "<label class='calais_keyword' for='edit-calais-$vid'>$term</label>";
+      $size = ceil(3 * $term->score);
+      $hover = t('Relevance') . ": " . $score_value[$size];
+      $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-calais-$vid' title='$hover'>$term->name</label>";
     }
     $suggestions .= "</div>";
   }
   
   return $suggestions;
 }
+
 
