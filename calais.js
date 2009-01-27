@@ -1,11 +1,11 @@
 
-$(document).ready(function() {
+Drupal.behaviors.calais = function(context) {
 
 	$('.calais_keyword').click(function() {
 		var tags = $('#' + $(this).attr('for'));
 		var keyword = $(this).text();
 		
-		// TODO: When we move to a revent jQuery, replace is() with hasClass()
+		// TODO: When we move to a recent jQuery, replace is() with hasClass()
 		if($(this).is('.calais_keyword_selected')) {
 			calaisRemoveKeyword(tags, keyword);
 			$(this).removeClass('calais_keyword_selected');
@@ -14,7 +14,6 @@ $(document).ready(function() {
 			calaisAddKeyword(tags, keyword);
 			$(this).addClass('calais_keyword_selected');
 		}
-
 	});
 
 	$('.calais_keyword').each( function() {
@@ -23,10 +22,9 @@ $(document).ready(function() {
 		
 		if (tags.val().indexOf(keyword) != -1) {
 			$(this).addClass('calais_keyword_selected');
-		}
-		
+		}		
 	});
-});
+}
 
 /**
  * Insert keyword, adding a comma if necessary
