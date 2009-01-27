@@ -86,7 +86,10 @@ function calais_keywords_form(&$form_state, $node) {
   $form['nid']   = array('#type' => 'value', '#value' => $node->nid);
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
 
+  uasort($vocabs, '_calais_vocab_cmp');
+  $weight = 0;
   foreach ($vocabs as $vocabulary) {
+    $vocabulary->weight = $weight++;
     $keywords = calais_get_keywords($node->nid, $node->type, $vocabulary->vid);
     $suggestions = theme('calais_suggestions', $vocabulary->vid, $keywords[$vocabulary->vid]);
     $current_tags = _calais_get_current_tags($node, $vocabulary->vid);
@@ -204,7 +207,7 @@ function theme_calais_suggestions($vid, $terms) {
     $suggestions .= t('Calais Suggestions: ');
     foreach ($terms as $term) {
       $size = ceil(3 * $term->score);
-      $hover = t('Relevance') . ": " . $score_value[$size];
+      $hover = t('Relevance: ') . $score_value[$size];
       $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-calais-$vid' title='$hover'>$term->name</label>";
     }
     $suggestions .= "</div>";
@@ -213,4 +216,7 @@ function theme_calais_suggestions($vid, $terms) {
   return $suggestions;
 }
 
+function _calais_vocab_cmp($a, $b) {
+  return strcmp($a->name, $b->name);
+}
 
