@@ -57,7 +57,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 
 		$this->arrayContains($results->TVShow, '60 Minutes', '60 Minutes is a TVShow');
 
-		$this->arrayContains($results->EventsFacts, 'Person Career', 'Person Political is an Event/Fact');
+		$this->arrayContains($results->EventsFacts, 'Person Career', 'Person Career is an Event/Fact');
 		$this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
 		
 		$this->assertFalse(property_exists($results, 'Geo'), 'GEO data handled correctly');
