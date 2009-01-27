@@ -499,7 +499,7 @@ function calais_get_vocabularies($type = NULL) {
  * @param $threshold 
  *    Optional, A relevance threshold for suggestions. If not specified the default for the node type will be used.
  *
- * @return Array { $vid => array('term1', 'term2', 'term3') }
+ * @return Array { $vid => array(termObj1, termObj2, termObj3) }
  */
 function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   $terms = array();
@@ -509,15 +509,15 @@ function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   }
 
   if ($vid) {
-    $res = db_query(" SELECT name
+    $res = db_query(" SELECT t.name, t.guid, tn.relevance as score
                         FROM {calais_term} t
                         JOIN {calais_term_node} tn ON tn.tid=t.tid
                         WHERE tn.nid=%d and t.vid=%d and tn.relevance >= %f
-                        ORDER BY name asc ", $nid, $vid, $threshold);
+                        ORDER BY score DESC ", $nid, $vid, $threshold);
 
     $terms[$vid] = array();
     while ($obj = db_fetch_object($res)) {
-      $terms[$vid][] = $obj->name;
+      $terms[$vid][] = $obj;
     }
   }
   else {
