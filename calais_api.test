@@ -37,10 +37,9 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->arrayContains($results->City, 'Chicago', 'Chicago is a City');
 
 		$this->arrayContains($results->Company, 'CBS', 'CBS is a Company');
-		$this->assertDisambiguatedName($results->Company, 'CBS', 'Viacom International Inc', 'CBS disambiguates to Viacom International Inc');
 
-		$this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
 		$this->arrayContains($results->Person, 'Barack Obama', 'Barack Obama is a Person');
+		$this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
 		$this->arrayContains($results->Person, 'Howard Dean', 'Howard Dean is a Person');
 		$this->arrayContains($results->Person, 'Al Gore', 'Al Gore is a Person');
 
@@ -61,8 +60,16 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
 		
 		$this->assertFalse(property_exists($results, 'Geo'), 'GEO data handled correctly');
-		$this->assertGeoData($results->ProvinceOrState, 'Indiana', '40.0066019668', '-86.2913991487');		
-		$this->assertGeoData($results->ProvinceOrState, 'North Carolina', '35.4833648675', '-79.4002284439');		
+		
+		$this->assertRelevance($results->Person, 'Barack Obama', 0.797);
+		$this->assertRelevance($results->ProvinceOrState, 'Indiana', 0.566);
+		$this->assertRelevance($results->TVShow, '60 Minutes', 0.052);
+		
+		$this->assertResolvedName($results->Company, 'CBS', 'Viacom International Inc', 'CBS disambiguates to Viacom International Inc');
+
+		$this->assertResolvedData($results->Company, 'CBS', array('ticker' => 'CBS'));
+		$this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('lat' => '40.0066019668', 'lon' => '-86.2913991487'));		
+		$this->assertResolvedData($results->ProvinceOrState, 'North Carolina', array('lat' => '35.4833648675', 'lon' => '-79.4002284439'));		
 	}
 
 	function arrayContains($haystack, $needle, $message) {
@@ -72,16 +79,23 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->assertTrue($haystack->has_term_value($needle), t($message));
 	}
 
-	function assertGeoData($data, $entity, $lat, $lon) {
-		$term = $data->get_term_by_value($entity);
-		$this->assertEqual($term->lat, $lat, "Latitude for $entity is {$term->lat}");
-		$this->assertEqual($term->lon, $lon, "Longitude for $entity is {$term->lon}");
+	function assertResolvedName($entitySet, $entity, $resolved, $message) {
+		$term = $entitySet->get_term_by_value($entity);
+		$this->assertTrue($term, "'$entity' was found for disambiguation");
+		$this->assertEqual($term->resolvedName, $resolved, $message);
 	}
 
-	function assertDisambiguatedName($entitySet, $value, $resolved, $message) {
+	function assertResolvedData($entitySet, $entity, $data) {
+		$term = $entitySet->get_term_by_value($entity);
+		$extra = $term->extra;
+		foreach ($data as $key => $val) {
+			$this->assertEqual($extra[$key], $val, "Resolved '$key' for $entity is {$extra[$key]}");
+		}
+	}
+
+	function assertRelevance($entitySet, $value, $score) {
 		$term = $entitySet->get_term_by_value($value);
-		$this->assertTrue($term, "'$value' was found for disambiguation");
-		$this->assertEqual($term->resolvedName, $resolved, $message);
+		$this->assertEqual($term->relevance, $score, "Relevance score for $value is {$term->relevance}");
 	}
 
 	function get_test_content() {
