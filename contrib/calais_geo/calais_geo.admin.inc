@@ -18,6 +18,19 @@
  * Settings form to configure which Calais vocabularies are presented for mapping
  */
 function calais_geo_settings_form() {
+  $node_options = array();
+  foreach(node_get_types() as $key => $type) {
+    $node_options[$key] = $type->name;
+  }
+
+  $form['calais_geo_nodes_enabled'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Which types should allow calais geo terms to be added to a map'),
+    '#default_value' => variable_get('calais_geo_nodes_enabled', array_keys($node_options)),
+    '#options' => $node_options,
+    '#description' => t('Check the node types that will display the Calais geo node fieldset.'),
+  );
+
   $entities = calais_get_entity_vocabularies();
 
   $form['calais_geo_vocabularies'] = array(

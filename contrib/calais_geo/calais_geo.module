@@ -183,7 +183,8 @@ function calais_geo_save($node, $data) {
  * Implementation of hook_form_alter().
  */
 function calais_geo_form_alter(&$form, $form_state, $form_id) {
-  if (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
+  if ( (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) && 
+    _nodetype_enabled($form['#node']->type) ) {
     $node = $form['#node'];
     
     $geo_vocabs = variable_get('calais_geo_vocabularies', array());
@@ -464,4 +465,13 @@ function calais_geo_get_latlon($node, $term) {
  */
 function theme_calais_geo_marker_text($node, $term) {
   return "<h3>$term->term</h3>";
+}
+
+/** 
+ * Quick helper to tell if the given node_type
+ * Is enabled for calias geo
+ */
+function _nodetype_enabled($node_type) {
+  $nodes_enabled = variable_get('calais_geo_nodes_enabled', array());
+  return ($nodes_enabled[$node_type] ? TRUE : FALSE);
 }
