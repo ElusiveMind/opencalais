@@ -65,11 +65,11 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->assertRelevance($results->ProvinceOrState, 'Indiana', 0.566);
 		$this->assertRelevance($results->TVShow, '60 Minutes', 0.052);
 		
-		$this->assertResolvedName($results->Company, 'CBS', 'Viacom International Inc', 'CBS disambiguates to Viacom International Inc');
+		$this->assertResolvedName($results->Company, 'CBS', 'Viacom International Inc', 'company', 'CBS disambiguates to Viacom International Inc');
 
 		$this->assertResolvedData($results->Company, 'CBS', array('ticker' => 'CBS'));
-		$this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('lat' => '40.0066019668', 'lon' => '-86.2913991487'));		
-		$this->assertResolvedData($results->ProvinceOrState, 'North Carolina', array('lat' => '35.4833648675', 'lon' => '-79.4002284439'));		
+		$this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('latitude' => '40.0066019668', 'longitude' => '-86.2913991487'));		
+		$this->assertResolvedData($results->ProvinceOrState, 'North Carolina', array('latitude' => '35.4833648675', 'longitude' => '-79.4002284439'));		
 	}
 
 	function arrayContains($haystack, $needle, $message) {
@@ -79,10 +79,11 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->assertTrue($haystack->has_term_value($needle), t($message));
 	}
 
-	function assertResolvedName($entitySet, $entity, $resolved, $message) {
+	function assertResolvedName($entitySet, $entity, $resolved, $type, $message) {
 		$term = $entitySet->get_term_by_value($entity);
 		$this->assertTrue($term, "'$entity' was found for disambiguation");
-		$this->assertEqual($term->resolvedName, $resolved, $message);
+		$this->assertEqual($term->resolved_name, $resolved, $message);
+		$this->assertEqual($term->resolved_type, $type, "Resolved Type '$term->resolved_type' equals '$type'");
 	}
 
 	function assertResolvedData($entitySet, $entity, $data) {
