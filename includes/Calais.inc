@@ -320,13 +320,13 @@ EOD;
    * @param $data The indexed triple for the current Calais Term
    * @param $extra Any extra domain specific data
    */
-  protected function apply_resolved_data(&$keywords, $guid, $data, $extra = array()) {
+  protected function apply_resolved_data(&$keywords, $guid, $data, $type, $extra = array()) {
     $subject = $data[self::CALAIS_SUBJECT][0];
     $resolved_name = $data[self::CALAIS_NAME][0];
       
     foreach ($keywords as &$entity) {
       if ($entity->has_guid($subject)) {
-        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $extra);      
+        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $type, $extra);      
       }
     }
   }
@@ -340,13 +340,13 @@ EOD;
    */
   protected function apply_resolved_geo_city(&$keywords, $guid, $data) {
     $extra = array(
-      'lat' => $data[self::CALAIS_LAT][0],
-      'lon' => $data[self::CALAIS_LON][0],
+      'latitude' => $data[self::CALAIS_LAT][0],
+      'longitude' => $data[self::CALAIS_LON][0],
       'shortname' => $data['http://s.opencalais.com/1/pred/shortname'][0],
       'containedbystate' => $data['http://s.opencalais.com/1/pred/containedbystate'][0],
       'containedbycountry' => $data['http://s.opencalais.com/1/pred/containedbycountry'][0],
     );
-    $this->apply_resolved_data($keywords, $guid, $data, $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
   
   /**
@@ -358,12 +358,12 @@ EOD;
    */
   protected function apply_resolved_geo_provinceorstate(&$keywords, $guid, $data) {
     $extra = array(
-      'lat' => $data[self::CALAIS_LAT][0],
-      'lon' => $data[self::CALAIS_LON][0],
+      'latitude' => $data[self::CALAIS_LAT][0],
+      'longitude' => $data[self::CALAIS_LON][0],
       'shortname' => $data['http://s.opencalais.com/1/pred/shortname'][0],
       'containedbycountry' => $data['http://s.opencalais.com/1/pred/containedbycountry'][0],
     );
-    $this->apply_resolved_data($keywords, $guid, $data, $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
   
   /**
@@ -375,10 +375,10 @@ EOD;
    */
   protected function apply_resolved_geo_country(&$keywords, $guid, $data) {
     $extra = array(
-      'lat' => $data[self::CALAIS_LAT][0],
-      'lon' => $data[self::CALAIS_LON][0],
+      'latitude' => $data[self::CALAIS_LAT][0],
+      'longitude' => $data[self::CALAIS_LON][0],
     );
-    $this->apply_resolved_data($keywords, $guid, $data, $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
   
   /**
@@ -393,7 +393,7 @@ EOD;
      'score' => $data[self::CALAIS_SCORE][0],
      'ticker' => $data['http://s.opencalais.com/1/pred/ticker'][0],
    );
-   $this->apply_resolved_data($keywords, $guid, $data, $extra);
+   $this->apply_resolved_data($keywords, $guid, $data, 'company', $extra);
   }
   
   /**
@@ -407,6 +407,6 @@ EOD;
     $extra = array(
       'score' => $data[self::CALAIS_SCORE][0],
     );
-    $this->apply_resolved_data($keywords, $guid, $data, $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
 }
