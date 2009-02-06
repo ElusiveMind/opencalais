@@ -62,7 +62,11 @@ function calais_install() {
   
   // Add necessary fields to the taxonomy term table
   $ret = array();
-  db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
+  
+  if (!db_column_exists('term_data', 'guid')) {
+    db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
+    db_add_field($ret, 'term_data', 'resolved_guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the Disambiguated GUID from Calais for this term.'));  
+  }
   
   calais_install_rdf_repository($ret);
 }
@@ -90,6 +94,12 @@ function calais_schema() {
         'not null' => TRUE,
         'description' => t('Identifier for a Calais term')
       ),
+      'name' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE,
+        'description' => t('The value of the term')
+      ),
       'vid' => array(
         'type' => 'int', 
         'unsigned' => TRUE, 
@@ -97,11 +107,10 @@ function calais_schema() {
         'default' => 0,
         'description' => t('The Vocabulary this term is in')
       ),
-      'name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => t('The value of the term')
+      'tdid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'description' => t('The Term Data ID for this mapping')
       ),
       'guid' => array(
         'type' => 'varchar', 
@@ -109,21 +118,20 @@ function calais_schema() {
         'not null' => TRUE,
         'description' => t('The Calais GUID of this term')
       ),
+      'resolved_guid' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The Disambiguated Calais GUID of this term (if it exists)')
+      ),
       'resolved_name' => array(
         'type' => 'varchar', 
         'length' => 255, 
         'description' => t('The normalized/resolved name of the term')
       ),
-      'latitude' => array(
-        'type' => 'varchar', 
-        'length' => 25, 
-        'description' => t('The latitude value of the term, if it is a geo term')
-      ),
-      'longitude' => array(
+      'resolved_type' => array(
         'type' => 'varchar', 
         'length' => 255, 
-        'not null' => TRUE,
-        'description' => t('The longitude value of the term, if it is a geo term')
+        'description' => t('The Disambiguated type of this Entity')
       ),
     ),
     'indexes' => array(
@@ -165,6 +173,128 @@ function calais_schema() {
       'nid'    => array('nid'),
     ),
     'primary key' => array('tid', 'nid'),
+  );
+
+  // Table to store the resolved geo data 
+  $schema['calais_term_data_geo'] = array(
+    'description' => 'Holds the Disambiguated Geo data for an Entity',
+    'fields' => array(
+      'did' => array(
+        'type' => 'serial', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Data id')
+      ),
+      'tid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The term identifier')
+      ),
+      'latitude' => array(
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 6,
+        'default' => 0.0,
+        'description' => t('The latitude value of the Entity')
+      ),
+      'longitude' => array(
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 6,
+        'default' => 0.0,
+        'description' => t('The longitude value of the Entity')
+      ),
+      'shortname' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The short name of the Entity')
+      ),
+      'containedbystate' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The State that contains this Entity')
+      ),
+      'containedbycountry' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The Country that contains this Entity')
+      ),
+    ),
+    'unique keys' => array(
+      'tid' => array('tid')
+    ),
+    'primary key' => array('did'),
+  );
+
+  // Table to store the resolved company data 
+  $schema['calais_term_data_company'] = array(
+    'description' => 'Holds the Disambiguated company data for an Entity',
+    'fields' => array(
+      'did' => array(
+        'type' => 'serial', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Data id')
+      ),
+      'tid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The term identifier')
+      ),
+      'ticker' => array(
+        'type' => 'varchar', 
+        'length' => 25, 
+        'description' => t('The ticker symbol of the Entity')
+      ),
+      'score' => array(
+        'type' => 'numeric', 
+        'size' => 'normal', 
+        'default' => 0.0, 
+        'precision' => 5, 
+        'scale' => 3,
+        'description' => t('Confidence score (range: 0 lowest - 1 highest)')
+      ),
+    ),
+    'unique keys' => array(
+      'tid' => array('tid')
+    ),
+    'primary key' => array('did'),
+  );
+
+  // Table to store the resolved product data 
+  $schema['calais_term_data_product'] = array(
+    'description' => 'Holds the Disambiguated Product data for a term',
+    'fields' => array(
+      'did' => array(
+        'type' => 'serial', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Data id')
+      ),
+      'tid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE, 
+        'default' => 0,
+        'description' => t('The term identifier')
+      ),
+      'score' => array(
+        'type' => 'numeric', 
+        'size' => 'normal', 
+        'default' => 0.0, 
+        'precision' => 5, 
+        'scale' => 3,
+        'description' => t('Confidence score (range: 0 lowest - 1 highest)')
+      ),
+    ),
+    'unique keys' => array(
+      'tid' => array('tid')
+    ),
+    'primary key' => array('did'),
   );
   return $schema;
 }
@@ -219,6 +349,52 @@ function calais_update_6202() {
   return $ret;
 }
 
+// Normalize data strucutre
+// Support for disambiguated guids/data
+function calais_update_6300() {
+  $ret = array();
+  
+  // Add new columns
+  if (!db_column_exists('calais_term', 'tdid')) {
+    db_add_field($ret, 'calais_term', 'tdid', array(
+      'type' => 'int', 
+      'unsigned' => TRUE, 
+      'description' => t('The term id for a mapping to a record in the term_data table.')
+    ));  
+  }
+  if (!db_column_exists('calais_term', 'resolved_guid')) {
+    db_add_field($ret, 'calais_term', 'resolved_guid', array(
+      'type' => 'varchar', 
+      'length' => 255, 
+      'description' => 'Holds the Disambiguated GUID from Calais for this term.'
+    ));  
+  }
+  if (!db_column_exists('calais_term', 'resolved_type')) {
+    db_add_field($ret, 'calais_term', 'resolved_type', array(
+      'type' => 'varchar', 
+      'length' => 255, 
+      'description' => t('The Disambiguated type of this Entity.')
+    ));  
+  }
+  
+  // Populate the term id in the calais term table, then remove the mod in term_data
+  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.guid = ct.guid)");
+  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.vid = ct.vid AND lower(td.name) = lower(ct.name) AND (td.guid IS NULL OR td.guid = '') LIMIT 1) WHERE ct.tdid IS NULL");
+  db_drop_field($ret, 'term_data', 'guid');
+  
+  // Create new tables for disambiguated data
+  $schema = calais_schema();
+  db_create_table($ret, 'calais_term_data_geo', $schema['calais_term_data_geo']);
+  db_create_table($ret, 'calais_term_data_company', $schema['calais_term_data_company']);
+  db_create_table($ret, 'calais_term_data_product', $schema['calais_term_data_product']);
+
+  // Migrate lat/lon data out of calais_term
+  $ret[] = update_sql("INSERT INTO {calais_term_data_geo} (tid, latitude, longitude) SELECT tid, latitude, longitude FROM {calais_term} WHERE latitude IS NOT NULL AND longitude IS NOT NULL");
+  db_drop_field($ret, 'calais_term', 'latitude');
+  db_drop_field($ret, 'calais_term', 'longitude');
+  
+  return $ret;
+}
 
 /******************************** Helpers ****************************/
 /**
