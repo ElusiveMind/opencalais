@@ -14,8 +14,15 @@
  * @file
  */
 
-module_load_include('inc', 'calais_api', 'includes/Calais');
-module_load_include('inc', 'calais_api', 'includes/CalaisMetadata');
+
+/**
+ * Implementation of hook_init().
+ */
+function calais_api_init() {
+  // Only load these if it is not a cached page
+  module_load_include('inc', 'calais_api', 'includes/Calais');
+  module_load_include('inc', 'calais_api', 'includes/CalaisMetadata');
+}
 
 /**
  * Implementation of hook_perm().
@@ -137,6 +144,7 @@ function calais_api_rdf_namespaces() {
     'lid' => 'http://s.opencalais.com/1/type/lid/',
     'cat' => 'http://s.opencalais.com/1/type/cat/',
     'resolved' => 'http://s.opencalais.com/1/type/er/',
+    'geo' => 'http://s.opencalais.com/1/type/er/Geo/',
     'eventfact' => 'http://s.opencalais.com/1/type/em/r/',
     'entity' => 'http://s.opencalais.com/1/type/em/e/',
   );
