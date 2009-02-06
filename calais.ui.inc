@@ -45,13 +45,15 @@ function calais_form_alter(&$form, $form_state, $form_id) {
     }
   }
   // Display Calais GUI on Taxonomy Term Editor if it exists
-  else if ($form_id == 'taxonomy_form_term'){
+  else if ($form_id == 'taxonomy_form_term' && !isset($form_state['confirm_delete'])){
     $term = $form['#term'];
-    if(!empty($term['guid'])) {
+    $calais_term = calais_get_term_by_taxonomy($term['tid']);
+    $guid = $calais_term->resolved_guid ? $calais_term->resolved_guid : $calais_term->guid;
+    if(!empty($guid)) {
       $form['identification']['guid'] = array(
         '#type' => 'markup',
-        '#prefix' => '<div class="form-item" id="calais-guid"><label>' .t('Calais GUID'). '</label>',
-        '#value' => l($term['guid'], $term['guid'], array('attributes' => array('target' => '_blank'))),
+        '#prefix' => '<div class="form-item" id="calais-guid"><label>' .t('Linked Data URI'). '</label>',
+        '#value' => l($guid, $guid, array('attributes' => array('target' => '_blank'))),
         '#suffix' => '</div>',
         '#weight' => 10,
       );
@@ -105,7 +107,7 @@ function calais_keywords_form(&$form_state, $node) {
       $vocabulary->weight -= 50;
     }
     
-    $form['calais'][$vocabulary->vid] = array(
+    $form['taxonomy']['tags'][$vocabulary->vid] = array(
       '#type' => 'textfield',
       '#title' => $vocabulary->name,
       '#description' => $suggestions,
@@ -118,14 +120,16 @@ function calais_keywords_form(&$form_state, $node) {
     );
     
     if ($has_keywords) {
-      $form['calais'][$vocabulary->vid]['#attributes'] = array(
+      $form['taxonomy']['tags'][$vocabulary->vid]['#attributes'] = array(
         'class' => 'keywords_available',
       );
     }
   }
   
-  $form['calais']['#tree'] = TRUE;
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 45);
+  $form['taxonomy']['#tree'] = TRUE;
+  // Add buttons a top and bottom
+  $form['submit1'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => -200);
+  $form['submit2'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 200);
   
   return $form;
 }
@@ -137,18 +141,7 @@ function calais_keywords_form(&$form_state, $node) {
  */
 function calais_keywords_form_validate($form, &$form_state) {
   $node = (object)$form_state['values'];
-  
-  if (!empty($node->calais)) {
-    $terms = $node->calais;
-    foreach ($terms as $vid => $vid_value) {
-      $vocabulary = taxonomy_vocabulary_load($vid);
-      if (empty($vocabulary->tags)) {
-        // see form_get_error $key = implode('][', $element['#parents']);
-        // on why this is the key
-        form_set_error("calais][$vid", t('The %name vocabulary can not be modified in this way. It is not setup for Free Tagging.', array('%name' => $vocabulary->name)));
-      }
-    }
-  }
+  taxonomy_node_validate($node);
 }
 
 /**
@@ -157,25 +150,30 @@ function calais_keywords_form_validate($form, &$form_state) {
 function calais_keywords_form_submit($form, &$form_state) {
   $node = (object)$form_state['values'];
 
-  foreach ($node->calais as $vid => $vid_value) {
-    calais_remove_terms_for_node($node, $vid);
-    
-    $terms = drupal_explode_tags($vid_value);
-    foreach ($terms as $term_name) {
-      $term = calais_get_node_term($node->nid, $term_name);
-      if(!$term){
-        $term = new stdClass;
-        $term->value = $term_name;
+  taxonomy_node_save($node, $node->taxonomy);
+
+  // Query for Node Terms directly. Some wierd caching (I think) with taxonomy_node_get_terms
+  // made it so newly created terms were not returned. This next block of code happens to be
+  // VERY interested in newly created terms, so I have to query directly. Boo! :( - ff
+  $result = db_query('SELECT t.* FROM {term_node} r 
+                      INNER JOIN {term_data} t ON r.tid = t.tid 
+                      WHERE r.vid = %d ORDER BY t.weight, t.name', $node->vid);
+  while ($term = db_fetch_object($result)) {
+    $calais_term = calais_get_node_term_by_name($node->nid, $term->name);
+    if($calais_term && $term->vid == $calais_term->vid) {
+      if (empty($calais_term->tdid) || $calais_term->tdid != $term->tid) {
+        $calais_term->tdid = $term->tid;
+        calais_save_term($calais_term);
       }
-      calais_assign_to_node($vid, $term, $node);
     }
   }
 
+  drupal_set_message(t('Calais settings have been saved.'));
   $form_state['redirect'] = "node/{$node->nid}";
 }
 
 /**
- * Remove all terms on a node for a particular vocabulary.
+ * Remove term relationship to a node for a particular vocabulary.
  *
  * @param $node The node to remove terms
  * @param $vid The vocabulary whose terms will be removed from the node
@@ -206,9 +204,9 @@ function theme_calais_suggestions($vid, $terms) {
     $suggestions .= "<div class='suggestions'>";
     $suggestions .= t('Calais Suggestions: ');
     foreach ($terms as $term) {
-      $size = ceil(3 * $term->score);
+      $size = ceil(3 * $term->relevance);
       $hover = t('Relevance: ') . $score_value[$size];
-      $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-calais-$vid' title='$hover'>$term->name</label>";
+      $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-taxonomy-tags-$vid' title='$hover'>$term->name</label>";
     }
     $suggestions .= "</div>";
   }
@@ -216,6 +214,7 @@ function theme_calais_suggestions($vid, $terms) {
   return $suggestions;
 }
 
+// Vocabulary sorting by name function
 function _calais_vocab_cmp($a, $b) {
   return strcmp($a->name, $b->name);
 }
