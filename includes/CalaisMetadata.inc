@@ -41,7 +41,7 @@ class CalaisMetadata {
    */
   function set_term_data($guid, $subject, $relevance = 0.0) {
     $term = &$this->_get_term($guid);
-    $term->value = $subject;      
+    $term->name = $subject;      
     $term->relevance = $relevance;      
   }
 
@@ -70,10 +70,11 @@ class CalaisMetadata {
    * @param $extra
    *    The extra data associated with a resolved entity (e.g. lat/lon, ticker, etc.)
    */
-  function set_term_resolved_data($guid, $resolvedName, $resolvedGuid, $extra = array()) {
+  function set_term_resolved_data($guid, $resolvedName, $resolvedGuid, $resolvedType = NULL, $extra = array()) {
     $term = &$this->_get_term($guid);
-    $term->resolvedName = $resolvedName;      
-    $term->resolvedGuid = $resolvedGuid;      
+    $term->resolved_name = $resolvedName;      
+    $term->resolved_guid = $resolvedGuid;      
+    $term->resolved_type = $resolvedType;      
     $term->extra = array_merge($term->extra, $extra);   
   }
   
@@ -87,7 +88,7 @@ class CalaisMetadata {
    */
   function get_term_by_value($value) {
     foreach ($this->terms as $term) {
-      if ($term->value == $value) {
+      if ($term->name == $value) {
         return $term;
       }
     }
@@ -143,7 +144,7 @@ class TermFilter {
   }
   
   function filter($term) {
-    return $term->value != $this->filter;
+    return $term->name != $this->filter;
   }
 }
 
@@ -152,17 +153,20 @@ class TermFilter {
  */
 class CalaisTerm {
   public $guid;
-  public $value;
+  public $name;
   public $relevance;
   
-  // Extra data for resolved entities
-  public $resolvedName;
-  public $resolvedGuid;
-  public $extra;
+  // Term Data ID
+  public $tdid = NULL;
   
-  function __construct($guid, $value = '', $relevance = 0.0) {
+  // Extra data for resolved entities
+  public $resolved_name = NULL;
+  public $resolved_guid = NULL;
+  public $resolved_type = NULL;
+  
+  function __construct($guid, $name = '', $relevance = 0.0) {
     $this->guid = $guid;
-    $this->value = $value;
+    $this->name = $name;
     $this->relevance = $relevance;
     $this->extra = array();
   }
