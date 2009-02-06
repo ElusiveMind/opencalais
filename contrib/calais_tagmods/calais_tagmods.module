@@ -113,11 +113,12 @@ function _calais_tagmods_apply_rename(&$keywords) {
  * Rename the term in both the calais term table and the taxonomy table, but only if the GUIDs match.
  */
 function _calais_tagmods_rename_term($term) {
-
   // Rename the calais term
-  db_query("UPDATE {calais_term} SET name = '%s' WHERE guid is not NULL AND guid = '%s' AND name != '%s'", $term->value, $term->guid, $term->value);
+  db_query("UPDATE {calais_term} SET name = '%s' 
+            WHERE guid IS NOT NULL AND guid = '%s' AND name != '%s'", $term->name, $term->guid, $term->name);
   
   // Rename the taxonomy term
-  db_query("UPDATE {term_data} SET name = '%s' WHERE guid is not NULL AND guid = '%s' AND name != '%s'", $term->value, $term->guid, $term->value);
+  db_query("UPDATE {term_data} t SET t.name = '%s' 
+            WHERE t.tid = (SELECT ct.tdid FROM {calais_term} ct WHERE ct.guid = '%s')", $term->name, $term->guid);
 }
 
