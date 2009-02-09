@@ -83,7 +83,7 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     '#title' => t('Which Calais Entities do you wish to use?'),
     '#default_value' => variable_get("calais_applied_entities_{$type}", $entities),
     '#options' => drupal_map_assoc($entities),
-    '#description' => t('These are the entities that will get applied to content. If an Entity is not selected then the Calais suggestions will be ignored'),
+    '#description' => t('Choose which Calais vocabularies should be included for term suggestions.'),
   );
 }
 
@@ -96,9 +96,9 @@ function calais_build_nodetype_settings(&$form) {
   $node_types = node_get_types('types', NULL, TRUE);
   $options = array(
     CALAIS_PROCESS_NO => t('Not processed by Calais (default)'),
-    CALAIS_PROCESS_MANUAL => t('Have keywords be suggested (manual term association)'),
-    CALAIS_PROCESS_AUTO => t('Have keywords automatically applied on every update'),
-    CALAIS_PROCESS_AUTO_ONCE => t('Have keywords automatically applied on creation only, and suggested on updates'),
+    CALAIS_PROCESS_MANUAL => t("Suggest terms, but DON'T apply them"),
+    CALAIS_PROCESS_AUTO => t('Apply all suggested terms on every update'),
+    CALAIS_PROCESS_AUTO_ONCE => t('Apply all suggested terms on creation ONLY'),
   );
 
   foreach ($node_types as $nt) {
@@ -137,7 +137,7 @@ function calais_build_nodetype_settings(&$form) {
       '#size' => 5,
       '#title' => t('Relevancy Threshold'),
       '#default_value' => variable_get("calais_threshold_{$key}", 0.0),
-      '#description' => t('The relevancy threshold for Calais term association. The relevancy score is based on an importance detection for each unique entity and assigns a relevance score in the range 0 - 1 (0 being the least relevant; 1 being the most relevant; The lower the threshold the more terms will appear).'),
+      '#description' => t('Determine how relevant a term must be in order for Calais to suggest it for a particular node.  Based on a 0.00-1.00 scale, with 0.00 being least relevant (i.e. many terms appear).'),
     );
 
     calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, TRUE);
@@ -192,29 +192,29 @@ function calais_bulk_process() {
     '#type' => 'select',
     '#title' => t('Content Type'),
     '#options' => $node_types,
-    '#description' => t('This Content Type will have all system Nodes bulk submitted to Calais for processing.'),
+    '#description' => t('Choose a content type whose Nodes will be bulk processed by Calais.'),
   );
   
   $form["calais_bulk_limit"] = array(
     '#type' => 'select',
     '#title' => t('Nodes per batch'),
     '#options' => drupal_map_assoc(array('1', '5', '10', '25', '50', '100')),
-    '#description' => t('The number of Nodes to process per batch.'),
+    '#description' => t("Select the number of nodes per batch (needed for larger jobs where a 'single shot' isn't feasible)."),
   );
 
   $form["calais_bulk_threshold"] = array(
     '#type' => 'textfield',
-    '#title' => t('Relevance Threshold'),
+    '#title' => t('Term Relevance Threshold for Calais'),
     '#size' => 5,
     '#default_value' => 0.650,
-    '#description' => t('The relevance threshold that each returned Calais term must meet or exceed in order to be applied to the node.  The problem with automated bulk processing is that is has the potential to generate a immense amount of tags that are not very relevent, tag noise, thus diluting the richness of a vocabulary.  This threshold (specified as a value between 0.000 and 1.000, with 1 being the most relevant) allows you to limit the Calais terms applied based on the relevance score returned with each Calais term.'),
+    '#description' => t('Determine how relevant a term must be in order for Calais to suggest it for a particular node.  Based on a 0.00-1.00 scale, with 0.00 being least relevant (i.e. many terms appear).'),
   );
 
   $form["calais_bulk_throttle"] = array(
     '#type' => 'checkbox',
     '#title' => t('Throttle processing'),
     '#default_value' => TRUE,
-    '#description' => t('Calais implements a throttle on the number of requests per second. If you see @error messages, you should throttle the requests to Calais so that all nodes will get processed.', array('@error' => "Developer Over Qps")),
+    '#description' => t('Limit the number of requests per second sent to the Calais web service, in order to ensure that all nodes are processed by Calais (recommended).'),
   );
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Bulk Process'));

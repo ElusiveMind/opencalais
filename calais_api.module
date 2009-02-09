@@ -60,7 +60,7 @@ function calais_api_menu() {
 function calais_api_admin_settings() {
   $form = array();
   $calais_url = array(
-    '!calaisurl' => l(t('Calais Website'), 'http://www.opencalais.com/user/register')
+    '!calaisurl' => l(t('Need One'), 'http://www.opencalais.com/user/register')
     );
   
   $form['calais_api_key'] = array(
@@ -68,7 +68,7 @@ function calais_api_admin_settings() {
     '#title' => t('Calais API Key'),
     '#default_value' => variable_get('calais_api_key', NULL),
     '#size' => 60,
-    '#description' => t('You need to obtain an API Key from the !calaisurl first', $calais_url),
+    '#description' => t('Required to utilize the Calais service. !calaisurl?', $calais_url),
   );
   $form['calais_api_server'] = array(
     '#type' => 'textfield',

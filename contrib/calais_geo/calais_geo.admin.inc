@@ -38,7 +38,7 @@ function calais_geo_settings_form() {
     '#title' => t('Which Calais Vocabularies do you want available for geomapping?'),
     '#default_value' => variable_get('calais_geo_vocabularies', $entities),
     '#options' => array_flip($entities),
-    '#description' => t('Terms in these vocabularies will be available for inclusion in the geomapping settings on the node edit page.'),
+    '#description' => t("Choose which vocabulary's terms can be used to represent markers in a map display (this is a node-specific selection available in the Locations field group on the node's edit page."),
   );
   
   return system_settings_form($form);
