@@ -14,6 +14,7 @@ class calais_handler_field_calais extends views_handler_field {
   function construct() {
     parent::construct();
     $this->additional_fields['tid'] = 'tid';
+    $this->additional_fields['tdid'] = 'tdid';
     $this->additional_fields['vid'] = 'vid';
   }
 
@@ -43,10 +44,10 @@ class calais_handler_field_calais extends views_handler_field {
   function render_link($data, $values) {
     if (!empty($this->options['link_to']) && !empty($values->{$this->aliases['tid']}) && $data !== NULL && $data !== '') {
       $term = new stdClass();
-      $term->tid = $values->{$this->aliases['tid']};
+      $term->tid = $values->{$this->aliases['tdid']};
       $term->vid = $values->{$this->aliases['vid']};
 
-      return l($data, "calais/{$term->tid}", array('html' => TRUE));
+      return isset($term->tid) ? l($data, taxonomy_term_path($term), array('html' => TRUE)) : $data;
     }
     else {
       return $data;
