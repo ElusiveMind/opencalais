@@ -145,6 +145,13 @@ function calais_views_data() {
       'click sortable' => TRUE,
       //'skip base' => array('calais_term'),
     ),
+    'filter' => array(
+      'handler' => 'calais_handler_filter_float',
+      'help' => t('Filter based on the relevance score provided by Calais. Value from 0.000 - 1.000 with 1 being the most relevant.'),
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
   );  
   $data['calais_term_node']['nid'] = array(
     'title' => t('Node ID'),
@@ -280,6 +287,9 @@ function calais_views_handlers() {
       // filters
       'calais_handler_filter_calais_term_vid' => array(
         'parent' => 'views_handler_filter_in_operator',
+      ),
+      'calais_handler_filter_float' => array(
+        'parent' => 'views_handler_filter_numeric',
       ),
       // arguments
       'calais_handler_argument_calais_term_vid' => array(
