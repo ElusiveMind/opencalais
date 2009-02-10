@@ -111,7 +111,7 @@ function calais_build_nodetype_settings(&$form) {
       '#collapsed' => TRUE,
     );
 
-    $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO)
+    $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO);
     $form[$key]["calais_node_{$key}_process"] = array(
       '#type' => 'radios',
       '#parents' => array('calais_node_'. $key .'_process'),
