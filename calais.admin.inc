@@ -18,7 +18,6 @@
  * Build the administration page for Calais and Content Types
  */
 function calais_admin_settings() {
-
   $form = array();
 
   $form['calais_store_rdf'] = array(
@@ -50,7 +49,7 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     $var_name = "calais_use_global_{$type}";
     $disabled = variable_get($var_name, TRUE);
 
-    $form[$var_name] = array(
+    $form[$type][$var_name] = array(
       '#type' => 'checkbox',
       '#title' => t('Use Calais Global Entity defaults'),
       '#default_value' => $disabled,
@@ -69,16 +68,15 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     });", 'inline');
   }
 
-  $params = array('@name' => $name);
-  $form["calais_entity_settings_{$type}"] = array(
+  $form[$type]["calais_entity_settings_{$type}"] = array(
     '#type' => 'fieldset',
-    '#title' => t('@name Calais Entities', $params),
+    '#title' => $name,
     '#attributes' => array_merge(array('class' => "{$type}_entities"), $entity_attributes),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
 
-  $form["calais_entity_settings_{$type}"]["calais_applied_entities_{$type}"] = array(
+  $form[$type]["calais_entity_settings_{$type}"]["calais_applied_entities_{$type}"] = array(
     '#type' => 'checkboxes',
     '#title' => t('Which Calais Entities do you wish to use?'),
     '#default_value' => variable_get("calais_applied_entities_{$type}", $entities),
@@ -106,33 +104,34 @@ function calais_build_nodetype_settings(&$form) {
     $name = $nt->name;
     $param_name = array('@node' => $name);
     
-    $form["calais_{$key}_settings"] = array(
+    $form[$key] = array(
       '#type' => 'fieldset',
-      '#title' => t('Processing Settings for @node', $param_name),
+      '#title' => $name,
       '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
+      '#collapsed' => TRUE,
     );
 
-    $form["calais_{$key}_settings"]["calais_node_{$key}_process"] = array(
+    $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO)
+    $form[$key]["calais_node_{$key}_process"] = array(
       '#type' => 'radios',
       '#parents' => array('calais_node_'. $key .'_process'),
       '#title' => t('Calais Processing'),
-      '#default_value' => variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO),
+      '#default_value' => $processing,
       '#options' => $options,
     );
-    $form["calais_{$key}_settings"]["calais_api_allow_searching_{$key}"] = array(
+    $form[$key]["calais_api_allow_searching_{$key}"] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow Calais Searching'),
       '#default_value' => variable_get("calais_api_allow_searching_{$key}", TRUE),
       '#description' => t('Indicates whether future searches can be performed on the extracted metadata by Calais'),
     );
-    $form["calais_{$key}_settings"]["calais_api_allow_distribution_{$key}"] = array(
+    $form[$key]["calais_api_allow_distribution_{$key}"] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow Calais Distribution'),
       '#default_value' => variable_get("calais_api_allow_distribution_{$key}", TRUE),
       '#description' => t('Indicates whether the extracted metadata can be distributed by Calais'),
     );
-    $form["calais_{$key}_settings"]["calais_threshold_{$key}"] = array(
+    $form[$key]["calais_threshold_{$key}"] = array(
       '#type' => 'textfield',
       '#size' => 5,
       '#title' => t('Relevancy Threshold'),
@@ -140,7 +139,7 @@ function calais_build_nodetype_settings(&$form) {
       '#description' => t('Determine how relevant a term must be in order for Calais to suggest it for a particular node.  Based on a 0.00-1.00 scale, with 0.00 being least relevant (i.e. many terms appear).'),
     );
 
-    calais_build_entity_settings($form["calais_{$key}_settings"], $key, $name, TRUE);
+    calais_build_entity_settings($form, $key, $name, TRUE);
   }
 }
 
@@ -173,7 +172,6 @@ function calais_admin_settings_submit($form, &$form_state) {
     }
   }
 }
-
 
 /**
  * Build the administration page for submitting all nodes of a specific Content Types to Calais.
