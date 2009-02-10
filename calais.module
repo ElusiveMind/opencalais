@@ -129,6 +129,18 @@ function calais_access($node) {
 }
 
 /**
+ * Implementation of hook_theme();
+ */
+function calais_theme() {
+  return array(
+    'calais_suggestions' => array(
+      'arguments' => array('vid', 'terms'),
+      'file' => 'calais.ui.inc',
+    ),
+  );
+}
+
+/**
  * Implementation of hook_nodeapi().
  *
  * Process node updates and if applicable, update the Calais terms.

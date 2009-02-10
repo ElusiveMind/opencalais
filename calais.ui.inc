@@ -17,17 +17,6 @@
 define('CALAIS_TERM_MAXLENGTH', 1000);
 
 /**
- * Implementation of hook_theme();
- */
-function calais_theme() {
-  return array(
-    'calais_suggestions' => array(
-      'arguments' => array('vid', 'terms'),
-    ),
-  );
-}
-
-/**
  * Alter the standard node edit form to remove calais taxonomies so that they are
  * only editable via the Calais tab.
  * TODO: Make this configurable so the user can specify how/where they want to edit calais terms.
