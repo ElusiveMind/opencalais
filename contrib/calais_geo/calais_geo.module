@@ -29,6 +29,9 @@ function calais_geo_theme() {
     'calais_geo_marker_text' => array(
       'arguments' => array('node' => NULL, 'term' => NULL),
     ),
+    'calais_geo_render_map' => array(
+      'arguments' => array('node' => NULL, 'geo_data' => NULL),
+    ),
   );
 }
 
@@ -45,14 +48,6 @@ function calais_geo_menu() {
     'access arguments' => array('administer calais geo'),
     'file' => 'calais_geo.admin.inc',
   );
-  /*
-  $items['calais/geo/preview'] = array(
-    'title' => 'Calais Geo Map Preview',
-    'page callback' => 'calais_geo_preview',
-    'access arguments' => array('access calais geo'),
-    'type' => MENU_CALLBACK,
-  );
-  */
 
   return $items;
 }
@@ -104,7 +99,7 @@ function _calais_geo_block_view($delta){
 function calais_geo_block_contents($delta, $nid){
   $node = node_load($nid);
   $geo_data = calais_geo_load($node->vid);
-  return _calais_geo_render_map($node, $geo_data);
+  return theme('calais_geo_render_map', $node, $geo_data);
 }
 
 /**
@@ -119,7 +114,7 @@ function calais_geo_load($vid) {
   $geo_data = db_fetch_object(db_query('SELECT * FROM {calais_geo} WHERE vid = %d', $vid));
   if($geo_data) {
     $geo_data->terms = array();
-    $result = db_query('SELECT * FROM {calais_geo_term} WHERE vid = %d', $vid);
+    $result = db_query('SELECT ct.* FROM {calais_geo_term} cgt INNER JOIN {calais_term} ct ON ct.tid = cgt.tid WHERE cgt.vid = %d', $vid);
     while ($geoterm = db_fetch_object($result)) {
       $geo_data->terms[] = $geoterm;
     }
@@ -139,24 +134,23 @@ function calais_geo_save($node, $data) {
   $data = (array)$data;
   $data['nid'] = $node->nid;
   $data['vid'] = $node->vid;
-  $data['center_lat'] = '';
-  $data['center_lon'] = '';
     
   // Process the map center (if needed)
   $center = $data['term_center'];
-  if(!empty($center) && $center != 'default') {
-    if($center == 'latlon' && !empty($data['latlon_center'])) {
-      list($lat, $lon) = explode(',', $data['latlon_center']);
-      $data['center_lat'] = $lat;
-      $data['center_lon'] = $lon;
-    }
-    else {
-      $result = calais_geo_get_latlon($node, $center);
-      if($result) {
-        $data['center_lat'] = $result['lat'];
-        $data['center_lon'] = $result['lon'];
-      }
-    }
+  switch ($center) {
+    case 'latlon':
+      $data['center_tid'] = NULL;
+      break;
+    case 'default':
+      $data['center_latitude'] = NULL;
+      $data['center_longitude'] = NULL;
+      $data['center_tid'] = NULL;
+      break;
+    default:
+      $data['center_latitude'] = NULL;
+      $data['center_longitude'] = NULL;
+      $data['center_tid'] = $center;
+      break;
   }
     
   if(db_result(db_query('SELECT count(*) FROM {calais_geo} WHERE vid = %d', $node->vid)) == 1) {
@@ -165,17 +159,27 @@ function calais_geo_save($node, $data) {
   else {
     drupal_write_record('calais_geo', $data);
   }
+  _cg_fix_d_w_r_null($node->vid, $data);
 
   db_query('DELETE FROM {calais_geo_term} WHERE vid = %d', $node->vid);
-
   foreach ($data['terms'] as $term) {
-    $result = calais_geo_get_latlon($node, $term);
-    if($result) {
-      $geoterm = array('nid' => $node->nid, 'vid' => $node->vid, 'term' => $term);
-      $geoterm['lat'] = $result['lat'];
-      $geoterm['lon'] = $result['lon'];
-      drupal_write_record('calais_geo_term', $geoterm);
+    $geoterm = array('nid' => $node->nid, 'vid' => $node->vid, 'tid' => $term);
+    drupal_write_record('calais_geo_term', $geoterm);
+  }
+}
+
+// Need to do this b/c of http://drupal.org/node/227677
+function _cg_fix_d_w_r_null($vid, $data) {
+  $nulls = array();
+  $fields = array('center_latitude', 'center_longitude', 'center_tid');
+  foreach ($fields as $field) {
+    if (is_null($data[$field])) {
+      $nulls[] = "$field = NULL";
     }
+  }
+  
+  if(!empty($nulls)) {
+    db_query("UPDATE {calais_geo} SET " . implode($nulls, ',') . " WHERE vid = $vid");
   }
 }
 
@@ -183,36 +187,20 @@ function calais_geo_save($node, $data) {
  * Implementation of hook_form_alter().
  */
 function calais_geo_form_alter(&$form, $form_state, $form_id) {
-  if ( (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) && 
-    _nodetype_enabled($form['#node']->type) ) {
+  if (_calais_geo_should_modify_form($form, $form_id)) {
     $node = $form['#node'];
     
+    // Load Calais Terms here with tid -> name, but only if they have geo coords.
     $geo_vocabs = variable_get('calais_geo_vocabularies', array());
-    
-    if($node->taxonomy) {
-      $options = array();
-      foreach ($node->taxonomy as $term) {
-        if(in_array($term->vid, $geo_vocabs)) {
-          $vocab = taxonomy_vocabulary_load($term->vid);
-          $key = $vocab->name;
-          
-          if(!array_key_exists($key, $options)) {
-            $options[$key] = array();
-          }
-          // Remove quotes surrounding terms
-          $term_name = preg_replace('/^"(.*)"$/', '\1', $term->name);
-          $options[$key][$term_name] = $term_name;
+    $vocabs = array_filter(array_values($geo_vocabs));
+    $options = array();
+    foreach ($vocabs as $vid) {
+      $vocab = taxonomy_vocabulary_load($vid);
+      $terms = calais_get_keywords($node->nid, $node->tytpe, $vid);
+      foreach ($terms[$vid] as $term) {
+        if($term->resolved_type == 'geo') {
+          $options[$vocab->name][$term->tid] = $term->name;
         }
-      }
-    }
-    
-    if(empty($options))
-      return; // No options to maps
-    
-    $geo_data = calais_geo_load($node->vid);
-    if ($geo_data) {
-      foreach($geo_data->terms as $term){
-        $default_terms[] = $term->term;
       }
     }
 
@@ -223,6 +211,24 @@ function calais_geo_form_alter(&$form, $form_state, $form_id) {
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
+    
+    // No options to maps
+    if(empty($options)) {
+      $form['calais_geo']['message'] = array(
+        '#type' => 'item',
+        '#title' => t('Message'),
+        '#value' => t('There are no Calais Terms with geo coordinates available for mapping.'),
+      );
+      return;       
+    }
+    
+    $default_terms = array();
+    $geo_data = calais_geo_load($node->vid);
+    if ($geo_data) {
+      foreach($geo_data->terms as $term){
+        $default_terms[] = $term->tid;
+      }
+    }
 
     $form['calais_geo']['terms'] = array(
       '#type' => 'select',
@@ -233,20 +239,36 @@ function calais_geo_form_alter(&$form, $form_state, $form_id) {
       '#default_value' => $default_terms,
       '#options' => $options,
     );
+    
+    $center = 'default';
+    if(!empty($geo_data->center_tid)) {
+      $center = $geo_data->center_tid;
+    }
+    else if (!empty($geo_data->center_latitude) || !empty($geo_data->center_longitude)) {
+      $center = 'latlon';
+    }
     $form['calais_geo']['term_center'] = array(
       '#type' => 'select',
       '#title' => t('Center map on this specific term'),
       '#description' => t('Optionally, the map could be centered on the most relevant mapped term. Select <default> to use the map default which centers the map amongst your term markers, or <manual> to specify a latitude and longitude using the Manual center field below.'),
-      '#default_value' => $geo_data->term_center,
+      '#default_value' => $center,
       '#options' => array_merge(array('default' => '<default>', 'latlon' => '<manual>'), $options),
     );
-    $form['calais_geo']['latlon_center'] = array(
+    $form['calais_geo']['center_latitude'] = array(
       '#type' => 'textfield',
-      '#title' => t('Manual center'),
-      '#default_value' => $geo_data->latlon_center,
+      '#title' => t('Manual center latitude'),
+      '#default_value' => $geo_data->center_latitude,
       '#size' => 25,
-      '#maxlength' => 255,
-      '#description' => t('The default center coordinates of the map, expressed as a decimal latitude and longitude, separated by a comma. This will be used if values are entered and the Term Center is set to <manual>. Leave blank to allow the map to auto center itself amongst your term markers.'),
+      '#maxlength' => 25,
+      '#description' => t('The default center latitude coordinates of the map. This will be used if values are entered and the Term Center is set to <manual>. Leave blank to allow the map to auto center itself amongst your term markers.'),
+    );
+    $form['calais_geo']['center_longitude'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Manual center longitude'),
+      '#default_value' => $geo_data->center_longitude,
+      '#size' => 25,
+      '#maxlength' => 25,
+      '#description' => t('The default center latitude coordinates of the map. This will be used if values are entered and the Term Center is set to <manual>. Leave blank to allow the map to auto center itself amongst your term markers.'),
     );
     $form['calais_geo']['width'] = array(
       '#type' => 'textfield',
@@ -264,48 +286,20 @@ function calais_geo_form_alter(&$form, $form_state, $form_id) {
       '#maxlength' => 25,
       '#description' => t('The default height of the map, expressed as a CSS length or percentage. Examples: <em>50px</em>, <em>5em</em>, <em>2.5in</em>, <em>95%</em>. Leave blank to use the defaults.'),
     );
-    $form['calais_geo']['zoom'] = array(
-      '#type' => 'select',
-      '#title' => t('Map zoom'),
-      '#default_value' => $geo_data->zoom,
-      '#options' => array_merge(array('' => ''), drupal_map_assoc(range(0, 17))),
-      '#description' => t('The zoom level of a the map. Leave blank to use the defaults.'),
-    );
-    /*
-    $form['calais_geo']['preview_buttom'] = array(
-      '#type' => 'button',
-      '#value' => t('Preview Map'),
-      '#weight' => 20,
-      '#ahah' => array(
-        'path' => 'calais/geo/preview',
-        'wrapper' => 'calais-geo-preview',
-        'method' => 'replace',
-        'effect' => 'fade',
-      )
-    );
-    $form['calais_geo']['preview_map'] = array(
-      '#type' => 'markup',
-      '#weight' => 21,
-      '#value' => '&nbsp;',
-      '#prefix' => '<div id="calais-geo-preview">',
-      '#suffix' => '</div>',
-    );
-    */
-    // Javacsript to show/hide manual center
-    drupal_add_js('$(document).ready(function() {
-      if($("#edit-calais-geo-term-center").val() != "latlon") {
-        $("#edit-calais-geo-latlon-center-wrapper").hide();          
-      }
-      $("#edit-calais-geo-term-center").change(function() {
-        if($(this).val() == "latlon") {
-          $("#edit-calais-geo-latlon-center-wrapper").slideDown("slow");          
-        }
-        else {
-          $("#edit-calais-geo-latlon-center-wrapper").slideUp("slow");          
-        }
-      });
-    });', 'inline');
+
+    drupal_add_js(drupal_get_path('module', 'calais_geo') . '/calais_geo.js', 'module');
   }
+}
+
+/**
+ * Should we provide mapping configuration for this node type
+ */
+function _calais_geo_should_modify_form($form, $form_id) {
+  $enabled = variable_get('calais_geo_nodes_enabled', array());
+  return isset($form['type']) 
+          && isset($form['#node']) 
+          && $form['type']['#value'] .'_node_form' == $form_id
+          && $enabled[$form['type']['#value']];
 }
 
 /**
@@ -316,7 +310,7 @@ function calais_geo_nodeapi(&$node, $op) {
   switch ($op) {
     case 'insert':
     case 'update':
-      if(property_exists($node, 'calais_geo')) {
+      if(property_exists($node, 'calais_geo') && !empty($node->calais_geo)) {
         calais_geo_save($node, $node->calais_geo);
       }
       break;
@@ -327,40 +321,28 @@ function calais_geo_nodeapi(&$node, $op) {
     case 'view':
       $geo = calais_geo_load($node->vid);
       if($geo) {
-        $node->calais_geo_map = _calais_geo_render_map($node, $geo);
+        $node->calais_geo_map = theme('calais_geo_render_map', $node, $geo);
       }
       break;
   }
 }
 
 /**
- * Render a preview of the map (not used yet)
- */
-function calais_geo_preview() {
-  $form_state = array('submitted' => FALSE);
-  $form_build_id = $_POST['form_build_id'];
-  $form = form_get_cache($form_build_id, $form_state);
-  $node = $form['#node'];
-  
-  $output = _calais_geo_render_map($node, $_POST['calais_geo']);
-  return drupal_json(array('status' => TRUE, 'data' => $output));
-}
-
-/**
  * Build the map.
  */
-function _calais_geo_render_map($node, $geo_data) {
-  
+function theme_calais_geo_render_map($node, $geo_data) {
   $geo_data = (array)$geo_data;
 
-  if(!isset($geo_data['terms']) || count($geo_data['terms']) == 0)
+  if(empty($geo_data['terms']))
     return; // Nothing to map
   
+  //### Fix to match Calais Term properties
   foreach($geo_data['terms'] as $term) {
+    calais_load_term_extra($term);
     $marker = array(
       'text' => theme('calais_geo_marker_text', $node, $term),
-      'latitude' => floatval($term->lat),
-      'longitude' => floatval($term->lon),
+      'latitude' => floatval($term->extra['latitude']),
+      'longitude' => floatval($term->extra['longitude']),
     );
     $markers[] = $marker;
   }
@@ -382,18 +364,23 @@ function _calais_geo_render_map($node, $geo_data) {
   }
 
   // Setup default center if configured
-  if($geo_data['term_center'] == 'default') {
+  if(!empty($geo_data['center_tid'])) {
+    $center = calais_get_term(NULL, $geo_data['center_tid']);
+    $settings['latitude'] = $center->extra['latitidue'];
+    $settings['longitude'] = $center->extra['longitude'];
+  }
+  else if(!empty($geo_data['center_latitude']) || !empty($geo_data['center_longitude'])){
+    if(!empty($geo_data['center_latitude'])) {
+      $settings['latitude'] = $geo_data['center_latitude'];
+    }
+    if(!empty($geo_data['center_longitude'])) {
+      $settings['longitude'] = $geo_data['center_longitude'];
+    }
+  }
+  else {
     list($lat, $lon) = calais_geo_calc_map_center($markers);
     $settings['latitude'] = $lat;
     $settings['longitude'] = $lon;
-  }
-  else {
-    if(!empty($geo_data['center_lat'])) {
-      $settings['latitude'] = $geo_data['center_lat'];
-    }
-    if(!empty($geo_data['center_lon'])) {
-      $settings['longitude'] = $geo_data['center_lon'];
-    }
   }
 
   $map_data = array(
@@ -437,41 +424,9 @@ function calais_geo_calc_map_center($markers) {
   return array($lat, $lon);
 }
 
-
-/**
- * Find the latitude and longitude of a given term. This will first look for the data within
- * the calais term tables based on the Calais geo disambiguation data. If that turns up no data,
- * we proceed to execute a keyword search on the geonames service to retrieve lat/lon for a name.
- *
- * @param $node
- *    The node for which we are looking up terms
- * @param $term
- *    The term we are querying got location
- */
-function calais_geo_get_latlon($node, $term) {
-  $sql = "SELECT ct.* FROM {calais_term} AS ct";
-  $sql .= " INNER JOIN {calais_term_node} AS ctn ON ct.tid = ctn.tid";
-  $sql .= " WHERE ctn.nid = %d AND ct.name = '%s'";
-
-  $calais_term = db_fetch_object(db_query($sql, $node->nid, $term));
-  if ($calais_term === FALSE || empty($calais_term->latitude) || empty($calais_term->longitude))
-    return FALSE;
-
-  return array('lat' => $calais_term->latitude, 'lon' => $calais_term->longitude);
-}
-
 /**
  * Default theme function to rendering the text that goes in the Google Map marker bubble.
  */
 function theme_calais_geo_marker_text($node, $term) {
-  return "<h3>$term->term</h3>";
-}
-
-/** 
- * Quick helper to tell if the given node_type
- * Is enabled for calias geo
- */
-function _nodetype_enabled($node_type) {
-  $nodes_enabled = variable_get('calais_geo_nodes_enabled', array());
-  return ($nodes_enabled[$node_type] ? TRUE : FALSE);
+  return "<h3>$term->name</h3>";
 }
