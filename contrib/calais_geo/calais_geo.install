@@ -144,19 +144,7 @@ function calais_geo_schema() {
   return $schema;
 }
 
-// Update hook
-
-// #1 Set this to all node types, let them turn it off later.
-
-// $node_options = array();
-// foreach(node_get_types() as $key => $type) {
-//   $node_options[$key] = $type->name;
-// }
-// variable_set('calais_geo_nodes_enabled', xxxx);
-
-// #2 Reference the new calais_term instead of keeping own terms.
-
-function calais_geo_update_6100() {
+function calais_geo_update_6300() {
   $ret = array();
   
   // Add default for nodes enabled to all, users can then turn them off instead of having them all disappear
