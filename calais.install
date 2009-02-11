@@ -136,6 +136,7 @@ function calais_schema() {
     ),
     'indexes' => array(
       'vid'    => array('vid'),
+      'tdid'    => array('tdid'),
     ),
     'primary key' => array('tid'),
   );
@@ -361,6 +362,7 @@ function calais_update_6300() {
       'unsigned' => TRUE, 
       'description' => t('The term id for a mapping to a record in the term_data table.')
     ));  
+    db_add_index($ret, 'calais_term', 'tdid', array('tdid'));
   }
   if (!db_column_exists('calais_term', 'resolved_guid')) {
     db_add_field($ret, 'calais_term', 'resolved_guid', array(
@@ -376,11 +378,30 @@ function calais_update_6300() {
       'description' => t('The Disambiguated type of this Entity.')
     ));  
   }
+
+  // Cleanup records that were created via processing terms with vocabs that were supposed to be ignored
+  $ret[] = update_sql("DELETE FROM {calais_term} WHERE vid = 0");
+
+  // Add indexes first as this could take a while
+  db_add_index($ret, 'term_data', 'guid', array('guid'));
+  db_add_index($ret, 'calais_term', 'guid', array('guid'));
+
+  // Create a temp field to help select the most used records in cases where there a duplicates
+  db_add_field($ret, 'term_data', 'termcount', array(
+    'type' => 'int', 
+    'unsigned' => TRUE,
+  ));  
+  $ret[] = update_sql("UPDATE {term_data} td SET td.termcount = (SELECT count(*) FROM {term_node} tn WHERE td.tid = tn.tid)");
   
-  // Populate the term id in the calais term table, then remove the mod in term_data
-  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.guid = ct.guid)");
-  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.vid = ct.vid AND lower(td.name) = lower(ct.name) AND (td.guid IS NULL OR td.guid = '') LIMIT 1) WHERE ct.tdid IS NULL");
+  // Populate the term id in the calais term table, the complex subquery is for the cases I have seen
+  // where more than one tax term has the same guid. This subquery joins the temp talbe form above to 
+  // make sure that the term data record with the most uses is the one that is selected.
+  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.guid = ct.guid ORDER BY td.termcount DESC LIMIT 1)");
+  $ret[] = update_sql("UPDATE {calais_term} ct SET ct.tdid = (SELECT td.tid FROM {term_data} td WHERE td.vid = ct.vid AND lower(td.name) = lower(ct.name) AND (td.guid IS NULL OR td.guid = '') ORDER BY td.termcount DESC LIMIT 1) WHERE ct.tdid IS NULL");
+
+  // Remove the columns from term_data
   db_drop_field($ret, 'term_data', 'guid');
+  db_drop_field($ret, 'term_data', 'termcount');
   
   // Create new tables for disambiguated data
   $schema = calais_schema();
