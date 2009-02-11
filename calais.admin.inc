@@ -166,8 +166,10 @@ function calais_admin_settings_submit($form, &$form_state) {
     if ($state !== CALAIS_PROCESS_NO) {
       // assign all configured calais vocabs to this node type
       $node_vocabularies = calais_get_entity_vocabularies($key);
-      foreach ($node_vocabularies as $entity => $vid) {
-        db_query("INSERT INTO {vocabulary_node_types} (vid, type) values('%d','%s') ", $vid, $key);
+      if(!empty($node_vocabularies)) {
+        foreach ($node_vocabularies as $entity => $vid) {
+          db_query("INSERT INTO {vocabulary_node_types} (vid, type) values('%d','%s') ", $vid, $key);
+        }
       }
     }
   }
