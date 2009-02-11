@@ -200,12 +200,13 @@ function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') 
   $vocabularies = calais_get_entity_vocabularies($node->type);
   foreach ($keywords as $cat => $metadata) {
     $vid = $vocabularies[$cat];
-
-    foreach ($metadata->terms as $term) {
-      calais_associate_term($vid, $term, $node);
-      if ( ($process_type == CALAIS_PROCESS_AUTO || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert")) 
-          && round($term->relevance * 1000) >= round($threshold * 1000)) {
-        calais_apply_to_node($vid, $term, $node);
+    if ($vid) { // Only process terms for vocabularies that we care about
+      foreach ($metadata->terms as $term) {
+        calais_associate_term($vid, $term, $node);
+        if ( ($process_type == CALAIS_PROCESS_AUTO || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert")) 
+            && round($term->relevance * 1000) >= round($threshold * 1000)) {
+          calais_apply_to_node($vid, $term, $node);
+        }
       }
     }
   }
