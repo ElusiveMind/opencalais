@@ -411,6 +411,7 @@ function calais_update_6300() {
 
   // Migrate lat/lon data out of calais_term
   $ret[] = update_sql("INSERT INTO {calais_term_data_geo} (tid, latitude, longitude) SELECT tid, latitude, longitude FROM {calais_term} WHERE latitude IS NOT NULL AND longitude IS NOT NULL");
+  $ret[] = update_sql("UPDATE {calais_term} SET resolved_type = 'geo' WHERE latitude IS NOT NULL AND longitude IS NOT NULL");
   db_drop_field($ret, 'calais_term', 'latitude');
   db_drop_field($ret, 'calais_term', 'longitude');
   
