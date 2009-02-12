@@ -116,6 +116,7 @@ function calais_geo_load($vid) {
     $geo_data->terms = array();
     $result = db_query('SELECT ct.* FROM {calais_geo_term} cgt INNER JOIN {calais_term} ct ON ct.tid = cgt.tid WHERE cgt.vid = %d', $vid);
     while ($geoterm = db_fetch_object($result)) {
+      calais_load_term_extra($geoterm);
       $geo_data->terms[] = $geoterm;
     }
   } 
@@ -169,6 +170,7 @@ function calais_geo_save($node, $data) {
 }
 
 // Need to do this b/c of http://drupal.org/node/227677
+// Fix the fact that NULLs can;t be saved via drupal_write_record
 function _cg_fix_d_w_r_null($vid, $data) {
   $nulls = array();
   $fields = array('center_latitude', 'center_longitude', 'center_tid');
@@ -336,9 +338,7 @@ function theme_calais_geo_render_map($node, $geo_data) {
   if(empty($geo_data['terms']))
     return; // Nothing to map
   
-  //### Fix to match Calais Term properties
   foreach($geo_data['terms'] as $term) {
-    calais_load_term_extra($term);
     $marker = array(
       'text' => theme('calais_geo_marker_text', $node, $term),
       'latitude' => floatval($term->extra['latitude']),
