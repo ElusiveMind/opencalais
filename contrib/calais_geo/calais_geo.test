@@ -3,11 +3,7 @@
 class CalaisGeoBase extends DrupalWebTestCase {
 
 	function setUp() {
-		parent::setUp('calais_api', 'calais', 'geonames', 'calais_geo');
-		
-		// Create and login user
-    $admin_user = $this->drupalCreateUser();
-    $this->drupalLogin($admin_user);
+		parent::setUp('calais_api', 'calais', 'calais_geo');
 	}
 
 	function tearDown() {
@@ -16,48 +12,31 @@ class CalaisGeoBase extends DrupalWebTestCase {
 
 }
 
-class CalaisGeoLookupTestCase extends CalaisGeoBase {
+class CalaisGeoTermLookupTestCase extends CalaisGeoBase {
 
   function getInfo() {
     return array(
-      'name' => t('Lat/Lon Lookup'),
-      'description' => t('Test the various lookup options for latitude and longitude of terms.'),
+      'name' => t('Geo Term Lookup'),
+      'description' => t('Test that Geo can retrieve the proper Calais Term (including lat/lon).'),
       'group' => t('Calais')
     );
   }
 
 	// Test filling in an existing terms guid
 	function testLookup() {
-		$vid = 999;
-		$node = $this->drupalCreateNode();
-		$term = "West Islip";
+		$calais_term = new CalaisTerm($this->randomName(100), $this->randomName(25));
+		$calais_term->vid = 100;
+		$calais_term->resolved_type = 'geo';
+		$calais_term->extra = array('latitude' => 99.6666, 'longitude' => -120.54321);
+		calais_save_term($calais_term);
 
-		// Case 1: No term exists
-		$data = calais_geo_get_latlon($node, $term);
-		// Fallback was removed so test for no data
-		$this->assertFalse($data, 'No geo data was found');
-		// $this->assertEqual($data['lat'], '40.7062104');
-		// $this->assertEqual($data['lon'], '-73.3062302');		
-		
-		// Case 2: Term exists WITHOUT no geo data
-		$calais_term = new CalaisTerm($this->randomName(100), $term, 0.5);
-		$tid = calais_get_calais_term($vid, $calais_term);
-		calais_assign_node_calaisterm($node->nid, $tid, 1.0);
-		
-		$data = calais_geo_get_latlon($node, $term);
-		// Fallback was removed so test for no data
-		$this->assertFalse($data, 'No geo data was found');
-		// $this->assertEqual($data['lat'], '40.7062104');
-		// $this->assertEqual($data['lon'], '-73.3062302');		
-		
-		// Case 3: Term exists WITH geo data
-		$calais_term->lat = '99.6666';
-		$calais_term->lon = '-120.54321';
-		$tid = calais_get_calais_term($vid, $calais_term);
-		calais_assign_node_calaisterm($node->nid, $tid, 1.0);
-		
-		$data = calais_geo_get_latlon($node, $term);
-		$this->assertEqual($data['lat'], '99.6666');
-		$this->assertEqual($data['lon'], '-120.54321');		
+		db_query("INSERT INTO {calais_geo} (nid, vid) VALUES (99999, 99999)");
+		db_query("INSERT INTO {calais_geo_term} (nid, vid, tid) VALUES (99999, 99999, {$calais_term->tid})");
+
+		$data = calais_geo_load(99999);
+		$this->assertEqual(count($data->terms), 1, 'One Calais Term was found');
+		$found = $data->terms[0];
+		$this->assertEqual($found->extra['latitude'], 99.6666, 'Proper Calais Term Latitude');
+		$this->assertEqual($found->extra['longitude'], -120.54321, 'Proper Calais Term Longitude');		
 	}
 }
