@@ -2,9 +2,9 @@
 // $Id$
 
 /**
- * Field handler to provide a renderer for linking to a calais linked data url.
+ * Field handler to provide a renderer for linking to a calais linked data uri.
  *
- * This allows for use the disambiguated guid (if it exists) or the pl ain entity guid.
+ * This allows for use the disambiguated guid (if it exists) or the plain entity guid.
  */
 class calais_handler_field_guid extends views_handler_field_url {
   /**
@@ -36,7 +36,7 @@ class calais_handler_field_guid extends views_handler_field_url {
     parent::options_form($form, $form_state);
     $form['use_resolved'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Use Resolved GUID if possible'),
+      '#title' => t('Use Resolved URI if possible'),
       '#description' => t('Check this box to use the disambiguated Calais Linked Data URI. If a disambiguated URI does not exist, it will call back to the default URI for this entity.'),
       '#default_value' => !empty($this->options['use_resolved']),
       '#weight' => 5,
@@ -45,7 +45,7 @@ class calais_handler_field_guid extends views_handler_field_url {
     $form['link_text'] = array(
       '#type' => 'textfield',
       '#title' => t('Text to use for link label'),
-      '#description' => t('Used when displaying as a link. Enter any text. Other options: Leave blank to use the GUID as the label. Use [name] to use the Calais Entity Name. Use [resolved_name] to use the Calais Entity Disambiguated Name (if it exists). Use [image] to use a 16x16 Calais logo. Enter HTML in here for your own image tag, etc.'),
+      '#description' => t('Used when displaying as a link. Enter any text. Other options: Leave blank to use the URI itself as the label. Use [name] to use the Calais Entity Name. Use [resolved_name] to use the Calais Entity Disambiguated Name (if it exists). Use [image] to use a 16x16 Calais logo. Enter HTML in here for your own image tag, etc.'),
       '#default_value' => $this->options['link_text'],
       '#weight' => 7,
     );

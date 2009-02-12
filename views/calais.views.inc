@@ -86,7 +86,7 @@ function calais_views_data() {
   );
   
   $data['calais_term']['guid'] = array(
-    'title' => t('GUID'),
+    'title' => t('Linked Data URI'),
     'help' => t('Calais Linked Data URI'),
     'field' => array(
       'handler' => 'calais_handler_field_guid',
