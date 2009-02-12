@@ -428,5 +428,5 @@ function calais_geo_calc_map_center($markers) {
  * Default theme function to rendering the text that goes in the Google Map marker bubble.
  */
 function theme_calais_geo_marker_text($node, $term) {
-  return "<h3>$term->name</h3>";
+  return "<h3>" . check_plain($term->name) . "</h3>";
 }

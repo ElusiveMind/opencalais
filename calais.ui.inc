@@ -64,7 +64,7 @@ function _calais_disable_taxonomy_field(&$field) {
  * Render the form for the Calais taxonomy & suggestions
  */
 function calais_keywords_form(&$form_state, $node) {
-  drupal_set_title(t('Calais Terms: ') . $node->title);
+  drupal_set_title(t('Calais Terms: ') . check_plain($node->title));
   
   $path = drupal_get_path('module', 'calais');
   drupal_add_css("$path/calais.css");
@@ -195,7 +195,7 @@ function theme_calais_suggestions($vid, $terms) {
     foreach ($terms as $term) {
       $size = ceil(3 * $term->relevance);
       $hover = t('Relevance: ') . $score_value[$size];
-      $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-taxonomy-tags-$vid' title='$hover'>$term->name</label>";
+      $suggestions .= "<label class='calais_keyword score-{$size}' for='edit-taxonomy-tags-$vid' title='$hover'>" . check_plain($term->name) . "</label>";
     }
     $suggestions .= "</div>";
   }
