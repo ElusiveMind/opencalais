@@ -3,6 +3,15 @@ $Id$
 From Version 6.x-2.2 -> 6.x-3.0
 -------------------------------
  - Overhauled the database schema for more extensible handling of extended data for entities
+ - Refactoring of Calais API data structures to allow more flexiblity as resolved entities evolve
+ - Refactoring of Calais API class to process a bit less and more flexiblity process resolved entities
+ - Allow admin UI configuration of which OpenCalais server to use
+ - Default server to api1.opencalais.com (R4.0)
+ - Updated suggestion default style to not be so loud
+ - Suggestions are now ordered from highest relevance score to lowest
+ - Suggestions are now come in 3 diff sizes based on relevance, hover describes it which category it falls into
+ - Vocabularies are now in 3 groupings ordered alphabetically 
+    * those with suggestions; those with terms but no suggestions; all others
  - Support for disambiguated guids
  - Removed guid from term_data table, it now lives in calais_term
  - calais_term now points at it's corresponding taxonomy term
@@ -17,18 +26,6 @@ From Version 6.x-2.2 -> 6.x-3.0
  - Fixed bug where disabled vocabularies were still getting terms processed (records in calais_term with vid = 0)
  - Guard against condition where no entity types are selected
  - Update Calais Geo to reference Calais Terms directly instead of storing duplicate data
-
-From Version 6.x-2.1 -> 6.x-2.2
--------------------------------
- - Allow admin UI configuration of which OpenCalais server to use
- - Default server to api1.opencalais.com (R4.0)
- - Updated suggestion default style to not be so loud
- - Suggestions are now ordered from highest relevance score to lowest
- - Suggestions are now come in 3 diff sizes based on relevance, hover describes it which category it falls into
- - Vocabularies are now in 3 groupings ordered alphabetically 
-    * those with suggestions; those with terms but no suggestisons; all others
- - Refactoring of Calais API data structures to allow more flexiblity as resolved entities evolve
- - Refactoring of Calais API class to process a bit less and more flexiblity process resolved entities
 
 From Version 6.x-2.1 -> 6.x-2.2
 -------------------------------
