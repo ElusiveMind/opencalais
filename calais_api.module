@@ -144,9 +144,10 @@ function calais_api_rdf_namespaces() {
     'lid' => 'http://s.opencalais.com/1/type/lid/',
     'cat' => 'http://s.opencalais.com/1/type/cat/',
     'resolved' => 'http://s.opencalais.com/1/type/er/',
-    'geo' => 'http://s.opencalais.com/1/type/er/Geo/',
+    'cgeo' => 'http://s.opencalais.com/1/type/er/Geo/',
     'eventfact' => 'http://s.opencalais.com/1/type/em/r/',
     'entity' => 'http://s.opencalais.com/1/type/em/e/',
+    'cld' => "http://s.opencalais.com/1/linkeddata/pred/",
   );
 }
 
