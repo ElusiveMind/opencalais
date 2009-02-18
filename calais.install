@@ -381,6 +381,7 @@ function calais_update_6300() {
 
   // Cleanup records that were created via processing terms with vocabs that were supposed to be ignored
   $ret[] = update_sql("DELETE FROM {calais_term} WHERE vid = 0");
+  $ret[] = update_sql("DELETE FROM {term_data} WHERE vid = 0 AND guid IS NOT NULL");
 
   // Add indexes first as this could take a while
   db_add_index($ret, 'term_data', 'guid', array('guid'));
