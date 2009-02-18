@@ -26,6 +26,7 @@ From Version 6.x-2.2 -> 6.x-3.0
  - Fixed bug where disabled vocabularies were still getting terms processed (records in calais_term with vid = 0)
  - Guard against condition where no entity types are selected
  - Update Calais Geo to reference Calais Terms directly instead of storing duplicate data
+ - Renamed calais_geo_marker_text theme hook to calais_geo_marker. It now can be a TPL file too.
 
 From Version 6.x-2.1 -> 6.x-2.2
 -------------------------------
