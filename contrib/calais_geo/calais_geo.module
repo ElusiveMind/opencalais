@@ -26,8 +26,10 @@ function calais_geo_perm() {
  */
 function calais_geo_theme() {
   return array(
-    'calais_geo_marker_text' => array(
+    'calais_geo_marker' => array(
       'arguments' => array('node' => NULL, 'term' => NULL),
+      'path' => drupal_get_path('module', 'calais_geo'),
+		  'template' => "calais-geo-marker",
     ),
     'calais_geo_render_map' => array(
       'arguments' => array('node' => NULL, 'geo_data' => NULL),
@@ -340,7 +342,7 @@ function theme_calais_geo_render_map($node, $geo_data) {
   
   foreach($geo_data['terms'] as $term) {
     $marker = array(
-      'text' => theme('calais_geo_marker_text', $node, $term),
+      'text' => theme('calais_geo_marker', $node, $term),
       'latitude' => floatval($term->extra['latitude']),
       'longitude' => floatval($term->extra['longitude']),
     );
@@ -427,6 +429,8 @@ function calais_geo_calc_map_center($markers) {
 /**
  * Default theme function to rendering the text that goes in the Google Map marker bubble.
  */
-function theme_calais_geo_marker_text($node, $term) {
-  return "<h3>" . check_plain($term->name) . "</h3>";
+function template_preprocess_calais_geo_marker(&$vars) {
+  $node = $vars['node'];
+  $term = $vars['term'];
+  $vars['title'] = check_plain($term->name);
 }
