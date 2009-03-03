@@ -185,6 +185,7 @@ function calais_api_get_all_entities() {
     'Organization',
     'Person',
     'PhoneNumber',
+    'Position',
     'Product',
     'ProgrammingLanguage',
     'ProvinceOrState',
