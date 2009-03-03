@@ -14,8 +14,8 @@
  * @file
  */
 
-module_load_include('module', 'calais');
-module_load_include('module', 'calais_api');
+require_once dirname(__FILE__) . '/calais_api.module';
+require_once dirname(__FILE__) . '/calais.module';
 
 /**
  * Implementation of hook_requirements(). 
