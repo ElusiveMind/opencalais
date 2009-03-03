@@ -642,7 +642,7 @@ function calais_create_entity_vocabulary($entity) {
 function calais_rdf_options($nid) {
   return array(
     'graph' => "node/$nid/calais/rdf", 
-    'repository' => CALAIS_RDF_REPOSITORY
+    'repository' => CALAIS_RDF_REPOSITORY,
   );
 }
 
