@@ -41,19 +41,6 @@ function calais_views_data() {
     'help' => t('The Calais term ID'),
     'field' => array(
       'handler' => 'views_handler_field_numeric',
-      'skip base' => array('node', 'node_revision'),
-    ),
-    'argument' => array(
-      'handler' => 'views_handler_argument_numeric',
-      'skip base' => array('node', 'node_revision'),
-    ),
-  );
-
-  $data['calais_term']['tid'] = array(
-    'title' => t('Term ID'),
-    'help' => t('The Calais term ID'),
-    'field' => array(
-      'handler' => 'views_handler_field_numeric',
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_numeric',
