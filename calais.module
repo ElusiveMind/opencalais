@@ -108,11 +108,7 @@ function calais_preprocess_node(&$variables) {
 function calais_get_rdf($nid) {
   $format = 'rdf+xml';
   $rdf_triples = rdf_query(NULL, NULL, NULL, calais_rdf_options($nid));
-  $xml = rdf_serialize($rdf_triples, array('format' => $format));
-  
-  // TODO: We need to add proper namespaces until http://drupal.org/node/350485 is resolved
-  $rdf = _calais_api_fix_rdf_namespaces($xml);
-  //$rdf = $xml;
+  $rdf = rdf_serialize($rdf_triples, array('format' => $format));
 
   $formats  = rdf_get_formats();
   $output_format = $formats[$format];
