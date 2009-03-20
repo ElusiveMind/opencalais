@@ -119,6 +119,9 @@ function calais_build_nodetype_settings(&$form) {
       '#default_value' => $processing,
       '#options' => $options,
     );
+    
+    _calais_build_semanticproxy_config($form, $nt);
+    
     $form[$key]["calais_api_allow_searching_{$key}"] = array(
       '#type' => 'checkbox',
       '#title' => t('Allow Calais Searching'),
@@ -141,6 +144,56 @@ function calais_build_nodetype_settings(&$form) {
 
     calais_build_entity_settings($form, $key, $name, TRUE);
   }
+}
+
+/**
+ * Configuration for Semantic Proxy integration. This will
+ */
+function _calais_build_semanticproxy_config(&$form, $node_type) {
+  
+  $spfields = array('' => "Don't process with SemanticProxy");
+
+  // If this content type is configured as a feed item
+  if(module_exists('feedapi_node')) {
+    $feed_types = feedapi_get_types();
+    foreach($feed_types as $type => $name) {
+      $settings = feedapi_get_settings($type);
+      if($settings['processors']['feedapi_node']['content_type'] == $node_type->type) {
+        $spfields['calais_feedapi_node'] = t('Feed Item Original URL');
+      }
+    }
+  }
+
+  // Allow Link(URL) fields, or text fields (they may contain urls)
+  if(module_exists('content')) {
+    $content_type = content_types($node_type->type);
+    $fields = $content_type['fields'];
+    if(is_array($fields) && !empty($fields)) {
+      foreach($fields as $name => $field) {
+        if($field['type'] == 'link' || ($field['type'] == 'text' && $field['widget']['type'] == 'text_textfield')) {
+          $spfields[$name] = $field['widget']['label'];
+        }
+      }
+    }
+  }
+  
+  if(count($spfields) == 1)
+    return;
+    
+  $key = drupal_strtolower($node_type->type);  
+  $form[$key]['semanticproxy'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Semantic Proxy'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form[$key]['semanticproxy']["calais_semanticproxy_field_{$key}"] = array(
+    '#type' => 'select',
+    '#title' => t('Field to send to SemanticProxy'),
+    '#options' => $spfields,
+    '#default_value' => variable_get("calais_semanticproxy_field_{$key}", ''),
+    '#description' => t('SemanticProxy submits the content of a URL to Calais for processing. You would use this if your content type is a node that has a short blurb/summary with the full content living on another site. This will ask SemanticProxy to get the contents of that URL and submit it to Calais for you. This field must contain a URL.'),
+  );  
 }
 
 /**
