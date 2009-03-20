@@ -22,6 +22,8 @@ function calais_api_init() {
   // Only load these if it is not a cached page
   module_load_include('inc', 'calais_api', 'includes/Calais');
   module_load_include('inc', 'calais_api', 'includes/CalaisMetadata');
+  module_load_include('inc', 'calais_api', 'includes/CalaisRdfProcessor');
+  module_load_include('inc', 'calais_api', 'includes/SemanticProxy');
 }
 
 /**
@@ -204,64 +206,3 @@ function calais_api_get_all_entities() {
     'EventsFacts', // Special reserved vocab for Events & Facts
   );
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// ARC2 interoperability
-// Copied from rdf.api.inc to fix bug http://drupal.org/node/348758
-// When that is resolved and in a release, remove this hackitude.
-
-function _calais_api_deconstruct_arc2_triple($triple) {
-  $subject   = _calais_api_deconstruct_arc2_value($triple, 's');
-  $predicate = _calais_api_deconstruct_arc2_value($triple, 'p');
-  $object    = _calais_api_deconstruct_arc2_value($triple, 'o');
-  return array($subject, $predicate, $object);
-}
-
-function _calais_api_deconstruct_arc2_value($triple, $name) {
-  switch ($name == 'p' ? 'iri' : $triple[$name .'_type']) {
-    case 'uri': // THIS IS THE FIX
-    case 'iri':
-      return rdf_uri($triple[$name]);
-    case 'bnode':
-      return rdf_bnode($triple[$name]);
-    case 'literal':
-    case 'literal1':
-    case 'literal2':
-    case 'literal_long1':
-    case 'literal_long2':
-      return rdf_literal($triple[$name], $triple[$name .'_lang'], $triple[$name .'_datatype']);
-    case 'var':
-      return rdf_var($triple[$name]);
-  }
-}
-
-/**
- * This function exists as long as http://drupal.org/node/350485 does.
- *
- * This makes sure all of the extra Calais namespaces are in there. The original
- * RDF from Calais did not use namespaces as everything was an rdf:Description with
- * a type, but the RDF module serialization moves that type to the root tag level
- * and as such additional namespaces are needed.
- */
-function _calais_api_fix_rdf_namespaces($xml) {
-  $matches = array();
-  preg_match('/<rdf:RDF (.*)>/i', $xml, $matches);
-  $ns = explode(' ', $matches[1]);
-  
-  $calaisns = calais_api_rdf_namespaces();
-  // Remove already specified namespaces from our list of those to add so we dont duplicate
-  foreach($ns as $index => $namespace) {
-    list($key, $value) = explode('=', $namespace); // get the attribute name
-    list($xmlns, $prefix) = explode(':', $key); // strip the xmlns: off the front
-    unset($calaisns[$prefix]);
-  }
-  
-  // Add the namespaces that are left
-  foreach ($calaisns as $prefix => $uri) {
-    $ns[] = "xmlns:$prefix=\"$uri\"";
-  }
-  $namespaces = implode(' ', $ns);
-  $rdf = preg_replace('/<rdf:RDF .*>/i', "<rdf:RDF $namespaces>", $xml, 1);
-  return $rdf;
-}
-
