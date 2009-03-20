@@ -172,7 +172,7 @@ function calais_delete_node($node) {
  * @param $process_type The processing type for this node.
  */
 function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') {
-  if ($process_type == CALAIS_PROCESS_NO)
+  if ($process_type == CALAIS_PROCESS_NO || isset($node->calais->processor))
     return;
 
   // On feedapi runs, updates are missing vid so get it.
@@ -180,16 +180,14 @@ function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') 
     $node->vid = db_result(db_query("SELECT vid FROM {node} WHERE nid=%d", $node->nid));
   }
 
-  $loaded_node = node_build_content($node);
-  $body = strip_tags(drupal_render($loaded_node->content));
-  $date = format_date($node->created, 'custom', 'r');
-  $node_settings = calais_get_node_settings($node);
-  $calais = new Calais($node_settings);
-  $keywords = $calais->analyzeXML($node->title, $body, $date);
+  $keywords = _calais_use_semanticproxy($node) 
+                  ? calais_process_with_semanticproxy($node)
+                  : calais_process_with_calais($node);
 
-  if (sizeof($keywords) > 0) {
-    db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
-  }
+  if(empty($keywords))
+    return;
+
+  db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
 
   module_invoke_all('calais_preprocess', $node, $keywords);
 
@@ -207,8 +205,54 @@ function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') 
     }
   }
 
-  calais_store_rdf($node, $calais->flatTriples);
+  calais_store_rdf($node, $node->calais->service->flatTriples);
   module_invoke_all('calais_postprocess', $node, $keywords);
+}
+
+/**
+ * Use the actual Calais Web Service to process this Node's content.
+ *
+ * @param $node The node to process
+ * @return The Calais keywords for this node.
+ */
+function calais_process_with_calais(&$node) {
+  $loaded_node = node_build_content($node);
+  $body = strip_tags(drupal_render($loaded_node->content));
+  $date = format_date($node->created, 'custom', 'r');
+  $node_settings = calais_get_node_settings($node);
+  $calais = new Calais($node_settings);
+  $keywords = $calais->analyzeXML($node->title, $body, $date);
+  $node->calais->service = $calais;
+  return $keywords;
+}
+
+/**
+ * Use SemanticProxy to process this Node.
+ *
+ * @param $node The node to process
+ * @return The Calais keywords for this node.
+ */
+function calais_process_with_semanticproxy(&$node) {
+  $key = drupal_strtolower($node->type);
+  $spfield = variable_get("calais_semanticproxy_field_{$key}", '');
+  
+  if(!empty($spfield)) {
+    if($spfield == 'calais_feedapi_node') {
+      $url = $node->feedapi_node->url;
+    }
+    else {
+      $field = $node->{$spfield};
+      if(isset($field)) {
+       $url = isset($field[0]['url']) ? $field[0]['url'] : $field[0]['value'];
+      }
+    }
+    
+    $sp = new SemanticProxy();
+    $keywords = $sp->analyze($url);
+    $node->calais->service = $sp;
+    $node->calais->original_text = $sp->processor->document;
+    return $keywords;
+  }  
 }
 
 /**
@@ -242,7 +286,7 @@ function calais_associate_term($vid, &$term, $node) {
   $local_term = calais_get_term($vid, $term);
 
   $calais_term = $local_term ? $local_term : new CalaisTerm($term->guid, $term->name, $term->relevance);
-  // We could aray_merge, but defined properties with no value will 
+  // We could array_merge, but defined properties with no value will 
   // overwrite the locals (tid, tdid, etc.), so just be explicit for now.
   $calais_term->vid = $vid; 
   $calais_term->relevance = $term->relevance;
@@ -671,6 +715,18 @@ function calais_remove_rdf($node) {
   if(variable_get('calais_store_rdf', TRUE)) {
     rdf_delete(NULL, NULL, NULL, calais_rdf_options($node->nid));
   }
+}
+
+/**
+ * Is this node configured to use SemanticProxy?
+ *
+ * @param $node The node for to examine
+ * @return TRUE if this node is configured to use SemanticProxy, FALSE otherwise.
+ */
+function _calais_use_semanticproxy($node) {
+  $key = drupal_strtolower($node->type);
+  $spfield = variable_get("calais_semanticproxy_field_{$key}", '');
+  return !empty($spfield);
 }
 
 /**
