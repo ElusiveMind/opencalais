@@ -139,6 +139,14 @@ function calais_keywords_form_validate($form, &$form_state) {
 function calais_keywords_form_submit($form, &$form_state) {
   $node = (object)$form_state['values'];
 
+  // Fill in terms from other non-Calais vocabularies as to not remove them
+  $taxonomy = taxonomy_node_get_terms($node);
+  $vocabs = calais_get_vocabularies($node->type);
+  foreach ($taxonomy as $term){
+    if (!isset($vocabs[$term->vid]))
+      $node->taxonomy[] = $term;
+  }
+
   taxonomy_node_save($node, $node->taxonomy);
 
   // Query for Node Terms directly. Some wierd caching (I think) with taxonomy_node_get_terms
