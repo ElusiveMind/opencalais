@@ -238,7 +238,12 @@ function calais_process_with_semanticproxy(&$node) {
   
   if(!empty($spfield)) {
     if($spfield == 'calais_feedapi_node') {
-      $url = $node->feedapi_node->url;
+      if(isset($node->feedapi_node)) {
+        $url = $node->feedapi_node->feed_item->options->original_url;
+      }
+      else {
+        $url = db_result(db_query('SELECT fi.url FROM {feedapi_node_item} fi WHERE fi.nid = %d', $node->nid));
+      }
     }
     else {
       $field = $node->{$spfield};
@@ -250,9 +255,25 @@ function calais_process_with_semanticproxy(&$node) {
     $sp = new SemanticProxy();
     $keywords = $sp->analyze($url);
     $node->calais->service = $sp;
-    $node->calais->original_text = $sp->processor->document;
-    return $keywords;
-  }  
+    
+    if($keywords) {
+      // Store the document text if configured
+      $docfield = variable_get("calais_semanticproxy_document_{$key}", '');
+      if(!empty($docfield) && module_exists('content')) {
+        $original_text = $sp->processor->document;
+        $node->{$docfield}[0]['value'] = $original_text;
+        if($node->is_new) {
+          content_insert($node);
+        }
+        else {
+          content_update($node);
+        }
+      }
+      return $keywords;
+    }
+  } 
+  
+  return array(); 
 }
 
 /**

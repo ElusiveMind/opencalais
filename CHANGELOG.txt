@@ -1,5 +1,12 @@
 $Id$
 
+From Version 6.x-3.0 -> 6.x-3.1
+-------------------------------
+ - SemanticProxy Integration
+ - #410136: @rares Tag editing from Calais form removes non-calais tags
+ - 
+ 
+
 From Version 6.x-2.2 -> 6.x-3.0
 -------------------------------
  - Overhauled the database schema for more extensible handling of extended data for entities

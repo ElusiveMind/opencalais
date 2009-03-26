@@ -87,12 +87,19 @@ class SemanticProxy {
   }  
   
   private static function log_http_error($ret) {
-    $errordoc = simplexml_load_string($ret->data); 
-    $exception = $errordoc->xpath('/Error/Exception');
-    $errormsg = (string) $exception[0];
-    $msg = t('SemanticProxy processing error: @msg', array('@msg' => $errormsg));
-    drupal_set_message($msg, 'error');
-    $errors = array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $errormsg);
-    watchdog('calais', 'SemanticProxy processing error: (@code - @error) @msg', $errors, WATCHDOG_ERROR);
+    $errordoc = @simplexml_load_string($ret->data); 
+    if (method_exists($errordoc, 'xpath')) {
+      $exception = $errordoc->xpath('/Error/Exception');
+      $errormsg = (string) $exception[0];
+      $msg = t('SemanticProxy processing error: @msg', array('@msg' => $errormsg));
+      drupal_set_message($msg, 'error');
+      $errors = array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $errormsg);
+      watchdog('calais', 'SemanticProxy processing error: (@code - @error) @msg', $errors, WATCHDOG_ERROR);
+    }
+    else {
+      $msg = t('Unexpected error processing SemanticProxy request.');
+      drupal_set_message($msg, 'error');
+      watchdog('calais', $msg, WATCHDOG_ERROR);
+    }
   }  
 }

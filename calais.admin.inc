@@ -152,6 +152,7 @@ function calais_build_nodetype_settings(&$form) {
 function _calais_build_semanticproxy_config(&$form, $node_type) {
   
   $spfields = array('' => "Don't process with SemanticProxy");
+  $docfields = array('' => "Don't store document text");
 
   // If this content type is configured as a feed item
   if(module_exists('feedapi_node')) {
@@ -164,14 +165,19 @@ function _calais_build_semanticproxy_config(&$form, $node_type) {
     }
   }
 
-  // Allow Link(URL) fields, or text fields (they may contain urls)
   if(module_exists('content')) {
     $content_type = content_types($node_type->type);
+    $type_url_str = $content_type['url_str'];
     $fields = $content_type['fields'];
     if(is_array($fields) && !empty($fields)) {
       foreach($fields as $name => $field) {
+        // Fields to submit to SemanticProxy
         if($field['type'] == 'link' || ($field['type'] == 'text' && $field['widget']['type'] == 'text_textfield')) {
-          $spfields[$name] = $field['widget']['label'];
+          $spfields[$name] = $field['widget']['label'] . ' (' . $field['field_name'] . ')';
+        }
+        // Fields to store document text
+        if($field['type'] == 'text' && $field['widget']['type'] == 'text_textarea') { 
+          $docfields[$name] = $field['widget']['label'] . ' (' . $field['field_name'] . ')';
         }
       }
     }
@@ -193,6 +199,13 @@ function _calais_build_semanticproxy_config(&$form, $node_type) {
     '#options' => $spfields,
     '#default_value' => variable_get("calais_semanticproxy_field_{$key}", ''),
     '#description' => t('SemanticProxy submits the content of a URL to Calais for processing. You would use this if your content type is a node that has a short blurb/summary with the full content living on another site. This will ask SemanticProxy to get the contents of that URL and submit it to Calais for you. This field must contain a URL.'),
+  );  
+  $form[$key]['semanticproxy']["calais_semanticproxy_document_{$key}"] = array(
+    '#type' => 'select',
+    '#title' => t('Field to save document text'),
+    '#options' => $docfields,
+    '#default_value' => variable_get("calais_semanticproxy_document_{$key}", ''),
+    '#description' => t('SemanticProxy submits the content of a URL to Calais for processing. This is the field where you would like to save the document content that sent to Calais for processing. You can use this field to submit to to other services such as yahoo Terms, etc. You could use this field for display, but chances are it is not fit for presentation. You can hide this field from display !url', array('!url' => l('here', "admin/content/node-type/{$type_url_str}/display"))),
   );  
 }
 
