@@ -62,6 +62,15 @@ function calais_menu() {
     'type' => MENU_LOCAL_TASK
   );
 
+  $items['admin/settings/calais/bulk-process/clear/%'] = array(
+    'title' => 'Calais Reset Bulk Processing',
+    'description' => 'Clears a continue flag for a particular content type',
+    'page callback' => 'calais_bulk_clear',
+    'page arguments' => array(5),
+    'access arguments' => array('administer calais'),
+    'type' => MENU_CALLBACK
+  );
+
   $items['node/%node/calais'] = array(
     'title' => 'Calais',
     'page callback' => 'drupal_get_form',

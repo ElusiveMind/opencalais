@@ -284,8 +284,33 @@ function calais_bulk_process() {
   );
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Bulk Process'));
-
   $form['#submit'][] = 'calais_bulk_process_submit';
+
+
+  // Generate a summary of total node counts per content type
+  $header = array(
+    t('Type'),
+    t('Node Count'),
+    t('Status'),
+  );
+  $rows = array();
+  $result = db_query("SELECT type, COUNT(*) as count FROM {node} GROUP BY type");  
+  $progress = variable_get("calais_bulk_progress", array());
+  while ($row = db_fetch_object($result)) {
+    if(isset($node_types[$row->type])) {
+      $rows[] = array(
+          $node_types[$row->type],
+          $row->count,
+          isset($progress[$row->type]) 
+            ? t('Interrupted, will continue (!clear)', array('!clear' => l('Start Over', "admin/settings/calais/bulk-process/clear/{$row->type}", array('query' => drupal_get_destination())))) 
+            : t('Ready'),
+      );
+    }
+  }
+  $form['summary'] = array(
+    '#type' => 'markup',
+    '#value' => theme('table', $header, $rows),
+  );
 
   return $form;
 }
@@ -318,6 +343,20 @@ function calais_bulk_process_submit($form, &$form_state) {
     'error_message' => t('Calais Bulk Processing has encountered an error.'),
   );
   batch_set($batch);
+}
+
+/**
+ * Clear a particular content types progress indicator for Calais bulk processing
+ * 
+ * @param $type
+ *    The machine readable node type
+ */
+function calais_bulk_clear($type) {
+  $progress = variable_get("calais_bulk_progress", array());
+  unset($progress[$type]);
+  variable_set("calais_bulk_progress", $progress);
+  watchdog('calais', "Cleared bulk progress indicator for %type nodes", array('%type' => $type));
+  drupal_goto();
 }
 
 /**
@@ -362,10 +401,22 @@ function calais_bulk_process_submit($form, &$form_state) {
  *   and the batch processing can continue to the next operation.
  */
 function calais_batch_process($type, $limit, $throttle, $threshold, &$context) {
+  // Get any in progress bulks
+  $progress = variable_get("calais_bulk_progress", array());
+  $lastnid = $progress[$type];
+
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['progress'] = 0;
-    $context['sandbox']['current_node'] = 0;
-    $context['sandbox']['max'] = db_result(db_query("SELECT COUNT(DISTINCT nid) FROM {node} WHERE type = '%s'", $type));
+    if(isset($lastnid)) {
+      dpm("Picking up where we left off: $lastnid");
+      $context['sandbox']['current_node'] = $lastnid;
+      $context['sandbox']['max'] = db_result(db_query("SELECT COUNT(DISTINCT nid) FROM {node} WHERE type = '%s' and nid > %d", $type, $lastnid));
+    }
+    else {
+      dpm('Start at the beginning');
+      $context['sandbox']['current_node'] = 0;
+      $context['sandbox']['max'] = db_result(db_query("SELECT COUNT(DISTINCT nid) FROM {node} WHERE type = '%s'", $type));
+    }
   }
   
   // With each pass through the callback, retrieve the next group of nids.
@@ -375,6 +426,8 @@ function calais_batch_process($type, $limit, $throttle, $threshold, &$context) {
 
     $node = node_load($row['nid'], NULL, TRUE);
     calais_process_node($node, CALAIS_PROCESS_AUTO, $threshold);
+    $progress[$type] = $node->nid;
+    variable_set("calais_bulk_progress", $progress);
 
     if($throttle) {
       usleep(100000);
@@ -383,14 +436,21 @@ function calais_batch_process($type, $limit, $throttle, $threshold, &$context) {
     $context['results'][] = $node->title;
     $context['sandbox']['progress']++;
     $context['sandbox']['current_node'] = $node->nid;
-    $context['message'] = t('Now processing %node', array('%node' => $node->title));
+    $context['message'] = t('Now processing %node', array('%node' => $node->title));    
   }
+
+  watchdog('calais', "Bulk processed {$limit} %type nodes", array('%type' => $type));
 
   // Inform the batch engine that we are not finished,
   // and provide an estimation of the completion level we reached.
   if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
     $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
-  }  
+  }
+  else {
+    // We are finished so remove our progress tracker
+    unset($progress[$type]);
+    variable_set("calais_bulk_progress", $progress);
+  }
 }
 
 /**
