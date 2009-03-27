@@ -8,7 +8,7 @@ From Version 6.x-3.0 -> 6.x-3.1
    + Optionally save document text back on your node to a CCK textarea.
  - #410136: @rares - Tag editing from Calais form removes non-calais tags
  - #412738: @dextrose - Errors save empty triples array
- - 
+ - #379778: @mariuscjr - Pickup where interrupted bulk processing left off
  
 
 From Version 6.x-2.2 -> 6.x-3.0
