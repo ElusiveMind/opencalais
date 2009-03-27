@@ -216,13 +216,16 @@ function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') 
  * @return The Calais keywords for this node.
  */
 function calais_process_with_calais(&$node) {
-  $loaded_node = node_build_content($node);
+  // #412796: This was changing $node->body w/o the clone
+  $loaded_node = node_build_content(drupal_clone($node));
   $body = strip_tags(drupal_render($loaded_node->content));
   $date = format_date($node->created, 'custom', 'r');
   $node_settings = calais_get_node_settings($node);
+
   $calais = new Calais($node_settings);
   $keywords = $calais->analyzeXML($node->title, $body, $date);
   $node->calais->service = $calais;
+
   return $keywords;
 }
 
@@ -238,14 +241,16 @@ function calais_process_with_semanticproxy(&$node) {
   
   if(!empty($spfield)) {
     if($spfield == 'calais_feedapi_node') {
+      // On insert, $node->feedapi_node is available
       if(isset($node->feedapi_node)) {
         $url = $node->feedapi_node->feed_item->options->original_url;
       }
-      else {
+      else { // On update, we need to pull the URL from the DB. Should always be the same. #feedapifail
         $url = db_result(db_query('SELECT fi.url FROM {feedapi_node_item} fi WHERE fi.nid = %d', $node->nid));
       }
     }
     else {
+      // Grab URL from link or textfield 
       $field = $node->{$spfield};
       if(isset($field)) {
        $url = isset($field[0]['url']) ? $field[0]['url'] : $field[0]['value'];
