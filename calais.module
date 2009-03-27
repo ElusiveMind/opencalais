@@ -717,7 +717,7 @@ function calais_rdf_options($nid) {
  * @param $triples The flat set of triples
  */
 function calais_store_rdf($node, $triples) {
-  if(variable_get('calais_store_rdf', TRUE)) {
+  if(variable_get('calais_store_rdf', TRUE) && !empty($triples)) {
     calais_remove_rdf($node);
     rdf_insert_all($triples, calais_rdf_options($node->nid));  
   }
