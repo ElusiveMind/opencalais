@@ -261,7 +261,7 @@ function calais_process_with_semanticproxy(&$node) {
       $docfield = variable_get("calais_semanticproxy_document_{$key}", '');
       if(!empty($docfield) && module_exists('content')) {
         $original_text = $sp->processor->document;
-        $node->{$docfield}[0]['value'] = $original_text;
+        $node->{$docfield}[0]['value'] = trim($original_text);
         if($node->is_new) {
           content_insert($node);
         }
