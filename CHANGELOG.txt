@@ -3,7 +3,11 @@ $Id$
 From Version 6.x-3.0 -> 6.x-3.1
 -------------------------------
  - SemanticProxy Integration
- - #410136: @rares Tag editing from Calais form removes non-calais tags
+   + Processes URL content for Calais tags
+   + Uses Feed API Original URL or any CCK Link/Text Field for URL
+   + Optionally save document text back on your node to a CCK textarea.
+ - #410136: @rares - Tag editing from Calais form removes non-calais tags
+ - #412738: @dextrose - Errors save empty triples array
  - 
  
 
