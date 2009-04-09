@@ -40,7 +40,7 @@ function calais_api_menu() {
   $items = array();
   
   $items['admin/settings/calais'] = array(
-    'title' => 'Calais Configuration',
+    'title' => 'Calais configuration',
     'description' => 'Configurations for Calais',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('calais_api_admin_settings'),
