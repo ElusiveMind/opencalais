@@ -408,12 +408,10 @@ function calais_batch_process($type, $limit, $throttle, $threshold, &$context) {
   if (!isset($context['sandbox']['progress'])) {
     $context['sandbox']['progress'] = 0;
     if(isset($lastnid)) {
-      dpm("Picking up where we left off: $lastnid");
       $context['sandbox']['current_node'] = $lastnid;
       $context['sandbox']['max'] = db_result(db_query("SELECT COUNT(DISTINCT nid) FROM {node} WHERE type = '%s' and nid > %d", $type, $lastnid));
     }
     else {
-      dpm('Start at the beginning');
       $context['sandbox']['current_node'] = 0;
       $context['sandbox']['max'] = db_result(db_query("SELECT COUNT(DISTINCT nid) FROM {node} WHERE type = '%s'", $type));
     }
