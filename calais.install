@@ -60,14 +60,6 @@ function calais_install() {
   // Module weights: put calais after taxonomy for form altering.
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
   
-  // Add necessary fields to the taxonomy term table
-  $ret = array();
-  
-  if (!db_column_exists('term_data', 'guid')) {
-    db_add_field($ret, 'term_data', 'guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the GUID from Calais for this term.'));  
-    db_add_field($ret, 'term_data', 'resolved_guid', array('type' => 'varchar', 'length' => 255, 'description' => 'Holds the Disambiguated GUID from Calais for this term.'));  
-  }
-  
   calais_install_rdf_repository($ret);
 }
 
