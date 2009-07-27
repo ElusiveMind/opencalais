@@ -231,6 +231,9 @@ function calais_process_with_calais(&$node) {
   $date = format_date($node->created, 'custom', 'r');
   $node_settings = calais_get_node_settings($node);
 
+  // Allow modification of the content sent to Calais
+  drupal_alter("calais_body", $body, $loaded_node);
+
   $calais = new Calais($node_settings);
   $keywords = $calais->analyzeXML($node->title, $body, $date);
   $node->calais->service = $calais;
