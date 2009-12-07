@@ -26,7 +26,7 @@ function calais_api_requirements($phase) {
   
   if ($phase == 'runtime') {
     $apikey = variable_get('calais_api_key', FALSE);
-    if ($apikey === FALSE || empty($apikey)) {
+    if (empty($apikey)) {
       
       $settings_uri = array(
         '!calaissetturi' => l(t('Calais API Settings'),
@@ -80,15 +80,6 @@ function calais_api_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-  // Used for testing/debug
-  $items['admin/settings/calais/test'] = array(
-    'title' => 'Calais Tester Page',
-    'description' => 'Calais Test Call',
-    'page callback' => 'calais_call_test',
-    'access arguments' => array('administer calais api'),
-    'type' => MENU_CALLBACK,
-  );
-
   return $items;
 }
 
@@ -133,6 +124,19 @@ function calais_api_admin_settings() {
  * @see calais_api_build_xml_params for applicable Parameter values.
  */
 function calais_api_analyze($content, $parameters = array()) {
+  
+  $apikey = variable_get('calais_api_key', FALSE);
+  if (empty($apikey)) {
+    drupal_set_message(t('Calais semantic analysis skipped because Calais API Key is not set. Please configure it at: !link', 
+                            array('!link' => l('admin/settings/calais','admin/settings/calais', 
+                                              array('attributes' => array('target' => '_blank'))
+                                              )
+                                  )
+                        ),
+                      $type = 'warning', $repeat = FALSE);
+    return array();
+  }
+
   
   $HOST    = "http://api.opencalais.com";
   $URI     = "/enlighten/calais.asmx/Enlighten";
