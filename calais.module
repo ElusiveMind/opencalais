@@ -234,6 +234,11 @@ function calais_process_with_calais(&$node) {
   // Allow modification of the content sent to Calais
   drupal_alter("calais_body", $body, $loaded_node);
 
+  if (!is_calais_api_key_set()) {
+    $node->calais->service = NULL;
+    return array();
+  }
+
   $calais = new Calais($node_settings);
   $keywords = $calais->analyzeXML($node->title, $body, $date);
   $node->calais->service = $calais;

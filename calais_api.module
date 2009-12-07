@@ -97,6 +97,34 @@ function calais_api_admin_settings() {
 }
 
 /**
+* 
+* Checks if Calais API Key is set
+*
+* @param $show_warning
+*   Whether to display a warning
+*/
+function is_calais_api_key_set($show_warning = TRUE) {
+
+  $apikey = variable_get('calais_api_key', FALSE);
+
+  if (empty($apikey)) {
+    if ($show_warning) {
+      drupal_set_message(t('Calais semantic analysis skipped because Calais API Key is not set. Please configure it at: !link', 
+                              array('!link' => l('admin/settings/calais','admin/settings/calais', 
+                                                array('attributes' => array('target' => '_blank'))
+                                                )
+                                    )
+                          ),
+                        $type = 'warning', $repeat = FALSE);
+    }
+    return FALSE;
+  }
+
+  return TRUE;
+
+}
+
+/**
  * Analyze the content via Calais.
  *
  * @param $content The content to ship off to Calais for analysis
@@ -106,6 +134,11 @@ function calais_api_admin_settings() {
  * @return The analyzed content
  */
 function calais_api_analyze($content, $parameters = array()) {
+
+  if (!is_calais_api_key_set()) {
+    return array();
+  }
+
   $calais = new Calais($parameters);
   return $calais->analyze($content);
 }
@@ -123,6 +156,11 @@ function calais_api_analyze($content, $parameters = array()) {
  * @return The analyzed content
  */
 function calais_api_analyze_xml($title, $body, $date, $parameters = array()) {
+
+  if (!is_calais_api_key_set()) {
+    return array();
+  }
+
   $calais = new Calais($parameters);
   return $calais->analyzeXML($title, $body, $date);
 }
