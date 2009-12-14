@@ -89,6 +89,9 @@ class CalaisRdfProcessor {
       else if ($type[0] == 'http://s.opencalais.com/1/type/cat/DocCat') {
         $this->extract_categories($keywords, $type, $guid, $data);
       }      
+      else if ($type[0] == 'http://s.opencalais.com/1/type/tag/SocialTag') {
+        $this->extract_tags($keywords, $type, $guid, $data);
+      }      
     }
   }
 
@@ -187,6 +190,44 @@ class CalaisRdfProcessor {
      $cat_val = preg_replace('/_.*/ims', '', $cat_val); // remove everything after the first underscore
      $keywords->CalaisDocumentCategory->set_term_data($cat_guid, $cat_val, $cat_score);      
    }
+
+   /**
+    * Extracts the Social Tags from the returned data.
+    * 
+    * @param $keywords The result array for CalaisMetadata
+    * @param $type The RDF type for this record
+    * @param $guid The guid for the current Calais Term
+    * @param $data The indexed triple for the current Calais Term/GUID
+    */
+    protected function extract_tags(&$keywords, $type, $guid, $data) {
+      $tag_guid = $data['http://s.opencalais.com/1/pred/socialtag'][0];
+      $tag_val = $data['http://s.opencalais.com/1/pred/name'][0];
+      $importance = $data['http://s.opencalais.com/1/pred/importance'][0];
+      
+      // This is built off of the Calais documentation:
+      // A topic extracted by Categorization with a score higher than 0.6 
+      // will also be extracted as a SocialTag. If its score is higher 
+      // than 0.8, its importance (as a SocialTag) will be set to 1. If 
+      // the score is between 0.6 and 0.8 its importance is set to 2.
+      switch ($importance) {
+        case 1:
+          $tag_score = 0.9;
+          break;
+        case 2:
+          $tag_score = 0.7;
+          break;
+        default:
+          $tag_score = 0;
+      }
+
+      if (!property_exists($keywords, 'SocialTags')) {
+        $keywords->SocialTags = new CalaisMetadata($type[0], 'SocialTags');
+      }
+
+      // When certain Document Category tags get here, they have underscores, remove them
+      $tag_val = preg_replace('/_.*/ims', '', $tag_val); // remove everything after the first underscore
+      $keywords->SocialTags->set_term_data($tag_guid, $tag_val, $tag_score);      
+    }
 
   /**
    * Extracts the relevance score from the returned data

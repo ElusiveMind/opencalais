@@ -48,7 +48,7 @@ class CalaisApiTestCase extends DrupalWebTestCase {
 		$this->assertRelevance($results->Person, 'Barack Obama', 0.797);
 		$this->assertRelevance($results->ProvinceOrState, 'Indiana', 0.566);
 		
-		$this->assertResolvedName($results->Company, 'CBS', 'Viacom International Inc', 'company', 'CBS disambiguates to Viacom International Inc');
+		$this->assertResolvedName($results->Company, 'CBS', 'CBS Corporation', 'company', 'CBS disambiguates to CBS Corporation');
 
 		$this->assertResolvedData($results->Company, 'CBS', array('ticker' => 'CBS'));
 		$this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('latitude' => '40.0066019668', 'longitude' => '-86.2913991487'));		
@@ -100,9 +100,21 @@ class CalaisWebServiceTestCase extends CalaisApiTestCase {
 		
 		$calais = new Calais(array('host' => 'api1.opencalais.com'));
 		$results = $calais->analyzeXML('Calais API Test', $body, $date);
+		
 		$this->assertCalaisResults($results);
 		
-		$this->arrayContains($results->CalaisDocumentCategory, 'Technology', 'Technology is in Document Category');
+		$this->arrayContains($results->SocialTags, 'Pennsylvania Democratic primary', 'Pennsylvania Democratic primary is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Barack Obama', 'Barack Obama is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Hillary Rodham Clinton', 'Hillary Rodham Clinton is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Superdelegate', 'Superdelegate is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Hillary Clinton caucuses and primaries', 'Hillary Clinton caucuses and primaries is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Barack Obama presidential primary campaign', 'Barack Obama presidential primary campaign is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Business', 'Business is in Social Tags');
+		$this->arrayContains($results->SocialTags, 'Labor', 'Labor is in Social Tags');
+		$this->assertRelevance($results->SocialTags, 'Barack Obama', 0.9);
+		$this->assertRelevance($results->SocialTags, 'Barack Obama presidential primary campaign', 0.7);
+		$this->arrayContains($results->CalaisDocumentCategory, 'Business', 'Business is in Document Category');
+		$this->arrayContains($results->CalaisDocumentCategory, 'Labor', 'Labor is in Document Category');
 		$this->arrayContains($results->TVShow, '60 Minutes', '60 Minutes is a TVShow');
 		$this->assertRelevance($results->TVShow, '60 Minutes', 0.052);
 	}

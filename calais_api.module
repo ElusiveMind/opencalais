@@ -240,6 +240,7 @@ function calais_api_get_all_entities() {
     'TVShow',
     'TVStation',
     'URL',
+    'SocialTags', // Special reserved vocab for Calais Social Tags
     'CalaisDocumentCategory', // Special reserved vocab for Calais Document Categorization
     'EventsFacts', // Special reserved vocab for Events & Facts
   );

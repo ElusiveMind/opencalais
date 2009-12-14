@@ -16,6 +16,7 @@ class Calais {
     'externalID' => '',
     'submitter' => 'Drupal',
     'calculateRelevanceScore' => 'true',
+    'enableMetadataType' => 'SocialTags',
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
@@ -110,6 +111,7 @@ class Calais {
     <c:params xmlns:c="http://s.opencalais.com/1/pred/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
     <c:processingDirectives c:contentType="$attributes[contentType]" 
                             c:outputFormat="$attributes[outputFormat]"
+                            c:enableMetadataType="$attributes[enableMetadataType]">
                             c:calculateRelevanceScore="$attributes[calculateRelevanceScore]">
     </c:processingDirectives>
     <c:userDirectives c:allowDistribution="$attributes[allowDistribution]" 
