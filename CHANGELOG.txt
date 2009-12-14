@@ -1,5 +1,15 @@
 $Id$
 
+From Version 6.x-3.2 -> 6.x-3.4
+-------------------------------
+ - SocialTags integration
+
+From Version 6.x-3.2 -> 6.x-3.3
+-------------------------------
+ - Better Error Handling and Reporting
+ - #653064: Do not store RDF by default
+ - #620284: @SocialNicheGuru - Test class not found
+
 From Version 6.x-3.0 -> 6.x-3.1
 -------------------------------
  - SemanticProxy Integration
