@@ -30,9 +30,9 @@ function calais_admin_settings() {
   calais_build_entity_settings($form);
   calais_build_nodetype_settings($form);
 
-  $form['#submit'][] = 'calais_admin_settings_submit';
-
   $form = system_settings_form($form);
+  $form['#submit'][] = 'calais_admin_settings_submit';
+  
   return $form;
 }
 
@@ -92,10 +92,14 @@ function calais_build_nodetype_settings(&$form) {
   node_types_rebuild();
 
   $node_types = node_get_types('types', NULL, TRUE);
-  $options = array(
-    CALAIS_PROCESS_NO => t('Not processed by Calais (default)'),
-    CALAIS_PROCESS_MANUAL => t("Suggest terms, but DON'T apply them"),
-    CALAIS_PROCESS_AUTO => t('Apply all suggested terms on every update'),
+  $request_options = array(
+    CALAIS_REQUEST_NO     => t('Not processed by Calais'),
+    CALAIS_REQUEST_AUTO   => t('Automatically initiate Calais request on save'),
+    CALAIS_REQUEST_MANUAL => t("Manually initiate Calais request from 'Calais' tab"),
+  );
+  $process_options = array(
+    CALAIS_PROCESS_MANUAL    => t("Suggest terms, but DON'T apply them"),
+    CALAIS_PROCESS_AUTO      => t('Apply all suggested terms on every update'),
     CALAIS_PROCESS_AUTO_ONCE => t('Apply all suggested terms on creation ONLY'),
   );
 
@@ -111,13 +115,22 @@ function calais_build_nodetype_settings(&$form) {
       '#collapsed' => TRUE,
     );
 
-    $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO);
+    $request = variable_get("calais_node_{$key}_request", CALAIS_REQUEST_NO);
+    $form[$key]["calais_node_{$key}_request"] = array(
+      '#type' => 'radios',
+      '#parents' => array('calais_node_'. $key .'_request'),
+      '#title' => t('Calais Initiation'),
+      '#default_value' => $request,
+      '#options' => $request_options,
+    );
+
+    $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
     $form[$key]["calais_node_{$key}_process"] = array(
       '#type' => 'radios',
       '#parents' => array('calais_node_'. $key .'_process'),
       '#title' => t('Calais Processing'),
       '#default_value' => $processing,
-      '#options' => $options,
+      '#options' => $process_options,
     );
     
     _calais_build_semanticproxy_config($form, $nt);
@@ -211,25 +224,23 @@ function _calais_build_semanticproxy_config(&$form, $node_type) {
 
 /**
  * Have to override so that we can manage vocabulary - node_type relationships.
+ * This assumes the default submit handler (system_settings_form_submit) was already processed.
  *
  * @param unknown_type $form_id
  * @param unknown_type $form_state
  */
 function calais_admin_settings_submit($form, &$form_state) {
 
-  system_settings_form_submit($form, $form_state);
-
   // Also, set vocabulary-node relationships
   $node_types = node_get_types('types', NULL, TRUE);
   $all_vocabularies = calais_get_entity_vocabularies();
   foreach ($node_types as $nt) {
-    $key = drupal_strtolower($nt->type);
-    $state = variable_get('calais_node_'. $key .'_process', CALAIS_PROCESS_NO);
+    $request = calais_get_request_type($node);
     foreach ($all_vocabularies as $entity => $vid) {
       // Clean-up
       db_query("DELETE FROM {vocabulary_node_types} WHERE vid='%d' and type='%s'", $vid, $key);
     }
-    if ($state !== CALAIS_PROCESS_NO) {
+    if ($request !== CALAIS_REQUEST_NO) {
       // assign all configured calais vocabs to this node type
       $node_vocabularies = calais_get_entity_vocabularies($key);
       if(!empty($node_vocabularies)) {
