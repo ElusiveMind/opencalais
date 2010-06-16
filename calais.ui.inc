@@ -77,6 +77,18 @@ function calais_keywords_form(&$form_state, $node) {
   $form['nid']   = array('#type' => 'value', '#value' => $node->nid);
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
 
+  // If processing is manual, add the button to initiate it
+  if (calais_get_request_type($node) == CALAIS_REQUEST_MANUAL) {
+    $form['calais_request'] = array(
+      '#type'   => 'button',
+      '#value'  => t('Request Calais Data'),
+      '#weight' => -100,
+      '#executes_submit_callback' => TRUE,
+      '#validate' => array('calais_keywords_form_manual_validate'),
+      '#submit' => array('calais_keywords_form_manual_submit'),
+    );
+  }
+
   uasort($vocabs, '_calais_vocab_cmp');
   $weight = 0;
   foreach ($vocabs as $vocabulary) {
@@ -124,6 +136,20 @@ function calais_keywords_form(&$form_state, $node) {
 }
 
 /**
+ * This is a no-op validation handler for the manual processing of a Calais request.
+ */
+function calais_keywords_form_manual_validate($form, &$form_state) {
+}
+
+/**
+ * Submit handler to send a manual request to Calais for keyword data on a Node.
+ */
+function calais_keywords_form_manual_submit($form, &$form_state) {
+  $node = $form['#node'];
+  calais_process_node($node);  
+}
+
+/**
  * Provide validation for the Calais free tagging taxonomy terms.
  *
  * The essence of this was clipped from <code>taxonomy_node_validate()</code>
@@ -165,7 +191,7 @@ function calais_keywords_form_submit($form, &$form_state) {
     }
   }
 
-  drupal_set_message(t('Calais settings have been saved.'));
+  drupal_set_message(t('Your term associations have been saved.'));
   $form_state['redirect'] = "node/{$node->nid}";
 }
 
