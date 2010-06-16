@@ -411,6 +411,30 @@ function calais_update_6300() {
   return $ret;
 }
 
+/**
+ * Update Hook for the addition of a manual Calais request.
+ * 
+ * If Calais should not process the node, migrate to no request
+ * If Calais should process the node, move it to automatic request and keep the current process settings.
+ */
+function calais_update_6301() {
+  $ret = array();
+  
+  $node_types = node_get_types();
+  foreach ($node_types as $nt) {
+    $key = drupal_strtolower($nt->type);
+  
+    $process = calais_processing_type($key);
+    if ($process == 'NO') {
+      variable_set("calais_node_{$key}_request", CALAIS_REQUEST_NO);
+      variable_set("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
+    }
+    else {
+      variable_set("calais_node_{$key}_request", CALAIS_REQUEST_AUTO);
+    }
+  }    
+}
+
 /******************************** Helpers ****************************/
 /**
  * Create new vocabularies for all currently known Calais Entities
