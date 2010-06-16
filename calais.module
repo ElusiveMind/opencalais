@@ -14,10 +14,17 @@
  * @file
  */
 
-define('CALAIS_PROCESS_NO',         'NO');
+// Request constants
+define('CALAIS_REQUEST_NO',     0);
+define('CALAIS_REQUEST_MANUAL', 1);
+define('CALAIS_REQUEST_AUTO',   2);
+
+
+// Constants for how to apply tags once retrieved
 define('CALAIS_PROCESS_AUTO',       'AUTO');
 define('CALAIS_PROCESS_AUTO_ONCE',  'AUTO_ONCE');
 define('CALAIS_PROCESS_MANUAL',     'MANUAL');
+
 define('CALAIS_RDF_REPOSITORY',     'calais_node');
 define('CALAIS_WATCHDOG',           'Calais');
 
@@ -130,7 +137,7 @@ function calais_get_rdf($nid) {
  * Implementation of hook_access().
  */
 function calais_access($node) {
-  return user_access('access calais') && calais_processing_type($node) != CALAIS_PROCESS_NO;
+  return user_access('access calais') && calais_get_request_type($node) != CALAIS_REQUEST_NO;
 }
 
 /**
@@ -157,9 +164,11 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       break;
     case "insert":
     case "update":
-      $process_type = calais_processing_type($node);
-      $threshold = calais_get_node_threshold($node->type);
-      calais_process_node($node, $process_type, $threshold, $op);
+      if (calais_get_request_type($node) == CALAIS_REQUEST_AUTO) {
+        $process_type = calais_processing_type($node);
+        $threshold = calais_get_node_threshold($node->type);
+        calais_process_node($node, $process_type, $threshold, $op);
+      }
       break;
   }
 }
@@ -177,11 +186,18 @@ function calais_delete_node($node) {
 /**
  * Process the provided node according to the processing type.
  *
- * @param $node The node to process
- * @param $process_type The processing type for this node.
+ * @param $node 
+ *    The node to process
+ * @param $process_type 
+ *    The processing type override for this node.
+ * @param $threshold 
+ *    The threshold override for this node.
+ * @param $op 
+ *    Is this an 'insert' (first time) or and 'update'
  */
-function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') {
-  if ($process_type == CALAIS_PROCESS_NO || isset($node->calais->processor))
+function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $op = 'insert') {
+  $request_type = calais_get_request_type($node);
+  if ($request_type == CALAIS_REQUEST_NO || isset($node->calais->processor))
     return;
 
   // On feedapi runs, updates are missing vid so get it.
@@ -195,6 +211,13 @@ function calais_process_node(&$node, $process_type, $threshold, $op = 'insert') 
 
   if(empty($keywords))
     return;
+
+  if (!isset($process_type)) {
+    $process_type = calais_processing_type($node);
+  }
+  if (!isset($threshold)) {
+    $threshold = calais_get_node_threshold($node->type);
+  }
 
   db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
 
@@ -540,6 +563,17 @@ function calais_taxonomy($op, $type, $data) {
   }
 }
 
+/**
+ * Determines which retrieval type (none, manual, auto) is
+ * applicable to a node specific node instance passed as an argument.
+ *
+ * @param mixed $var either a Node object or a valid node_type String
+ */
+function calais_get_request_type($var) {
+  $nodetype = is_object($var) ? $var->type : $var;
+  $key = drupal_strtolower($nodetype);
+  return variable_get("calais_node_{$key}_request", CALAIS_REQUEST_NO);
+}
 
 /**
  * Determines which processing type (none, manual, auto) is
@@ -550,7 +584,7 @@ function calais_taxonomy($op, $type, $data) {
 function calais_processing_type($var) {
   $nodetype = is_object($var) ? $var->type : $var;
   $key = drupal_strtolower($nodetype);
-  return variable_get("calais_node_{$key}_process", CALAIS_PROCESS_NO);
+  return variable_get("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
 }
 
 /**
@@ -591,12 +625,12 @@ function calais_get_node_threshold($node_type) {
  *    Associative array of [entity_name => vid]'s
  */
 function calais_get_entity_vocabularies($type = NULL) {
-  $all_vocabs = variable_get('calais_vocabulary_names', FALSE);
+  $all_vocabs = variable_get('calais_vocabulary_names', array());
 
   if ($type) {
-    $applied_entities = variable_get('calais_applied_entities_global', FALSE);
+    $applied_entities = variable_get('calais_applied_entities_global', array());
     if (!variable_get("calais_use_global_{$type}", TRUE)) {
-      $applied_entities = variable_get("calais_applied_entities_{$type}", FALSE);
+      $applied_entities = variable_get("calais_applied_entities_{$type}", array());
     }
 
     foreach ($applied_entities as $entity => $apply_entity) {
