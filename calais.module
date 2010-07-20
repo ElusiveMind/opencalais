@@ -850,6 +850,64 @@ function calais_semanticproxy_url_alter(&$url) {
   }
 }
 
+/**
+ * Implementation of hook_cron();
+ */
+function calais_cron() {
+  $count = variable_get('calais_cron_limit', 0);
+  if ($count > 0) {
+    calais_process_queue($count);
+  }
+}
+
+/**
+ * Truncate and rebuild the calais queue table.
+ * This is how to force processing of legacy content or reprocess existing content.
+ *
+ * @param $type
+ *   A single content type to be processed, leaving the others unaltered.
+ */
+function calais_build_queue($type = NULL) {
+  if (isset($type)) {
+    $processing = calais_get_request_type($type);
+    if ($processing == CALAIS_REQUEST_NO) {
+      watchdog(CALAIS_WATCHDOG, 'Node type @type is not configured to process with OpenCalais. Skipped adding to queue for bulk processing.', array('@type' => $type));
+      return;
+    }
+  
+    db_query("DELETE FROM {calais_node_queue} WHERE nid IN (SELECT nid FROM {node} WHERE type = '%s')", $type);
+    db_query("INSERT INTO {calais_node_queue} (nid, type, changed)
+              SELECT n.nid, n.type, n.changed
+              FROM {node} n WHERE n.status = 1 AND n.type = '%s'", $type);
+      
+    return db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue} WHERE type = '%s'", $type));    
+  }
+  
+  return 0;
+}
+
+/**
+ *
+ */
+function calais_process_queue($count, $type = NULL) {
+  if (isset($type)) {
+    $result = db_query_range("SELECT nid FROM {calais_node_queue} WHERE type = '%s' ORDER BY changed DESC, nid DESC", $type, 0, $count);
+  }
+  else {
+    $result = db_query_range("SELECT nid FROM {calais_node_queue} ORDER BY changed DESC, nid DESC", 0, $count);
+  }
+  
+  while ($nid = db_result($result)) {
+    $node = node_load($nid, NULL, TRUE);
+    calais_process_node($node);
+    db_query("DELETE FROM {calais_node_queue} WHERE nid= %d", $nid);
+    // Sleep for .1 seconds to avoid throttling by OpenCalais 
+    usleep(100000); 
+  }
+  
+  watchdog(CALAIS_WATCHDOG, "Processed @count nodes with Calais", array('@count' => $count));  
+}
+
 
 /**
  * Implementation of hook_views_api().

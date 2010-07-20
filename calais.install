@@ -289,6 +289,37 @@ function calais_schema() {
     ),
     'primary key' => array('did'),
   );
+  
+  $schema['calais_node_queue'] = array(
+    'description' => t('Stores a listing of nodes to get processed by Calais.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('The primary identifier for a node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'type' => array(
+        'description' => 'The type of this node.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'changed' => array(
+        'description' => t('The timestamp when a node property was changed.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0
+      ),
+    ),
+    'indexes' => array(
+      'type' => array('type'),
+      'changed' => array('changed'),
+    ),
+    'primary key' => array('nid'),
+  );
+	  
   return $schema;
 }
 
@@ -299,10 +330,6 @@ function calais_uninstall() {
   drupal_uninstall_schema('calais');
   calais_remove_vocabularies();
 
-  // Remove taxonomy modifications
-  $ret = array();
-  db_drop_field($ret, 'term_data', 'guid');  
-  
   if (function_exists('rdf_db_delete_repository')) {
     rdf_db_delete_repository(CALAIS_RDF_REPOSITORY);
   }
@@ -412,6 +439,8 @@ function calais_update_6300() {
 }
 
 /**
+ * Add new queue table for bulk processing.
+ *
  * Update Hook for the addition of a manual Calais request.
  * 
  * If Calais should not process the node, migrate to no request
@@ -419,6 +448,9 @@ function calais_update_6300() {
  */
 function calais_update_6301() {
   $ret = array();
+  
+  $schema = calais_schema();
+  db_create_table($ret, 'calais_node_queue', $schema['calais_node_queue']);
   
   $node_types = node_get_types();
   foreach ($node_types as $nt) {
