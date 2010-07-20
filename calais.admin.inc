@@ -271,9 +271,9 @@ function calais_bulk_process() {
 
   $queue = db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue}"));  
   $form['status'] = array(
+    '#type' => 'item',
+    '#title' => t('Queue Status'),
     '#value' => t('There are currently @count nodes in the queue waiting to be processed', array('@count' => $queue)),
-    '#prefix' => '<div class="form-item">',
-    '#suffix' => '</div>',
   );
 
   $node_types = node_get_types('types', NULL, TRUE);
@@ -295,7 +295,7 @@ function calais_bulk_process() {
   // Generate a summary of total node counts per content type
   $header = array(
     t('Type'),
-    t('Current Node Count'),
+    t('Node Count'),
   );
   $rows = array();
   $result = db_query("SELECT type, COUNT(*) as count FROM {node} GROUP BY type");  
@@ -308,6 +308,8 @@ function calais_bulk_process() {
     }
   }
   $form['summary'] = array(
+    '#type' => 'item',
+    '#title' => t('Current system-wide Node counts'),
     '#value' => theme('table', $header, $rows),
   );
 
