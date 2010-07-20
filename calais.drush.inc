@@ -24,13 +24,22 @@ function calais_drush_command() {
       'types' => dt('A space delimited list of content types to be marked for reindexing.'),
     ),
   );
-  $items['calais-process'] = array(
-    'callback' => 'calais_drush_process',
+  $items['calais-process-queue'] = array(
+    'callback' => 'calais_drush_process_queue',
     'description' => dt('Bulk process nodes with Calais. Takes node count and content types as parameters'),
     'arguments' => array(
       'count' => dt('Optional. Default: 25. The number of nodes to process on this Drush execution.'),
       'types' => dt('Optional. Default: All queued. An individual content type to be processed from the queue.'),
     ),
+    'aliases' => array('calais-pq'),
+  );
+  $items['calais-process-node'] = array(
+    'callback' => 'calais_drush_process_node',
+    'description' => dt('Process and individual nodes with Calais. Takes node id as a parameter'),
+    'arguments' => array(
+      'nid' => dt('Required. The node id to process with Calais.'),
+    ),
+    'aliases' => array('calais-pn'),
   );
   return $items;
 }
@@ -67,15 +76,14 @@ function calais_drush_reindex() {
     }
   }
   else {
-    drush_log(dt('No content types were specific'), 'error');
-    return;
+    return drush_set_error(dt('No content types were specified'));
   }
 }
 
 /**
  * Bulk process nodes with Calais.
  */
-function calais_drush_process() {  
+function calais_drush_process_queue() {  
   $args = func_get_args();  
   $argc = count($args);
   
@@ -97,9 +105,28 @@ function calais_drush_process() {
   }
 
   if (isset($type) && node_get_types('name', $type) === FALSE) {
-    drush_log(dt('Invalid content type: @type', array('@type' => $type)), 'error');
-    return;
+    return drush_set_error(dt('Invalid content type: @type', array('@type' => $type)));
   }
 
   calais_process_queue($count, $type);    
+}
+
+/**
+ * Process a single node with Calais.
+ */
+function calais_drush_process_node() {  
+  $args = func_get_args();  
+  
+  if (!is_numeric($args[0])) {
+    return drush_set_error(dt('Bad value "@param". Parameter must be an int', array('@param' => $args[0])));
+  }
+  
+  $nid = intval($args[0]);
+  $node = node_load($nid);
+
+  if (!$node) {
+    return drush_set_error(dt('Invalid Node ID: @nid', array('@nid' => $nid)));
+  }
+  
+  calais_process_node($node);    
 }
