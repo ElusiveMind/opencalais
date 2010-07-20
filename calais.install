@@ -456,7 +456,7 @@ function calais_update_6301() {
   foreach ($node_types as $nt) {
     $key = drupal_strtolower($nt->type);
   
-    $process = calais_processing_type($key);
+    $process = calais_get_processing_type($key);
     if ($process == 'NO') {
       variable_set("calais_node_{$key}_request", CALAIS_REQUEST_NO);
       variable_set("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);

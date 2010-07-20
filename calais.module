@@ -165,7 +165,7 @@ function calais_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case "insert":
     case "update":
       if (calais_get_request_type($node) == CALAIS_REQUEST_AUTO) {
-        $process_type = calais_processing_type($node);
+        $process_type = calais_get_processing_type($node);
         $threshold = calais_get_node_threshold($node->type);
         calais_process_node($node, $process_type, $threshold, $op);
       }
@@ -213,7 +213,7 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
     return;
 
   if (!isset($process_type)) {
-    $process_type = calais_processing_type($node);
+    $process_type = calais_get_processing_type($node);
   }
   if (!isset($threshold)) {
     $threshold = calais_get_node_threshold($node->type);
@@ -581,7 +581,7 @@ function calais_get_request_type($var) {
  *
  * @param mixed $var either a Node object or a valid node_type String
  */
-function calais_processing_type($var) {
+function calais_get_processing_type($var) {
   $nodetype = is_object($var) ? $var->type : $var;
   $key = drupal_strtolower($nodetype);
   return variable_get("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
