@@ -244,12 +244,13 @@ function calais_admin_settings_submit($form, &$form_state) {
   $node_types = node_get_types('types', NULL, TRUE);
   $all_vocabularies = calais_get_entity_vocabularies();
   foreach ($node_types as $nt) {
-    $request = calais_get_request_type($node);
+    $key = drupal_strtolower($nt->type);
+    $request = calais_get_request_type($key);
     foreach ($all_vocabularies as $entity => $vid) {
       // Clean-up
       db_query("DELETE FROM {vocabulary_node_types} WHERE vid='%d' and type='%s'", $vid, $key);
     }
-    if ($request !== CALAIS_REQUEST_NO) {
+    if ($request != CALAIS_REQUEST_NO) {
       // assign all configured calais vocabs to this node type
       $node_vocabularies = calais_get_entity_vocabularies($key);
       if(!empty($node_vocabularies)) {
