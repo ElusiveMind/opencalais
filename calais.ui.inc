@@ -147,6 +147,9 @@ function calais_keywords_form_manual_validate($form, &$form_state) {
 function calais_keywords_form_manual_submit($form, &$form_state) {
   $node = $form['#node'];
   calais_process_node($node);  
+
+  // Terms may have changed, notify those that care
+  node_invoke_nodeapi($node, 'update');
 }
 
 /**
@@ -190,6 +193,9 @@ function calais_keywords_form_submit($form, &$form_state) {
       }
     }
   }
+
+  // Terms may have changed, notify those that care
+  node_invoke_nodeapi($node, 'update');
 
   drupal_set_message(t('Your term associations have been saved.'));
   $form_state['redirect'] = "node/{$node->nid}";
