@@ -2,13 +2,9 @@ Add
  - Add API documentation (talk about the various way to access the data)
  - Linked Data integration 
  
-- Remove the search/distribute variables
- 
 Test
 - Migrate Processing == NONE to Retrieve == NONE & Processing == SUGGEST
-- The association of vocabs with Node types (I messed with calais_admin_settings_submit)
 - Better way to associate nodes and vocabs using taxonomy functions instead of direct DB inserts
-- Default calais saving when node settings were never enabled. There should not be an error, I now return empty arrays.
 
 
 
