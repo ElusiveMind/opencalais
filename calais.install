@@ -464,7 +464,10 @@ function calais_update_6301() {
     else {
       variable_set("calais_node_{$key}_request", CALAIS_REQUEST_AUTO);
     }
-  }    
+  }
+  
+  $ret[] = update_sql("DELETE FROM {variable} WHERE name like 'calais_api_allow_%'");
+  return $ret;
 }
 
 /******************************** Helpers ****************************/

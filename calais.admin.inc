@@ -24,7 +24,7 @@ function calais_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Store Calais RDF Locally'),
     '#default_value' => variable_get('calais_store_rdf', FALSE),
-    '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data.'),
+    '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data, but it vastly increases the database size as there is a large amount of data saved.'),
   );
 
   $numbers = drupal_map_assoc(array(0, 5, 10, 25, 50, 100));
@@ -87,10 +87,10 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
 
   $form[$type]["calais_entity_settings_{$type}"]["calais_applied_entities_{$type}"] = array(
     '#type' => 'checkboxes',
-    '#title' => t('Which Calais Entities do you wish to use?'),
+    '#title' => t('Which tag categories (entities) do you wish to use?'),
     '#default_value' => variable_get("calais_applied_entities_{$type}", $entities),
     '#options' => drupal_map_assoc($entities),
-    '#description' => t('Choose which Calais vocabularies should be included for term suggestions.'),
+    '#description' => t('Choose which vocabularies should be included for term suggestions.'),
   );
 }
 
@@ -102,64 +102,54 @@ function calais_build_nodetype_settings(&$form) {
 
   $node_types = node_get_types('types', NULL, TRUE);
   $request_options = array(
-    CALAIS_REQUEST_NO     => t('Not processed by Calais'),
-    CALAIS_REQUEST_AUTO   => t('Automatically initiate Calais request on save'),
-    CALAIS_REQUEST_MANUAL => t("Manually initiate Calais request from 'Calais' tab"),
+    CALAIS_REQUEST_NO     => t('Never: not processed by Calais'),
+    CALAIS_REQUEST_MANUAL => t("Manual: initiate requests from the 'Calais' tab"),
+    CALAIS_REQUEST_AUTO   => t('Automatic: every time you save content'),
   );
   $process_options = array(
-    CALAIS_PROCESS_MANUAL    => t("Suggest terms, but DON'T apply them"),
-    CALAIS_PROCESS_AUTO      => t('Apply all suggested terms on every update'),
-    CALAIS_PROCESS_AUTO_ONCE => t('Apply all suggested terms on creation ONLY'),
+    CALAIS_PROCESS_MANUAL    => t('Never: suggest the terms, but let me tag the content'),
+    CALAIS_PROCESS_AUTO_ONCE => t('Once: tag the content the first time I save'),
+    CALAIS_PROCESS_AUTO      => t('Always: tag the content on every save'),
   );
 
   foreach ($node_types as $nt) {
     $key = drupal_strtolower($nt->type);
     $name = $nt->name;
-    $param_name = array('@node' => $name);
     
     $form[$key] = array(
       '#type' => 'fieldset',
       '#title' => $name,
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
+      '#nodetype' => $key,
+      '#theme' => 'calais_nodetype_settings',
     );
 
     $request = variable_get("calais_node_{$key}_request", CALAIS_REQUEST_NO);
     $form[$key]["calais_node_{$key}_request"] = array(
       '#type' => 'radios',
       '#parents' => array('calais_node_'. $key .'_request'),
-      '#title' => t('Calais Initiation'),
+      '#title' => t('Send Calais request'),
       '#default_value' => $request,
       '#options' => $request_options,
+      '#attributes' => array('class' => "nodetype_toggle", 'data' => $key),
     );
 
     $processing = variable_get("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
     $form[$key]["calais_node_{$key}_process"] = array(
       '#type' => 'radios',
       '#parents' => array('calais_node_'. $key .'_process'),
-      '#title' => t('Calais Processing'),
+      '#title' => t('Tag content'),
       '#default_value' => $processing,
       '#options' => $process_options,
     );
     
     _calais_build_semanticproxy_config($form, $nt);
     
-    $form[$key]["calais_api_allow_searching_{$key}"] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow Calais Searching'),
-      '#default_value' => variable_get("calais_api_allow_searching_{$key}", TRUE),
-      '#description' => t('Indicates whether future searches can be performed on the extracted metadata by Calais'),
-    );
-    $form[$key]["calais_api_allow_distribution_{$key}"] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Allow Calais Distribution'),
-      '#default_value' => variable_get("calais_api_allow_distribution_{$key}", TRUE),
-      '#description' => t('Indicates whether the extracted metadata can be distributed by Calais'),
-    );
     $form[$key]["calais_threshold_{$key}"] = array(
       '#type' => 'textfield',
       '#size' => 5,
-      '#title' => t('Relevancy Threshold'),
+      '#title' => t('Minimum suggested tag relevancy'),
       '#default_value' => variable_get("calais_threshold_{$key}", 0.0),
       '#description' => t('Determine how relevant a term must be in order for Calais to suggest it for a particular node.  Based on a 0.00-1.00 scale, with 0.00 being least relevant (i.e. many terms appear).'),
     );
@@ -261,6 +251,27 @@ function calais_admin_settings_submit($form, &$form_state) {
     }
   }
 }
+
+/**
+ * Theme function for nodetype settings.
+ */
+function theme_calais_nodetype_settings($form) {
+  drupal_add_js(drupal_get_path("module", "calais") ."/calais.admin.js");
+  
+  dpm($form);
+  $type = $form['#nodetype'];
+  
+  $output = '';  
+  $output .= drupal_render($form["calais_node_{$type}_request"]);
+  
+  $extra = $form["calais_node_{$type}_request"]['#value'] == CALAIS_REQUEST_NO ? "style='display:none;'" : "";
+  $output .= "<div id='{$type}_toggle' {$extra}>";  
+  $output .= drupal_render($form);
+  $output .= "</div>";
+  
+  return $output;
+}
+
 
 /**
  * Build the administration page for submitting nodes of specific Content Types to Calais.

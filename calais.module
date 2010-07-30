@@ -149,6 +149,10 @@ function calais_theme() {
       'arguments' => array('vid', 'terms'),
       'file' => 'calais.ui.inc',
     ),
+    'calais_nodetype_settings' => array(
+      'arguments' => array('form' => array()),
+      'file' => 'calais.admin.inc',
+    ),
   );
 }
 
@@ -252,7 +256,6 @@ function calais_process_with_calais(&$node) {
   $loaded_node = node_build_content(drupal_clone($node));
   $body = strip_tags(drupal_render($loaded_node->content));
   $date = format_date($node->created, 'custom', 'r');
-  $node_settings = calais_get_node_settings($node);
 
   // Allow modification of the content sent to Calais
   drupal_alter("calais_body", $body, $loaded_node);
@@ -262,7 +265,7 @@ function calais_process_with_calais(&$node) {
     return array();
   }
 
-  $calais = new Calais($node_settings);
+  $calais = new Calais();
   $keywords = $calais->analyzeXML($node->title, $body, $date);
   $node->calais->service = $calais;
 
@@ -585,18 +588,6 @@ function calais_get_processing_type($var) {
   $nodetype = is_object($var) ? $var->type : $var;
   $key = drupal_strtolower($nodetype);
   return variable_get("calais_node_{$key}_process", CALAIS_PROCESS_MANUAL);
-}
-
-/**
- * Return the Calais parameter settings for the specific node type.
- */
-function calais_get_node_settings($node) {
-  $key = drupal_strtolower($node->type);
-  $settings = array(
-    'allowSearch' => variable_get("calais_api_allow_searching_{$key}", TRUE) ? 'true' : 'false',
-    'allowDistribution' => variable_get("calais_api_allow_distribution_{$key}", TRUE) ? 'true' : 'false',
-  );
-  return $settings;
 }
 
 /**
