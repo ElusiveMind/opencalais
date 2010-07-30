@@ -81,7 +81,7 @@ function calais_keywords_form(&$form_state, $node) {
   if (calais_get_request_type($node) == CALAIS_REQUEST_MANUAL) {
     $form['calais_request'] = array(
       '#type'   => 'button',
-      '#value'  => t('Request Calais Data'),
+      '#value'  => t('Tag with Calais'),
       '#weight' => -100,
       '#executes_submit_callback' => TRUE,
       '#validate' => array('calais_keywords_form_manual_validate'),
