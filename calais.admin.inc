@@ -49,7 +49,7 @@ function calais_admin_settings() {
  * Build the Entity selector. Used for Entity suppression.
  */
 function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global', $allow_disable = FALSE) {
-  $entity_attributes = array();
+  $title = $name;
   $entities = array_keys(calais_get_entity_vocabularies());
   sort($entities);
 
@@ -58,29 +58,29 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     $var_name = "calais_use_global_{$type}";
     $disabled = variable_get($var_name, TRUE);
 
-    $form[$type][$var_name] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Use Calais Global Entity defaults'),
-      '#default_value' => $disabled,
-      '#description' => t('If checked, this content type will use the Global Calais Entities.'),
+    $entity_options = array(
+      TRUE  => t('Default: use global setting from above'),
+      FALSE => t("Customize: pick the categories for this content type"),
     );
-
-    if ($disabled) {
-      $entity_attributes['style'] = 'display:none';
-    }
-
-    $field_id = 'edit-'. str_replace(array('][', '_', ' '), '-', $var_name);
-    drupal_add_js("$(document).ready(function() {
-      $('#$field_id').click(function() {
-        $('.{$type}_entities').toggle();
-      });
-    });", 'inline');
+    $form[$type][$var_name] = array(
+      '#type' => 'radios',
+      '#title' => t('Which tag categories (entities) do you want this type tagged with'),
+      '#default_value' => $disabled,
+      '#description' => t('If checked, this content type will use the Global category (entity) settings.'),
+      '#options' => $entity_options,
+      '#attributes' => array('class' => "calais-use-global", 'data' => $type),
+    );
+    $title = t('Customized categories for @name type', array('@name' => $name));
   }
 
+  $entity_attributes = array('class' => "calais-entity-settings-{$type}");
+  if ($disabled) {
+    $entity_attributes['style'] = 'display:none';
+  }
   $form[$type]["calais_entity_settings_{$type}"] = array(
     '#type' => 'fieldset',
-    '#title' => $name,
-    '#attributes' => array_merge(array('class' => "{$type}_entities"), $entity_attributes),
+    '#title' => $title,
+    '#attributes' => $entity_attributes,
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
@@ -258,7 +258,6 @@ function calais_admin_settings_submit($form, &$form_state) {
 function theme_calais_nodetype_settings($form) {
   drupal_add_js(drupal_get_path("module", "calais") ."/calais.admin.js");
   
-  dpm($form);
   $type = $form['#nodetype'];
   
   $output = '';  
