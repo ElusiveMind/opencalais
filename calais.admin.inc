@@ -20,11 +20,17 @@
 function calais_admin_settings() {
   $form = array();
 
-  $form['calais_store_rdf'] = array(
+  $form['general'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('General'),
+    '#collapsible' => TRUE,
+  );
+
+  $form['general']['calais_store_rdf'] = array(
     '#type' => 'checkbox',
     '#title' => t('Store Calais RDF Locally'),
     '#default_value' => variable_get('calais_store_rdf', FALSE),
-    '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data, but it vastly increases the database size as there is a large amount of data saved.'),
+    '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data, but it vastly increases the database size as there is a large amount of data saved. ENABLE THIS WITH CAUTION.'),
   );
 
   calais_build_entity_settings($form);
@@ -50,14 +56,14 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     $disabled = variable_get($var_name, TRUE);
 
     $entity_options = array(
-      TRUE  => t('Default: use global setting from above'),
-      FALSE => t("Customize: pick the categories for this content type"),
+      TRUE  => t('GLOBAL: use global setting from above'),
+      FALSE => t("CUSTOM: pick the categories for this content type"),
     );
     $form[$type][$var_name] = array(
       '#type' => 'radios',
       '#title' => t('Which tag categories (entities) do you want this type tagged with'),
       '#default_value' => $disabled,
-      '#description' => t('If checked, this content type will use the Global category (entity) settings.'),
+      '#description' => t('Use the global settings specified above, or customize the tags applied for this content type.'),
       '#options' => $entity_options,
       '#attributes' => array('class' => "calais-use-global", 'data' => $type),
     );
@@ -73,7 +79,7 @@ function calais_build_entity_settings(&$form, $type = 'global', $name = 'Global'
     '#title' => $title,
     '#attributes' => $entity_attributes,
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+    '#collapsed' => !$allow_disable,
   );
 
   $form[$type]["calais_entity_settings_{$type}"]["calais_applied_entities_{$type}"] = array(
@@ -93,14 +99,14 @@ function calais_build_nodetype_settings(&$form) {
 
   $node_types = node_get_types('types', NULL, TRUE);
   $request_options = array(
-    CALAIS_REQUEST_NO     => t('Never: not processed by Calais'),
-    CALAIS_REQUEST_MANUAL => t("Manual: initiate requests from the 'Calais' tab"),
-    CALAIS_REQUEST_AUTO   => t('Automatic: every time you save content'),
+    CALAIS_REQUEST_NO     => t('NEVER: not processed by Calais'),
+    CALAIS_REQUEST_MANUAL => t("MANUAL: initiate requests from the 'Calais' tab"),
+    CALAIS_REQUEST_AUTO   => t('AUTOMATIC: every time you save content'),
   );
   $process_options = array(
-    CALAIS_PROCESS_MANUAL    => t('Never: suggest the terms, but let me tag the content'),
-    CALAIS_PROCESS_AUTO_ONCE => t('Once: tag the content the first time I save'),
-    CALAIS_PROCESS_AUTO      => t('Always: tag the content on every save'),
+    CALAIS_PROCESS_MANUAL    => t('NEVER: suggest the terms, but let me tag the content'),
+    CALAIS_PROCESS_AUTO_ONCE => t('ONCE: tag the content the first time I save'),
+    CALAIS_PROCESS_AUTO      => t('ALWAYS: tag the content on every save'),
   );
 
   foreach ($node_types as $nt) {
@@ -291,12 +297,12 @@ function calais_bulk_process() {
     
     $request = calais_get_request_type($row->type);
     if ($request == CALAIS_REQUEST_NO) {
-      $actions = t('Not configured for Calais');
+      $actions = t('Disabled');
     }
     else {
       $actions = $queue_count > 0 
-            ? l(t('Stop Re-tagging'), "admin/settings/calais/queue/clear/{$row->type}")
-            : l(t('Re-tag all @type Content', array('@type' => $node_types[$row->type])), 
+            ? l(t('Clear queue'), "admin/settings/calais/queue/clear/{$row->type}")
+            : l(t('Add to queue'), 
                 "admin/settings/calais/queue/enqueue/{$row->type}",
                 array('attributes' => array('id' => "calais-queue-toggle-{$row->type}", 'class' => 'calais-queue-toggle')));
     }
@@ -318,6 +324,7 @@ function calais_bulk_process() {
     '#type' => 'item',
     '#title' => t('Content Summary'),
     '#value' => theme('table', $header, $rows),
+    '#description' => t('Re-tagging content will add it to a queue for bulk processing.'),
   );
   $output .= theme('item', $queue_summary);
   $output .= drupal_get_form('calais_enqueue_form');
@@ -329,14 +336,29 @@ function calais_bulk_process() {
  * The form that controls how many nodes are sent to Calais on cron runs.
  */
 function calais_cron_settings_form() {
+  $queue_count = db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue}"));  
+  $cron_limit = variable_get('calais_cron_limit', 10);
+  if ($cron_limit == 0) {
+    $expected = t('There is no processing scheduled');
+  }
+  else {
+    $expected = ceil($queue_count / $cron_limit);
+  }
+  
   $numbers = drupal_map_assoc(array(0, 5, 10, 25, 50, 100));
   $form['calais_cron_limit'] = array(
     '#type' => 'select',
     '#title' => t('Number of content items processed each cron run'),
-    '#default_value' => variable_get('calais_cron_limit', 25),
+    '#default_value' => $cron_limit,
     '#options' => $numbers,
     '#description' => t('The maximum number of content items indexed in each pass of a <a href="@cron">cron maintenance task</a>. If necessary, reduce the number of items to prevent timeouts, memory errors, or throttling while processing.', array('@cron' => url('admin/reports/status')))
   );
+  $form['queue'] = array(
+    '#type' => 'item',
+    '#title' => t('Number of cron executions to fully process this queue'),
+    '#value' => $expected,
+  );
+    
   return system_settings_form($form);
 }
 
