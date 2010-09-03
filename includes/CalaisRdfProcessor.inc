@@ -12,7 +12,7 @@ class CalaisRdfProcessor {
   const CALAIS_LAT = 'http://s.opencalais.com/1/pred/latitude';
   const CALAIS_LON = 'http://s.opencalais.com/1/pred/longitude';
   const CALAIS_SCORE = 'http://s.opencalais.com/1/pred/score';
-  
+  const SAMEAS = 'http://www.w3.org/2002/07/owl#sameAs';
   /**
    * Parse the RDF.  First render it into an indexed fashion, then have at it. We need to process
    * in 2 stages. The first stage identifies all of the entities, events, and facts. The second
@@ -30,7 +30,6 @@ class CalaisRdfProcessor {
   public function parse_rdf($rdf_xml) {
     $parser = ARC2::getRDFXMLParser();
     $parser->parse(NULL, $rdf_xml);
-
     $this->triples = $parser->getSimpleIndex();
     $this->flatTriples = array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
 
@@ -114,13 +113,14 @@ class CalaisRdfProcessor {
       }
       else if (strpos($type[0], 'http://s.opencalais.com/1/type/er') !== FALSE) {
         $er_type = preg_replace('@http://s.opencalais.com/1/type/er/@ims', '', $type[0]);
-        $func = 'apply_resolved_' . drupal_strtolower(str_replace('/', '_', $er_type));
+        $er_type = drupal_strtolower(str_replace('/', '_', $er_type));
+        $func = 'apply_resolved_' . $er_type;
         
         if (!method_exists($this, $func)) {
           $func = 'apply_resolved_data';
         }
         
-        $this->{$func}($keywords, $guid, $data);
+        $this->{$func}($keywords, $guid, $data, $er_type);
       }
     }
   }
@@ -259,7 +259,8 @@ class CalaisRdfProcessor {
       
     foreach ($keywords as &$entity) {
       if ($entity->has_guid($subject)) {
-        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $type, $extra);      
+        $uris = variable_get('calais_lookup_loduri', FALSE) ? self::lookup_linked_data_uris($guid) : array();
+        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $type, $extra, $uris);      
       }
     }
   }
@@ -342,4 +343,33 @@ class CalaisRdfProcessor {
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   } 
+  
+  /**
+   * For a give Calais URI, lookup the RDF document and creat the connected Linked Open Data URIs
+   * to other places like DBPedia, Freebase, Crunchbase, Musicbrainz, Geonames, etc.
+   */
+  protected function lookup_linked_data_uris($guid) {
+    $headers = array(
+      'Accept' => 'application/rdf+xml',
+    );
+    $ret = drupal_http_request("$guid.rdf", $headers);
+    if (isset($ret->error)) {
+      return array();
+    }
+  
+    $parser = ARC2::getRDFXMLParser();
+    $parser->parse(NULL, $ret->data);
+    $triples = $parser->getSimpleIndex();
+
+    $uris = array();
+    $sameas = $triples[$guid][self::SAMEAS];
+    if (count($sameas)) {
+      foreach ($sameas as $uri) {
+        $parts = parse_url($uri);
+        $uris[$parts['host']] = $uri;
+      }
+    }
+  
+    return $uris;
+  }
 }

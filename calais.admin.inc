@@ -32,6 +32,12 @@ function calais_admin_settings() {
     '#default_value' => variable_get('calais_store_rdf', FALSE),
     '#description' => t('If checked, this will store the RDF data returned from Calais in the local RDF store. This data can be used to get a deeper view into the Calais results as the functionality is more fully developed. It also allows for future semantic applications to query and build upon this linked data, but it vastly increases the database size as there is a large amount of data saved. ENABLE THIS WITH CAUTION.'),
   );
+  $form['general']['calais_lookup_loduri'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Lookup Linked Open Data URI'),
+    '#default_value' => variable_get('calais_lookup_loduri', FALSE),
+    '#description' => t('If checked, an additional HTTP request will be made for each disambiguated entity to find the Linked Open Data URIs to DBPedia, Freebase, etc.  It does involve additional requests to external servers.  If you don\'t know what this is, you should leave it disabled.'),
+  );
 
   calais_build_entity_settings($form);
   calais_build_nodetype_settings($form);

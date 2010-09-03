@@ -228,6 +228,7 @@ function _calais_get_current_tags($node, $vid) {
  * Theme function to render the suggestions for a particular vocabulary
  */
 function theme_calais_suggestions($vid, $terms) {
+  $suggestions = '';
   $score_value = array(0 => 'Low', 1 => 'Low', 2 => 'Moderate', 3 => 'High');
   if (sizeof($terms)) {
     $suggestions .= "<div class='suggestions'>";

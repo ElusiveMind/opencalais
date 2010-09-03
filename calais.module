@@ -377,6 +377,7 @@ function calais_associate_term($vid, &$term, $node) {
   $calais_term->resolved_name = $term->resolved_name;
   $calais_term->resolved_type = $term->resolved_type;
   $calais_term->extra = array_merge($calais_term->extra, $term->extra);
+  $calais_term->uris = $term->uris;
   
   calais_save_term($calais_term);
   calais_assign_term_to_node($node->nid, $calais_term);
@@ -478,6 +479,14 @@ function calais_load_term_extra(&$term) {
   else {
     $term->extra = array();    
   }
+
+  // Load the linked data uris
+  $uris = array();
+  $result = db_query("SELECT service, uri FROM {calais_term_uri} WHERE tid = %d", $term->tid);
+  while ($uri = db_fetch_array($result)) {
+    $uris[$uri['service']] = $uri['uri'];
+  }
+  $term->uris = $uris;
 }
 
 /**
@@ -496,6 +505,13 @@ function calais_save_term_extra(&$term) {
     }
     else {
       drupal_write_record($table, $data);
+    }
+  }
+  
+  if(!empty($term->uris)) {
+    db_query("DELETE FROM {calais_term_uri} WHERE tid = %d", $term->tid);
+    foreach ($term->uris as $service => $uri) {
+      db_query("INSERT INTO {calais_term_uri} (tid, service, uri) VALUES(%d, '%s', '%s')", $term->tid, $service, $uri);
     }
   }
 }

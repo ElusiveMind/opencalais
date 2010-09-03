@@ -289,6 +289,39 @@ function calais_schema() {
     ),
     'primary key' => array('did'),
   );
+
+  $schema['calais_term_uri'] = array(
+    'description' => 'Holds Linked Open Data URIs for disambiguated terms',
+    'fields' => array(
+      'uid' => array(
+        'type' => 'serial', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Identifier for a URI')
+      ),
+      'tid' => array(
+        'type' => 'int', 
+        'unsigned' => TRUE, 
+        'not null' => TRUE,
+        'description' => t('Identifier for a term')
+      ),
+      'service' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'not null' => TRUE,
+        'description' => t('The service that hosts this URI (typically the domain name)')
+      ),
+      'uri' => array(
+        'type' => 'varchar', 
+        'length' => 255, 
+        'description' => t('The Disambiguated Linked Open Data URI')
+      ),
+    ),
+    'indexes' => array(
+      'service'    => array('service'),
+    ),
+    'primary key' => array('uid'),
+  );
   
   $schema['calais_node_queue'] = array(
     'description' => t('Stores a listing of nodes to get processed by Calais.'),
@@ -476,6 +509,18 @@ function calais_update_6301() {
   }
   
   $ret[] = update_sql("DELETE FROM {variable} WHERE name like 'calais_api_allow_%'");
+  return $ret;
+}
+
+/**
+ * Add new table for flexibly storing Linked Open Data URIs for disambiguated Calais Terms
+ */
+function calais_update_6302() {
+  $ret = array();
+  
+  $schema = calais_schema();
+  db_create_table($ret, 'calais_term_uri', $schema['calais_term_uri']);
+  
   return $ret;
 }
 

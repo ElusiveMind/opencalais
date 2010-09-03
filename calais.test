@@ -273,6 +273,7 @@ class CalaisFormSubmitTestCase extends CalaisTestCase {
 		$vocab = $this->createVocabulary();
 		$vid = $vocab['vid'];
 		$node = $this->drupalCreateNode();
+		variable_set("calais_node_{$node->type}_request", CALAIS_REQUEST_AUTO);						
 		variable_set("calais_node_{$node->type}_process", CALAIS_PROCESS_AUTO);						
 		variable_set('calais_vocabulary_names', array($vocab['name'] => $vocab['vid']));
 		variable_set('calais_applied_entities_global', array($vocab['name'] => $vocab['name']));
@@ -299,7 +300,6 @@ class CalaisFormSubmitTestCase extends CalaisTestCase {
 		taxonomy_save_vocabulary($vocab);
 		$html = $this->drupalPost("node/{$node->nid}/calais", $form, t('Save'));
 		$this->assertNoText($error);
-		$this->assertText(t('Calais settings have been saved.'));
 		
 		// //$node_terms = taxonomy_node_get_terms_by_vocabulary($node, $vid);
 		$node_terms = taxonomy_node_get_terms($node);
