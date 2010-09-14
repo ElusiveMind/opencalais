@@ -76,6 +76,7 @@ function calais_keywords_form(&$form_state, $node) {
   $form['#node'] = $node;
   $form['nid']   = array('#type' => 'value', '#value' => $node->nid);
   $form['vid']   = array('#type' => 'value', '#value' => $node->vid);
+  $form['type']  = array('#type' => 'value', '#value' => $node->type);
 
   // If processing is manual, add the button to initiate it
   if (calais_get_request_type($node) == CALAIS_REQUEST_MANUAL) {
@@ -145,7 +146,8 @@ function calais_keywords_form_manual_validate($form, &$form_state) {
  * Submit handler to send a manual request to Calais for keyword data on a Node.
  */
 function calais_keywords_form_manual_submit($form, &$form_state) {
-  $node = $form['#node'];
+  $nid = $form['#node']->nid;
+  $node = node_load($nid);
   calais_process_node($node);  
 
   // Terms may have changed, notify those that care
@@ -194,10 +196,14 @@ function calais_keywords_form_submit($form, &$form_state) {
     }
   }
 
+  // Actually load the full node to send along to nodeapi, otherwise things like
+  // pathauto settings get lost. This will also load up the new taxonomy term associations.
+  $node = node_load($node->nid);
+  
   // Terms may have changed, notify those that care
   node_invoke_nodeapi($node, 'update');
 
-  drupal_set_message(t('Your term associations have been saved.'));
+  drupal_set_message(t('Your Calais tags have been saved.'));
   $form_state['redirect'] = "node/{$node->nid}";
 }
 

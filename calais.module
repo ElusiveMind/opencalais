@@ -409,6 +409,7 @@ function calais_get_term($vid, $term) {
 
   if ($local_term) {
     calais_load_term_extra($local_term);
+    calais_load_term_uris($local_term);
     return $local_term;    
   }
   
@@ -427,6 +428,7 @@ function calais_get_term_by_taxonomy($term_id) {
   $term = db_fetch_object(db_query("SELECT * FROM {calais_term} WHERE tdid = %d", $term_id));
   if ($term) {
     calais_load_term_extra($term);
+    calais_load_term_uris($term);
     return $term;    
   }
   return FALSE;
@@ -462,6 +464,7 @@ function calais_save_term(&$term) {
     drupal_write_record('calais_term', $term, 'tid');        
   }
   calais_save_term_extra($term);
+  calais_save_term_uris($term);
 }
 
 /**
@@ -479,14 +482,33 @@ function calais_load_term_extra(&$term) {
   else {
     $term->extra = array();    
   }
+}
 
-  // Load the linked data uris
+/**
+ * Load all Linked Data URIs for a given CalaisTerm
+ *
+ * @param $term
+ *    The CalaisTerm to lookup extra data
+ */
+function calais_load_term_uris(&$term) {
   $uris = array();
   $result = db_query("SELECT service, uri FROM {calais_term_uri} WHERE tid = %d", $term->tid);
   while ($uri = db_fetch_array($result)) {
     $uris[$uri['service']] = $uri['uri'];
   }
   $term->uris = $uris;
+}
+
+/**
+ * Load a Linked Data URIs for a given CalaisTerm for a particular service
+ *
+ * @param $tid
+ *    The CalaisTerm ID to lookup
+ * @param $service
+ *    The service name to lookup
+ */
+function calais_get_term_uri_by_service($tid, $service) {
+  return db_result(db_query("SELECT uri FROM {calais_term_uri} WHERE tid = %d AND service = '%s'", $tid, $service));
 }
 
 /**
@@ -506,8 +528,16 @@ function calais_save_term_extra(&$term) {
     else {
       drupal_write_record($table, $data);
     }
-  }
-  
+  }  
+}
+
+/**
+ * Save a collection of Linked Data URIs in the form array('servicename' => URI)
+ *
+ * @param $term
+ *    The CalaisTerm to save
+ */
+function calais_save_term_uris($term) {
   if(!empty($term->uris)) {
     db_query("DELETE FROM {calais_term_uri} WHERE tid = %d", $term->tid);
     foreach ($term->uris as $service => $uri) {
@@ -515,7 +545,6 @@ function calais_save_term_extra(&$term) {
     }
   }
 }
-
 
 /**
  * Assign a taxonomy term to the node based on the Calais Term. If no relationship

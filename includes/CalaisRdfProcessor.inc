@@ -180,8 +180,9 @@ class CalaisRdfProcessor {
    protected function extract_categories(&$keywords, $type, $guid, $data) {
      $cat_guid = $data['http://s.opencalais.com/1/pred/category'][0];
      $cat_val = $data['http://s.opencalais.com/1/pred/categoryName'][0];
-     $cat_score = $data['http://s.opencalais.com/1/pred/score'][0];
-     $cat_score = $cat_score ? $cat_score : 0;
+     $cat_score = array_key_exists('http://s.opencalais.com/1/pred/score', $data)
+                     ? $data['http://s.opencalais.com/1/pred/score'][0]
+                     : 0;
 
      if (!property_exists($keywords, 'CalaisDocumentCategory')) {
        $keywords->CalaisDocumentCategory = new CalaisMetadata($type[0], 'CalaisDocumentCategory');
@@ -362,11 +363,13 @@ class CalaisRdfProcessor {
     $triples = $parser->getSimpleIndex();
 
     $uris = array();
-    $sameas = $triples[$guid][self::SAMEAS];
-    if (count($sameas)) {
-      foreach ($sameas as $uri) {
-        $parts = parse_url($uri);
-        $uris[$parts['host']] = $uri;
+    if (array_key_exists($guid, $triples)) {
+      $sameas = $triples[$guid][self::SAMEAS];
+      if (count($sameas)) {
+        foreach ($sameas as $uri) {
+          $parts = parse_url($uri);
+          $uris[$parts['host']] = $uri;
+        }
       }
     }
   
