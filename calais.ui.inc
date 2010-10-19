@@ -149,9 +149,25 @@ function calais_keywords_form_manual_submit($form, &$form_state) {
   $nid = $form['#node']->nid;
   $node = node_load($nid);
   calais_process_node($node);  
+  
+  // Actually load the full node to send along to nodeapi, otherwise things like
+  // pathauto settings get lost. This will also load up the new taxonomy term associations.
+  $node = node_load($node->nid);
 
+  // Loads the new taxonomy terms.
+  $node->taxonomy = _calais_taxonomy_node_get_terms($node);
+  
+  // Prevent Pathatuo from recreating a path.
+  if(module_exists('pathauto')){
+    $node->pathauto_perform_alias = FALSE;
+  }
+  
+  // Flag to prevent calais terms from being processed twice
+  $node->calais_processed = TRUE;
+  
   // Terms may have changed, notify those that care
   node_invoke_nodeapi($node, 'update');
+  $form['#redirect'] = "node/{$node->nid}/calais";
 }
 
 /**
@@ -179,7 +195,7 @@ function calais_keywords_form_submit($form, &$form_state) {
   }
 
   taxonomy_node_save($node, $node->taxonomy);
-
+  
   // Query for Node Terms directly. Some wierd caching (I think) with taxonomy_node_get_terms
   // made it so newly created terms were not returned. This next block of code happens to be
   // VERY interested in newly created terms, so I have to query directly. Boo! :( - ff
@@ -199,12 +215,44 @@ function calais_keywords_form_submit($form, &$form_state) {
   // Actually load the full node to send along to nodeapi, otherwise things like
   // pathauto settings get lost. This will also load up the new taxonomy term associations.
   $node = node_load($node->nid);
+
+  // Loads the new taxonomy terms.
+  $node->taxonomy = _calais_taxonomy_node_get_terms($node);
+  
+  // Prevent Pathatuo from recreating a path.
+  if(module_exists('pathauto')){
+    $node->pathauto_perform_alias = FALSE;
+  }
+  
+  // Flag to prevent calais terms from being processed twice
+  $node->calais_processed = TRUE;
   
   // Terms may have changed, notify those that care
   node_invoke_nodeapi($node, 'update');
 
   drupal_set_message(t('Your Calais tags have been saved.'));
-  $form_state['redirect'] = "node/{$node->nid}";
+  $form_state['redirect'] = "node/{$node->nid}/calais";
+}
+
+/**
+ * Load the updated taxonomy terms for the node provided.
+ */
+function _calais_taxonomy_node_get_terms($node) {  
+  if (!isset($node->vid))
+    return NULL;
+
+  static $terms;
+  
+  $result = db_query(db_rewrite_sql('SELECT t.* FROM {term_node} r 
+                                     INNER JOIN {term_data} t ON r.tid = t.tid 
+                                     INNER JOIN {vocabulary} v ON t.vid = v.vid 
+                                     WHERE r.vid = %d ORDER BY v.weight, t.weight, t.name', 't', 'tid'), $node->vid);
+  $terms[$node->vid]['tid'] = array();
+  while ($term = db_fetch_object($result)) {
+    $terms[$node->vid]['tid'][$term->tid] = $term;
+  }
+  
+  return $terms[$node->vid]['tid'];
 }
 
 /**
@@ -235,7 +283,7 @@ function _calais_get_current_tags($node, $vid) {
  */
 function theme_calais_suggestions($vid, $terms) {
   $suggestions = '';
-  $score_value = array(0 => 'Low', 1 => 'Low', 2 => 'Moderate', 3 => 'High');
+  $score_value = array(0 => t('Low'), 1 => t('Low'), 2 => t('Moderate'), 3 => t('High'));
   if (sizeof($terms)) {
     $suggestions .= "<div class='suggestions'>";
     $suggestions .= t('Calais Suggestions: ');

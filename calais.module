@@ -28,6 +28,9 @@ define('CALAIS_PROCESS_MANUAL',     'MANUAL');
 define('CALAIS_RDF_REPOSITORY',     'calais_node');
 define('CALAIS_WATCHDOG',           'Calais');
 
+// Node Build Mode Contant
+define('CALAIS_PROCESSED', TRUE);
+
 /**
  * Implementation of hook_init().
  */
@@ -213,9 +216,9 @@ function calais_delete_node($node) {
  */
 function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $op = 'insert') {
   $request_type = calais_get_request_type($node);
-  if ($request_type == CALAIS_REQUEST_NO || isset($node->calais->processor))
+  if ($request_type == CALAIS_REQUEST_NO || $node->calais_processed == TRUE){
     return;
-
+  }
   // On feedapi runs, updates are missing vid so get it.
   if(!isset($node->vid)) {
     $node->vid = db_result(db_query("SELECT vid FROM {node} WHERE nid=%d", $node->nid));
@@ -255,6 +258,8 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
 
   calais_store_rdf($node, $node->calais->service->flatTriples);
   module_invoke_all('calais_postprocess', $node, $keywords);
+  
+  $node->calais_processed = TRUE;
 }
 
 /**
