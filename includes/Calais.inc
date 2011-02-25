@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file Calais.inc
  * The main interface to the calais web service

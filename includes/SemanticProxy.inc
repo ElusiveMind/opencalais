@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file SemanticProxy.inc
  * The main interface to the semantic proxy web service
