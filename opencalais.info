@@ -1,0 +1,16 @@
+name = OpenCalais 
+description = "Performs Auto Tagging on Entities"
+package = "OpenCalais"
+core = 7.x
+
+dependencies[] = opencalais_api
+dependencies[] = entity
+dependencies[] = taxonomy
+
+files[] = opencalais.install
+files[] = opencalais.module
+files[] = opencalais.admin.inc
+files[] = opencalais.pages.inc
+files[] = tests/opencalais.test
+
+configure = admin/config/opencalais/tagging

@@ -1,0 +1,7 @@
+For D7
+ - Add RDF Mappings for new fields
+ - Generate RDF from calais data/taxonomy terms/mappings 
+   - Removes need for local storage or RDF
+ - Config docRDFaccessible in Calais call for link to full doc if desired.
+   + http://www.opencalais.com/documentation/calais-web-service-api/forming-api-calls/input-parameters
+ - Convert calais_tags to d7
