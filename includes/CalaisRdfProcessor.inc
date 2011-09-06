@@ -303,7 +303,7 @@ class CalaisRdfProcessor {
       'latitude' => $data[self::CALAIS_LAT][0],
       'longitude' => $data[self::CALAIS_LON][0],
       'shortname' => $data['http://s.opencalais.com/1/pred/shortname'][0],
-      'containedbycountry' => $data['http://s.opencalais.com/1/pred/containedbycountry'][0],
+      'containedbycountry' => isset($data['http://s.opencalais.com/1/pred/containedbycountry']) ? $data['http://s.opencalais.com/1/pred/containedbycountry'][0] : '',
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
