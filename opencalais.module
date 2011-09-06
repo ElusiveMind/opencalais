@@ -200,20 +200,13 @@ function opencalais_node_form_submit($form, &$form_state){
  *  Handle form submit of nodes with opencalais terms
  */
 function opencalais_handle_node_submit($form, &$form_state){
-      
+    $lang = $form_state['language'];
     //find the the extra fields with extra values
     $extras = $form_state['opencalais_extras'];
 
     foreach($extras as $field=>$value){
-      $lang = field_available_languages('taxonomy_term', $field);
-      if(isset($form['language']['#value']) && in_array($form['language']['#value'], $lang)){
-        $lang = $form['language']['#value'];
-      } else {
-        $lang = 'und';
-      }
-  
       if(isset($form_state['values'][$field])){
-        $field_values = $form_state['values'][$field]['und'];
+        $field_values = $form_state['values'][$field][$lang];
         foreach($field_values as $i=>$v){
           if(isset($extras[$field][$v['name']])){
             $eV = $extras[$field][$v['name']]['extra'];
