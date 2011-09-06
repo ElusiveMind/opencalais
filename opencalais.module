@@ -223,7 +223,6 @@ function opencalais_handle_node_submit($form, &$form_state){
             }//end foreach
             //TODO: Figure out why this extra data isn't being saved
             $obj = (object)$form_state['values'][$field][$lang][$i];
-           // drupal_set_message('<h2>Field</h2>' . '<pre>' . print_r($obj, true).'</pre>');
             
           }
         }//end foreach
@@ -434,7 +433,7 @@ function opencalais_create_vocabulary($entity) {
       $instance['bundle'] = $entity;
       //handle any fieldexceptions that occur by just setting and error message and returning
       try{
-        if(!field_read_instance('taxonomy_term', $instance['field_name'], $content_type)){
+        if(!field_read_instance('taxonomy_term', $instance['field_name'], $entity)){
           field_create_instance($instance);
           drupal_set_message(t('OpenCalais MetaData Field for '.$readable.' has been successfully created'));
         } else {
@@ -708,10 +707,18 @@ function opencalais_get_all_entities() {
       '#type' => 'hidden',
       '#value' => str_ireplace('-', '_', $content_type),
     );
+    //Settings for auto tagging
+    $form[$content_type . '_autotagging'] = array(
+      '#type' => 'radios',
+      '#title' => t('Tagging Method'),
+      '#description' => t('How should OpenCalais manage the tagging?'),
+      '#default_value' => variable_get('opencalais_'.$content_type.'_autotagging', 'manual'),
+      '#options' => array( 'manual' => t('Manual Tagging'), 'automatic' => t('Automatic Tagging'))
+    );
     
     $form['info']['config'] = array('#tree' => TRUE);
     $form['info']['config']['entities'] = array('#tree' => TRUE);
-  
+    
     $entities = $opencalais_entities;
     sort($entities);
     
@@ -753,15 +760,6 @@ function opencalais_get_all_entities() {
     $form['actions']['submit'] = array(
      '#type' => 'submit',
      '#value' => t('Save Fields'),
-    );
-    
-    //Settings for auto tagging
-    $form[$content_type . '_autotagging'] = array(
-      '#type' => 'radios',
-      '#title' => t('Tagging Method'),
-      '#description' => t('How should OpenCalais manage the tagging?'),
-      '#default_value' => variable_get('opencalais_'.$content_type.'_autotagging', 'manual'),
-      '#options' => array( 'manual' => t('Manual Tagging'), 'automatic' => t('Automatic Tagging'))
     );
     
     // This is to create a help block to explain some things about the form
