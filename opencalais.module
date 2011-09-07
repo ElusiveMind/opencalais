@@ -233,9 +233,9 @@ function opencalais_get_opencalais_tag_fields($form, $entity, $bundle) {
   $instances = field_info_instances($entity, $bundle);
   foreach ($instances as $field_name => $instance) {
     
-    if ( isset($instance['settings']['opencalais']) &&$instance['settings']['opencalais'] ) {
+    if ( isset($instance['settings']['opencalais'])) {
       $field = field_info_field($field_name);
-      $opencalais_type = $field['settings']['allowed_values'][0]['vocabulary'];    
+      $opencalais_type = $instance['settings']['opencalais'];    
       if (in_array($opencalais_type, $entities)) {
         $fields[$opencalais_type] = $field_name;
       }
@@ -327,12 +327,15 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
     $opencalais = opencalais_api_get_service();
     //$tags = $opencalais->analyzeXML($node->title, $body, $date);
     $tags = $opencalais->analyzeHTML($body);
-
+    
+    //get a list of all the fields for this content type
+    $fields = opencalais_get_fields_for_content_type($node->type);
+    
     $suggestions = array();    
     foreach ($tags as $type => $metadata) {
       $terms = array();  
       
-      $settings = field_info_instance('node', 'opencalais_'.strtolower(substr($type, 0, 15)).'_tags', $node->type);
+      $settings = field_info_instance('node', $fields[$type], $node->type);
       foreach ($metadata->terms as $guid => $term) {
         //only add it if its relevant
         if(opencalais_check_suggestion($settings, $term)){
@@ -366,10 +369,9 @@ function opencalais_check_suggestion($settings, $term){
  */
 function opencalais_create_vocabulary($entity) {
   $readable = opencalais_api_make_readable($entity);
-      $machine = opencalais_make_machine_name($entity);
-  if (!taxonomy_vocabulary_machine_name_load($entity)) { 
-
-    
+  $machine = opencalais_make_machine_name($entity);
+  $vocabulary = taxonomy_vocabulary_machine_name_load($machine);
+  if (!$vocabulary) { 
     $vocabulary = (object) array(
       'name' => $readable,
       'description' => t('Tags sourced from OpenCalais about @name.', array('@name' => $readable)),
@@ -377,7 +379,14 @@ function opencalais_create_vocabulary($entity) {
       'module' => 'opencalais',
     );
     taxonomy_vocabulary_save($vocabulary);
+
+    //Try to persist vocabs even if their machine name changes.
+    $vocabs = variable_get('opencalais_vocab_mapping', array());
+    //map the vid to the machine name for easy lookup
+    $vocabs[$vocabulary->vid] = $machine; 
+    variable_set('opencalais_vocab_mapping', $vocabs);
   } 
+  
   /* Add extra fields for vocabularies that have disabiguation information associated with them
    * We want to do this even for existing fields in case we add more fields in the future ... that way there won't be an issue.
    * @see opencalais_get_extra_fields
@@ -432,7 +441,7 @@ function opencalais_create_vocabulary($entity) {
         } else {
           //If the field already exists then we should just update it
           field_update_instance($instance);
-          drupal_set_message(t('OpenCalais MetaData Field for '.$readable.' has been successfully updated'));
+          drupal_set_message(t('OpenCalais MetaData Field for %field has been successfully updated', array('%field' => $readable)));
         }
       } catch (FieldException $f){
         drupal_set_message('Error creating MetaData Field: ' . $f->getMessage(), $type = 'error');
@@ -473,6 +482,7 @@ function opencalais_get_all_entities() {
   }
   else {
     // Defaults
+    //TODO: These aren't in the right format
     $entities = array(
       'Anniversary',
       'City',
@@ -513,7 +523,9 @@ function opencalais_get_all_entities() {
       'Technology',
       'TVShow',
       'TVStation',
-      'URL'
+      'URL',
+      'NaturalDisaster',
+      'PoliticalEvent',
     );
   }
     
@@ -537,7 +549,7 @@ function opencalais_get_all_entities() {
   *  @param taxonomy_name should be the machine name of the taxonomy you want to add a linked field to 
   *  Some settings cannot be specified through this function - this is really just a utility wrapper for the fields api
   */
- function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title='', $description='', $threshold=0 ){
+ function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title, $description='', $threshold=0 ){
    node_types_rebuild();
    
    //since opencalais fields are taxonomy term references
@@ -575,7 +587,7 @@ function opencalais_get_all_entities() {
    // http://api.drupal.org/api/function/field_create_instance/7
    $instance['field_name'] = $field['field_name'];
    $instance['title'] = $title ? $title : $field['field_name'];
-   $instance['label'] = $taxonomy_name;
+   $instance['label'] = $title;
    $instance['description'] = $description;
            
    $instance['widget'] = array(
@@ -586,7 +598,7 @@ function opencalais_get_all_entities() {
    $instance['entity_type'] = 'node';
    $instance['bundle'] = $content_type;
    $instance['settings']['threshold'] = $threshold;
-   $instance['settings']['opencalais'] = TRUE; //Flag so we can know which fields belong to this module.
+   $instance['settings']['opencalais'] = opencalais_make_machine_name($taxonomy_name); //Flag so we can know which fields belong to this module.
  
  
   
@@ -622,7 +634,7 @@ function opencalais_get_all_entities() {
    foreach($vocabs as $vname => $vocab){
      //add the field 
      $name = substr($vname, 0, 15);  
-     opencalais_add_field($content_type, 'opencalais_'.$name.'_tags', $vname, 'OpenCalais Tags for ' . $vname, '', $vocab['threshold']);
+     opencalais_add_field($content_type, 'opencalais_'.$name.'_tags', $vname, $vname, '', $vocab['threshold']);
    }
  } 
  
@@ -654,19 +666,16 @@ function opencalais_get_all_entities() {
    $entities = opencalais_get_all_entities();
    foreach($entities as $key=>$item) $entities[$key] = opencalais_make_machine_name($item);
    $existing = array();
-   
+
    //fields will be an empty array if no instances are found
    foreach($fields as $field_name => $field){
-        
-     if (isset($field['settings']['opencalais']) && $field['settings']['opencalais']) {
-       $main_field = field_info_field($field_name);
-       $opencalais_type = $main_field['settings']['allowed_values'][0]['vocabulary'];    
-       if (in_array($opencalais_type, $entities)) {
-         $existing[$opencalais_type] = array('field' => $field_name, 'threshold' => $field['settings']['threshold']);
-       }
+     
+     if (isset($field['settings']['opencalais'])) {
+       $opencalais_type = $field['settings']['opencalais'];
+       $existing[$opencalais_type] = array('field' => $field_name, 'threshold' => $field['settings']['threshold']);
      }
    }
-   
+
    return $existing;
  }
  
@@ -832,7 +841,7 @@ function opencalais_get_all_entities() {
    */
   function opencalais_add_fields_submit($form, &$form_state){
     $content_type = $form_state['values']['content_type'];
-    
+
     $to_add = array_filter($form_state['values']['config']['entities'], '_opencalais_filter');
     $to_rem = array_filter($form_state['values']['config']['entities'], '_opencalais_delete_filter');
     opencalais_create_fields($content_type, $to_add);
@@ -878,3 +887,10 @@ function opencalais_get_all_entities() {
     }
   }
   
+/**
+ *  Utility Function to get all the content types
+ */
+ function _opencalais_get_content_types(){
+   $nodes = entity_get_info('node');
+   return $nodes['bundles'];
+ } 
