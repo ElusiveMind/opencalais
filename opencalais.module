@@ -575,7 +575,7 @@ function opencalais_get_all_entities() {
    // http://api.drupal.org/api/function/field_create_instance/7
    $instance['field_name'] = $field['field_name'];
    $instance['title'] = $title ? $title : $field['field_name'];
-   $instance['label'] = t('OpenCalais Tags for ') . $taxonomy_name;
+   $instance['label'] = $taxonomy_name;
    $instance['description'] = $description;
            
    $instance['widget'] = array(
