@@ -376,7 +376,7 @@ class CalaisRdfProcessor {
     $uris = array();
     if (array_key_exists($guid, $triples)) {
       $sameas = $triples[$guid][self::SAMEAS];
-      if (count($sameas)) {
+      if (count($sameas) && is_array($sameas)) {
         foreach ($sameas as $uri) {
           $parts = parse_url($uri);
           $uris[$parts['host']] = $uri;
