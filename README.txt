@@ -11,10 +11,11 @@ provides an API in which any contributed module can interact with Calais.
 INSTALLATION
 ============
 
-1) Before you install Calais for Drupal 6, you need to install the RDF
-module (http://drupal.org/project/rdf). With the RDF Module you should
-also download the ARC2 library, which is a separate download. Please 
-refer to INSTALL.txt that comes with the RDF module for more details.
+1) You will need to install the ARC2 php library as a library on your drupal site.
+To do that download ARC2 from github: https://github.com/semsol/arc2 and put the 
+contents in sites/all/libraries/arc/ 
+
+After this ARC2.php should live at sites/all/libraries/arc/ARC2.php
 
 2) Place this module directory into your Drupal modules directory.
 
@@ -27,6 +28,10 @@ refer to INSTALL.txt that comes with the RDF module for more details.
 4) Add Calais API Key and tune other settings at:
    administration -> site configuration -> modules -> Calais
    (admin/settings/calais-api)
+   
+5) Set Up tagging on your content types as desired by visiting
+<yoursitename.com>/admin/structure/types/manage/<content-type-name>/opencalais_fields
+
 
 There are some reports that OpenCalais processing can use a lot of memory 
 (the RDf data returned can be quite large)  Consider 64MB the minimum PHP
