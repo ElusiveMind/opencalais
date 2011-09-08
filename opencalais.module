@@ -25,7 +25,7 @@ define('CALAIS_PROCESSED', TRUE);
  * Implements hook_permission().
  */
 function opencalais_permission() {
-  return array();
+  return array('administer opencalais');
 }
 
 /**
@@ -98,7 +98,9 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
     // Load suggestions
     $suggestions = opencalais_get_suggestions($node, $opencalais_type);
     
-    $auto = variable_get('opencalais_'.$node->type.'_autotagging', 'manual');
+    $auto = variable_get('opencalais_autotagging', array());
+    $auto = isset($auto[$node->type]) ? $auto[$node->type] : 0;
+    
     $vars = array(
       'type' => $opencalais_type, 
       'field_name' => $field_name, 
@@ -108,7 +110,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
    
     $themed_suggestions = theme('opencalais_suggestions', $vars); 
     $form[$field_name]['#suffix'] = $themed_suggestions;
-    if($auto == 'automatic'){
+    if($auto){
       $form[$field_name][$form[$field_name]['#language']]['#default_value'] = _opencalais_make_field_values($suggestions);
     }
     
@@ -161,15 +163,21 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
   }
 }
 /**
- *  TODO: We need to add field values automatics
+ *  Handle the submission of the node form
+ *
+ *  If automatic tagging is set for the content type then get the term suggestions and place them into values
+ *  arrays for all the opencalais fields
+ *
+ *  TODO: See if we can also add in the addition of the disambiguation information here
  */
 function opencalais_node_form_submit($form, &$form_state){
   if(isset($form_state['opencalais_building']) && $form_state['opencalais_building']){ return; }
   
   $content_type = $form_state['values']['type'];
-  $auto = variable_get('opencalais_'.$content_type.'_autotagging', false);
+  $auto = variable_get('opencalais_autotagging', array());
+  $suto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
   
-  if($auto == 'automatic'){
+  if($auto){
     //Get the suggestions
     if(!isset($form_state['opencalais_suggestions'])){
      opencalais_suggest_tags_callback($form, $form_state, true); 
@@ -486,12 +494,11 @@ function opencalais_form_field_ui_field_edit_form_alter(&$form, &$form_state, $f
   
   
   /**
-   *  Proprocessor for the system_settings form form to move OpenCalais Terms to the sidebar
+   *  Proprocessor for the system_settings form form to move OpenCalais Terms to the sidebar (for rubik)
    */
   function opencalais_preprocess_system_settings_form(&$variables){
     if($variables['form']['#form_id'] == 'opencalais_add_fields_form'){
-      //push the help into the sidebar
-      
+      //push the help into the sidebar - this will work on rubik - not sure what else right now.
       $variables['sidebar'][] = $variables['form']['help'];
       unset($variables['form']['help']);
       
@@ -508,8 +515,10 @@ function opencalais_form_field_ui_field_edit_form_alter(&$form, &$form_state, $f
     $to_rem = array_filter($form_state['values']['config']['entities'], '_opencalais_delete_filter');
     opencalais_create_fields($content_type, $to_add);
     opencalais_remove_fields($content_type, $to_rem);
-   
-    variable_set('opencalais_'.$content_type.'_autotagging', $form_state['values'][$content_type.'_autotagging']);
+    //I'm slightly worried about batch operations causing a race condition here - we'll have to see
+    $settings = variable_get('opencalais_autotagging', array());
+    $settings[$content_type] = $form_state['values'][$content_type.'_autotagging'];
+    variable_set('opencalais_autotagging', $settings);
   }
   
 

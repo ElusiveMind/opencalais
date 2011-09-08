@@ -63,9 +63,26 @@ function opencalais_update_7001(){
        }
      }
    }
-
  }
 
+/**
+ *  Update the autotagging variables to be a single variable  
+ */
+ function opencalais_update_7002(){
+   drupal_load('module', 'opencalais');
+ 
+   $content_types = _opencalais_get_content_types();
+   $new_auto = variable_get('opencalais_autotagging', array());
+   foreach($content_types as $ct=>$info){
+     $auto = variable_get('opencalais_' . $ct . '_autotagging', FALSE);
+     if($auto){
+       $new_auto[$ct] = $auto == 'automatic' ? 1 : 0;
+     }
+     variable_del('opencalais_'.$ct.'_autotagging');
+   } 
+   variable_set('opencalais_autotagging', $new_auto);
+   return 'OpenCalais variables successfully updated.';
+ }
 
 /**
  * Implements hook_schema().

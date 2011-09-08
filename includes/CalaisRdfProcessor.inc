@@ -77,11 +77,11 @@ class CalaisRdfProcessor {
    */
   protected function build_entities(&$keywords) {
     foreach ($this->triples as $guid => $data) {
+      if (!isset($data[self::RDF_TYPE]))
+          continue;
+          
       $type = $data[self::RDF_TYPE];
-      
-      if (!isset($type)) 
-        continue;
-        
+       
       if (strpos($type[0], "http://s.opencalais.com/1/type/em/e") !== FALSE) {
         $this->extract_entities($keywords, $type, $guid, $data);
       }

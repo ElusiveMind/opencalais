@@ -60,13 +60,17 @@ function opencalais_add_fields_form($content_type){
     '#type' => 'hidden',
     '#value' => str_ireplace('-', '_', $content_type),
   );
+  
+  $auto = variable_get('opencalais_autotagging', array());
+  $suto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
+  
   //Settings for auto tagging
   $form[$content_type . '_autotagging'] = array(
     '#type' => 'radios',
     '#title' => t('Tagging Method'),
     '#description' => t('How should OpenCalais manage the tagging?'),
-    '#default_value' => variable_get('opencalais_'.$content_type.'_autotagging', 'manual'),
-    '#options' => array( 'manual' => t('Manual Tagging'), 'automatic' => t('Automatic Tagging'))
+    '#default_value' => $auto,
+    '#options' => array( 0 => t('Manual Tagging'), 1 => t('Automatic Tagging'))
   );
   
   $form['info']['config'] = array('#tree' => TRUE);
