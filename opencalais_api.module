@@ -82,6 +82,12 @@ function opencalais_api_admin_settings() {
     '#description' => t('The domain name for the server to use.  Typically you will not have to change this unless you want to test beta functionality.'),
   );
   
+  $form['help_text'] = array(
+    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
+      '<br/><br/>' . l('Content Types Edit Screen', 'admin/structure/types') .
+      '</div>'
+  );
+  
   $form = system_settings_form($form);
   return $form;
 }
