@@ -148,10 +148,10 @@ function opencalais_create_vocabulary($entity) {
         'module' => 'text'
       );
       $instance['entity_type'] = 'taxonomy_term';
-      $instance['bundle'] = $entity;
+      $instance['bundle'] = $machine;
       //handle any fieldexceptions that occur by just setting and error message and returning
       try{
-        if(!field_read_instance('taxonomy_term', $instance['field_name'], $entity)){
+        if(!field_read_instance('taxonomy_term', $instance['field_name'], $machine)){
           field_create_instance($instance);
           drupal_set_message(t('OpenCalais MetaData Field for '.$readable.' has been successfully created'));
         } else {

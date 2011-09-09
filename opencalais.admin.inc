@@ -62,7 +62,7 @@ function opencalais_add_fields_form($content_type){
   );
   
   $auto = variable_get('opencalais_autotagging', array());
-  $suto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
+  $auto = (isset($auto[$content_type]) ? $auto[$content_type] : 0);
   
   //Settings for auto tagging
   $form[$content_type . '_autotagging'] = array(

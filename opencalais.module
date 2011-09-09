@@ -200,34 +200,35 @@ function opencalais_node_form_submit($form, &$form_state){
       taxonomy_autocomplete_validate($elements[$name][$l], $form_state);
     }
   }
+  
+  //Add extra meta data to the taxonomy term items
+  $lang = $form['language']['#value'];
+  //find the the extra fields with extra values
+  $extras = $form_state['opencalais_extras'];
+
+  foreach($extras as $field=>$value){
+    if(isset($form_state['values'][$field])){
+
+      $field_values = $form_state['values'][$field][$lang];
+      foreach($field_values as $i=>$v){
+        if(isset($extras[$field][$v['name']])){
+          $eV = $extras[$field][$v['name']]['extra'];
+          foreach($eV as $n=>$extra_val){
+            $form_state['values'][$field][$lang][$i][$n][$lang] = array();
+            $form_state['values'][$field][$lang][$i][$n][$lang][] = array('value' => $extra_val);
+          }//end foreach
+        }
+      }//end foreach
+    }
+  } //end foreach
+  
 }
 
 /**
  *  Handle form submit of nodes with opencalais terms
  */
 function opencalais_handle_node_submit($form, &$form_state){
-    $lang = $form['language']['#value'];
-    //find the the extra fields with extra values
-    $extras = $form_state['opencalais_extras'];
-
-    foreach($extras as $field=>$value){
-      if(isset($form_state['values'][$field])){
-
-        $field_values = $form_state['values'][$field][$lang];
-        foreach($field_values as $i=>$v){
-          if(isset($extras[$field][$v['name']])){
-            $eV = $extras[$field][$v['name']]['extra'];
-            foreach($eV as $n=>$extra_val){
-              $form_state['values'][$field][$lang][$i][$n][$lang] = array();
-              $form_state['values'][$field][$lang][$i][$n][$lang][] = array('value' => $extra_val);
-            }//end foreach
-            
-            $obj = (object)$form_state['values'][$field][$lang][$i];
-          }
-        }//end foreach
-      }
-    } //end foreach
-}
+    }
 
 /**
  * AJAX Callback to get OpenCalais tag suggestions for an Entity.
