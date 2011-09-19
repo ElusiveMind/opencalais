@@ -166,6 +166,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
     array_unshift($form['#submit'], 'opencalais_node_form_submit');
   }
 }
+
 /**
  *  Handle the submission of the node form
  *
@@ -178,32 +179,33 @@ function opencalais_node_form_submit($form, &$form_state){
   if(isset($form_state['opencalais_building']) && $form_state['opencalais_building']){ return; }
   
   $content_type = $form_state['values']['type'];
-  $auto = variable_get('opencalais_autotagging', array());
-  $suto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
-  
-  if($auto){
+//  $auto = variable_get('opencalais_autotagging', array());
+//  $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
+
+//TODO: Take this out - should be processed in the presave hook  
+//  if($auto){
     //Get the suggestions
-    if(!isset($form_state['opencalais_suggestions'])){
-     opencalais_suggest_tags_callback($form, $form_state, true); 
-    } 
-
-    $fields = $form_state['opencalais_suggestions'];
-    $elements = isset($form['opencalais']) ? $form['opencalais'] : $form;
-    foreach($fields as $name=>$value){
-      $l = $elements[$name]['#language'];
-      
-      if(isset($elements[$name][$l]['#value']) && $elements[$name][$l]['#value']) { 
-        continue; //break out if there is already a value
-      }
-      
-      $elements[$name][$l]['#value'] = '';
-
-      foreach($value as $item=>$extra){
-         $elements[$name][$l]['#value'] .= ($elements[$name][$l]['#value'] ? ',' . $item : $item);
-      }
-      taxonomy_autocomplete_validate($elements[$name][$l], $form_state);
-    }
-  }
+//    if(!isset($form_state['opencalais_suggestions'])){
+//     opencalais_suggest_tags_callback($form, $form_state, true); 
+//    } 
+//
+//    $fields = $form_state['opencalais_suggestions'];
+//    $elements = isset($form['opencalais']) ? $form['opencalais'] : $form;
+//    foreach($fields as $name=>$value){
+//      $l = $elements[$name]['#language'];
+//      
+//      if(isset($elements[$name][$l]['#value']) && $elements[$name][$l]['#value']) { 
+//        continue; //break out if there is already a value
+//      }
+//      
+//      $elements[$name][$l]['#value'] = '';
+//
+//      foreach($value as $item=>$extra){
+//         $elements[$name][$l]['#value'] .= ($elements[$name][$l]['#value'] ? ',' . $item : $item);
+//      }
+//      taxonomy_autocomplete_validate($elements[$name][$l], $form_state);
+//    }
+//  }
   
   //Add extra meta data to the taxonomy term items
   $lang = $form['language']['#value'];
@@ -226,6 +228,46 @@ function opencalais_node_form_submit($form, &$form_state){
     }
   } //end foreach
   
+}
+
+/** 
+ *  Implements hook_node_presave
+ *
+ *  Used to add fields if auto tagging is turned on and the field hasn't already been tagged
+ *  This will be used when nodes are created in some way other than through the forms system
+ */
+function opencalais_node_presave($node){
+  $content_type = $node->type;
+  $auto = variable_get('opencalais_autotagging', array());
+  $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
+  
+  
+  if($auto && !_opencalais_already_tagged($node)){
+    $fields = opencalais_get_fields_for_content_type($node->type);
+    
+    $suggestions = array();
+    foreach ($fields as $opencalais_type => $field) {
+      $name = $field['field'];
+      $real_field = field_read_field($name);
+                  
+      $suggestions = opencalais_get_suggestions($node, $opencalais_type);
+      
+      if($suggestions){
+        $node->{$name} = array(
+          $node->language => array()
+        );
+      
+        foreach($suggestions as $term=>$meta){
+          $term = _opencalais_create_term($term, $real_field, $node, $meta);
+          $node->{$name}[$node->language][] = $term;
+        }
+      
+        $instance = field_read_instance('node', $name, $node->type);
+        //run presave as it has already been run on this entity and won't be called again before node_save
+        taxonomy_field_presave('node', $node, $real_field, $instance, $node->language, $node->{$name}[$node->language]);
+      }
+    }
+  }
 }
 
 /**
@@ -333,7 +375,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
     $opencalais = opencalais_api_get_service();
     //$tags = $opencalais->analyzeXML($node->title, $body, $date);
     $tags = $opencalais->analyzeHTML($body);
-    //drupal_set_message('<pre>'.print_r($tags, true).'</pre>');
+
     //get a list of all the fields for this content type
     $fields = opencalais_get_fields_for_content_type($node->type);
 
@@ -357,7 +399,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
       $suggestions[$machine_name] = $terms;
     }   
   }
-  //drupal_set_message('<pre>'.print_r($suggestions, true).'</pre>');
+
   $tag_cache[$node->ocid] = $suggestions;
   return isset($opencalais_type)  ? (isset($suggestions[$opencalais_type]) ? $suggestions[$opencalais_type] : array()) : $suggestions;
 }

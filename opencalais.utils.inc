@@ -273,3 +273,60 @@ function _opencalais_get_content_types(){
   $nodes = entity_get_info('node');
   return $nodes['bundles'];
 } 
+
+/**
+ *  Tests to see whether any opencalais fields exist on the node and have values
+ *  Returns a boolean - does not modify node
+ */
+ function _opencalais_already_tagged($node){
+   $fields = opencalais_get_fields_for_content_type($node->type);
+   
+   foreach($fields as $label=>$field){
+     $name = $field['field'];
+     if(isset($node->{$name}) && $node->{$name}){
+       return TRUE;
+     }
+   }
+   return FALSE;
+ }
+ 
+/**
+ *  Save taxonomy terms for attaching to the node
+ */
+function _opencalais_create_term($term, $field, $node, $meta=array()){
+  $lang = $node->language;
+  
+  $vocabularies = array();
+  foreach ($field['settings']['allowed_values'] as $tree) {
+    if ($vocabulary = taxonomy_vocabulary_machine_name_load($tree['vocabulary'])) {
+      $vocabularies[$vocabulary->vid] = $vocabulary;
+    }
+  }
+  
+  
+  if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($term), 'vid' => array_keys($vocabularies)))) {
+    $term = array_pop($possibilities);
+  }
+  else {
+    $vocabulary = reset($vocabularies);
+    $term = array(
+      'tid' => 'autocreate',
+      'vid' => $vocabulary->vid, 
+      'name' => $term, 
+      'vocabulary_machine_name' => $vocabulary->machine_name,
+    );
+    
+    if(is_array($meta['extra'])){
+      $extra = $meta['extra'];
+      foreach($extra as $name=>$value){
+        $term[$name] = array(
+          $lang => array(
+            array('value'=>$value)
+          )
+        );
+      }
+    }
+  }
+  
+  return (array) $term;
+}
