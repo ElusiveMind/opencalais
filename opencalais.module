@@ -241,17 +241,15 @@ function opencalais_node_presave($node){
   $auto = variable_get('opencalais_autotagging', array());
   $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
   
-  
   if($auto && !_opencalais_already_tagged($node)){
     $fields = opencalais_get_fields_for_content_type($node->type);
-    
+
     $suggestions = array();
     foreach ($fields as $opencalais_type => $field) {
       $name = $field['field'];
       $real_field = field_read_field($name);
                   
       $suggestions = opencalais_get_suggestions($node, $opencalais_type);
-      
       if($suggestions){
         $node->{$name} = array(
           $node->language => array()
@@ -350,15 +348,16 @@ function opencalais_suggest_tags_submit($form, &$form_state) {
  */
 function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
   $tag_cache = &drupal_static(__FUNCTION__);
-
+  
   if ($tag_cache && array_key_exists($node->ocid, $tag_cache)) {
     $suggestions = $tag_cache[$node->ocid];    
   }
   else {
-    if(!property_exists($node, 'nid')){
-      return; //short circuit out - the node is brand new and being rendered for the first time
+    if(!$node->title){
+      //we need some way to break out if its a node being prepped to show on the node form (with no content)
+      return;
     }
-    
+     
     // Needed to support caching of unsaved nodes
     if (empty($node->ocid)) {
       $node->ocid = !empty($node->nid) ? $node->nid : uniqid();
@@ -375,7 +374,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
     $opencalais = opencalais_api_get_service();
     //$tags = $opencalais->analyzeXML($node->title, $body, $date);
     $tags = $opencalais->analyzeHTML($body);
-
+    
     //get a list of all the fields for this content type
     $fields = opencalais_get_fields_for_content_type($node->type);
 
