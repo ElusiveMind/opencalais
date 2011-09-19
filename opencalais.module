@@ -162,7 +162,6 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
         unset($form[$field_name]);
       }
     }
-    $form['#submit'][] = 'opencalais_handle_node_submit';
     
     array_unshift($form['#submit'], 'opencalais_node_form_submit');
   }
