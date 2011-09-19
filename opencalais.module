@@ -25,7 +25,12 @@ define('CALAIS_PROCESSED', TRUE);
  * Implements hook_permission().
  */
 function opencalais_permission() {
-  return array('administer opencalais');
+  return array(
+    'administer opencalais' => array(
+      'title' => t('Administer OpenCalais'),
+      'description' => t('Add and remove OpenCalais Fields and change OpenCalais settings.') 
+    )
+  );
 }
 
 /**
@@ -223,12 +228,6 @@ function opencalais_node_form_submit($form, &$form_state){
   } //end foreach
   
 }
-
-/**
- *  Handle form submit of nodes with opencalais terms
- */
-function opencalais_handle_node_submit($form, &$form_state){
-    }
 
 /**
  * AJAX Callback to get OpenCalais tag suggestions for an Entity.

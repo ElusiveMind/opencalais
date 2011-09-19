@@ -24,18 +24,6 @@ function opencalais_api_init() {
 }
 
 /**
- * Implements hook_permission().
- */
-function opencalais_api_permission() {
-  return array(
-    'administer opencalais' => array(
-      'title' => t('Administer OpenCalais Configuration'),
-      'description' => t('Configure OpenCalais'),
-    ),
-  );
-}
-
-/**
  * Implements hook_menu().
  */
 function opencalais_api_menu() {
