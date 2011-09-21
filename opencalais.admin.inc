@@ -21,6 +21,16 @@ function opencalais_admin_general_settings() {
     '#default_value' => variable_get('opencalais_lookup_uri', 0),
   );
   
+  $form['opencalais_bulk_processing_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Bulk Processing on Cron'),
+    '#description' => t('Enable bulk processing of nodes for content types with auto tagging enabled.  This processing will happen in batches
+      during cron runs until complete.'),
+    '#default_value' => variable_get('opencalais_bulk_processing_enabled', FALSE)
+  );
+  
+    
+  
   $form['help_text'] = array(
     '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
       '<br/><br/>' . l('Content Types Edit Screen', 'admin/structure/types') .
