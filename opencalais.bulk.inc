@@ -6,7 +6,7 @@
  */
 
 //Controls how many nodes will be processed per cron run
-define('OPENCALAIS_PROCESS_COUNT', 50);
+define('OPENCALAIS_PROCESS_COUNT', 25);
  
 /**
  *  Create a queue of all the nodes that need to be tagged, 
@@ -15,10 +15,6 @@ define('OPENCALAIS_PROCESS_COUNT', 50);
 function opencalais_create_queue(){
   $queue = DrupalQueue::get('opencalais_tagging_queue');
   $queue->createQueue();
-  
-  $content_types = _opencalais_get_auto_content_types();
-  foreach ($content_types as $type) {
-      }
 }
 
 /**
@@ -59,11 +55,18 @@ function opencalais_queue_add_items($content_type){
 function opencalais_queue_process_node($data){
   $nid = $data->data['nid'];
   try { 
+    //We need to set this so that ARC2 will work and be able to connect with the OpenCalais service
+    if(!isset($_SERVER['SERVER_NAME'])){
+      global $base_url;
+      $parts = parse_url($base_url);
+      $_SERVER['SERVER_NAME'] = $parts['host'];
+      $_SERVER['SERVER_PORT'] = 80;
+    }
     $node = node_load($nid);
-//    drupal_set_message('<pre>'.print_r($node, true).'</pre>');
     node_save($node);
   } catch(Exception $e){
-    drupal_set_message(t('Could not process node with id %id. You may try to manually resave the node to resolve this issue.', array('%id'=>$nid)), 'error');
+    opencalais_set_message(t('Could not process node with id %id. You may try to manually resave the node to resolve this issue.', array('%id'=>$nid)), 'error');
+    return FALSE;
   }
   return TRUE;
 }
@@ -77,10 +80,10 @@ function opencalais_queue_get_progress(){
   $items = $queue->numberOfItems();
   
   if($items == 0){
-    return t('All nodes have been processed');
+    return t('All queued nodes have been processed.');
   }
   else {
-    return t('%n nodes remaining.', array('%n'=> $items));
+    return t('%n nodes remaining in the queue.  These items will be processed %max at a time during cron runs.', array('%n'=> $items, '%max'=>OPENCALAIS_PROCESS_COUNT));
   }
 }
 
@@ -111,7 +114,7 @@ function opencalais_add_items_to_queue_callback($type){
     drupal_set_message(t('Invalid Content Type for Bulk Processing - Either %type is an invalid content type or the content type is not set to automatic tagging.', array('%type'=>$type)), 'error');
   } else {
     $processed = opencalais_queue_add_items($type);
-    drupal_set_message(t('%n nodes queued for processing.', array('%n'=>$processed)));
+    drupal_set_message(t('%n nodes successfully queued for processing.', array('%n'=>$processed)));
   }
   
   drupal_goto('admin/config/content/opencalais/bulk');
@@ -121,6 +124,9 @@ function opencalais_add_items_to_queue_callback($type){
  *  Create a form for bulk processing
  */
 function opencalais_bulk_operations_form(){
+  //print out any messages we have
+  opencalais_get_messages();
+
   $form = array();
   $available_types = _opencalais_get_auto_content_types();
   
@@ -132,9 +138,14 @@ function opencalais_bulk_operations_form(){
     '#type' => 'fieldset',
     '#title' => t('Process Content Types'),
   );
+  
+  $form['types']['message'] = array(
+    '#markup' => '<div class="messages">'.t('Content types marked for autotagging will be shown below. You can queue all the currently created nodes for processing by clicking the corresponding link below. OpenCalais will keep track of the latest nodes (per content-type) that it has processed to avoid processing them again.'). '</div>'
+  );
+  
   foreach($available_types as $type){
     $form['types']['opencalais_queue_content_type_'.$type] = array(
-      '#markup' => '<div>' . l('Process all '. $type . ' nodes.', 'admin/config/content/opencalais/bulk/'.$type, array('absolute'=>TRUE)) . '</div>',
+      '#markup' => '<li>Process all (remaining) '. l($type . ' nodes', 'admin/config/content/opencalais/bulk/'.$type, array('absolute'=>TRUE, 'class'=>array('button'))) . '.</div>',
     );
   }
   return $form;
@@ -149,4 +160,27 @@ function _opencalais_get_auto_content_types(){
   return array_keys(array_filter($auto_settings));
 } 
   
+/**
+ *  Utility function to create opencalais specific message queue
+ */ 
+function opencalais_set_message($message, $type='status'){
+  $queue = variable_get('opencalais_message_queue', array());
+  $queue[$type][] = $message;
+  variable_set('opencalais_message_queue', $queue);
+} 
+
+/**
+ *  Utility function to print out all the opencalais messages
+ */
+function opencalais_get_messages(){
+  $queue = variable_get('opencalais_message_queue', array());
+  
+  foreach($queue as $type=>$messages){
+    foreach($messages as $message){
+      drupal_set_message($message, $type);
+    }
+  }
+  //empty the queue
+  variable_set('opencalais_message_queue', array());
+}
  

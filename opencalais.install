@@ -11,6 +11,9 @@ function opencalais_install() {
   foreach (opencalais_get_all_entities() as $entity) {
     opencalais_create_vocabulary($entity);
   }
+  //create a queue for bulk processing
+  $queue = DrupalQueue::get('opencalais_tagging_queue');
+  $queue->createQueue();
 }
 
 /**
