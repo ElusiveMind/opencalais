@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the opencalais_export feature.
+ */
+
+include_once('opencalais_defaults.features.inc');

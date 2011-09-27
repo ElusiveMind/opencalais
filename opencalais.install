@@ -88,7 +88,23 @@ function opencalais_update_7001(){
  }
 
 /**
- * Implements hook_schema().
+ *  Update the schema so we can start saving presets and remove old tables that we're not using
+ */
+ function oepncalais_update_7003(){
+   //remove old tables
+   db_drop_table('opencalais_term');
+   db_drop_table('opencalais_term_node');
+   //remove unused fields
+   db_drop_field('opencalais_preset', 'enitity');
+   db_drop_field('opencalais_preset', 'bundle');
+ } 
+   
+/**
+ *  Implements hook_schema().
+ *
+ *  In order to make something ctools exportable the only part that is necessary is the export key in your schema.
+ *  Following that you can just implement all the functions you need to add and create and view, however you like.
+ *  Anything inserted into your schema will be available for export.
  */
 function opencalais_schema() {
   $schema['opencalais_preset'] = array(
@@ -110,7 +126,7 @@ function opencalais_schema() {
         'unsigned' => TRUE, 
         'not null' => TRUE,
         'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
-        'no export' => TRUE, // Do not export database-only keys.
+        'no export' => TRUE, // Do not export database-only keys. For ctools.
       ),
       'name' => array(
         'type' => 'varchar', 
@@ -122,22 +138,12 @@ function opencalais_schema() {
         'type' => 'varchar', 
         'length' => 255, 
         'not null' => TRUE,
-        'description' => 'Unique ID for presets. Used to identify them programmatically.'
+        'description' => 'Human readable name for preset.'
       ),
       'description' => array(
         'type' => 'varchar',
         'length' => '255',
         'description' => 'A human readable name of a preset.',
-      ),
-      'entity' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Entity type',
-      ),
-      'bundle' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Bundle',
       ),
       'process' => array(
         'type' => 'int',
@@ -153,112 +159,7 @@ function opencalais_schema() {
       'name' => array('name'),
     ),
   );
-  $schema['opencalais_term'] = array(
-    'description' => 'Holds retrieved OpenCalais terms and the Vocabulary to which they are associated',
-    'fields' => array(
-      'tid' => array(
-        'type' => 'serial', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE,
-        'description' => 'Identifier for an OpenCalais term'
-      ),
-      'name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => 'The name of the term'
-      ),
-      'type' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => 'The type of the term'
-      ),
-      'vocabulary' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE, 
-        'description' => 'The Vocabulary machine name this term is in'
-      ),
-      'tdid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'description' => 'The Taxonomy Term ID for this OpenCalais Term'
-      ),
-      'guid' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE,
-        'description' => 'The OpenCalais GUID of this term'
-      ),
-      'resolved_guid' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'description' => 'The Disambiguated OpenCalais GUID of this term (if it exists)'
-      ),
-      'resolved_name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'description' => 'The normalized/resolved name of the term'
-      ),
-      'resolved_type' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'description' => 'The disambiguated type of this Entity'
-      ),
-    ),
-    'indexes' => array(
-      'vocabulary' => array('vocabulary'),
-      'tdid' => array('tdid'),
-      'guid' => array('guid'),
-    ),
-    'foreign keys' => array(
-      'opencalais_term_taxonomy_term_tid' => array(
-        'table' => 'taxonomy_term_data',
-        'columns' => array('tdid' => 'tid'),
-       ),
-      'opencalais_term_vocabulary_vid' => array(
-        'table' => 'taxonomy_vocabulary',
-        'columns' => array('vocabulary' => 'machine_name'),
-       ),
-    ),    
-    'primary key' => array('tid'),
-  );
-  
-  $schema['opencalais_term_node'] = array(
-    'description' => 'Holds the association between a retrieved OpenCalais term and a Node',
-    'fields' => array(
-      'tid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
-        'default' => 0,
-        'description' => t('The term identifier')
-      ),
-      'nid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
-        'default' => 0,
-        'description' => t('The node for this term')
-      ),
-      'relevance' => array(
-        'type' => 'numeric', 
-        'size' => 'normal', 
-        'not null' => TRUE, 
-        'default' => 0.0, 
-        'precision' => 5, 
-        'scale' => 3,
-        'description' => t('The relevence score from OpenCalais for this term/node combination')
-        ),
-    ),
-    'indexes' => array(
-      'tid'    => array('tid'),
-      'nid'    => array('nid'),
-    ),
-    'primary key' => array('tid', 'nid'),
-  );
-  
+
   return $schema;
 }
  

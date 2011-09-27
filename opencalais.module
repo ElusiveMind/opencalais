@@ -6,6 +6,8 @@
 //Include the utils file which provides all the field utility functions required to create and remove fields, and some purely utility functions
 include_once('opencalais.utils.inc');
 
+include_once('opencalais.export.inc');
+
 // Request constants
 define('CALAIS_REQUEST_NO',             0);
 define('CALAIS_REQUEST_MANUAL',         1);
@@ -386,7 +388,13 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
   }
 
   $tag_cache[$node->ocid] = $suggestions;
-  return isset($opencalais_type)  ? (isset($suggestions[$opencalais_type]) ? $suggestions[$opencalais_type] : array()) : $suggestions;
+  
+  //Return the suggestions - for the oc type if its set or all of them
+  if(isset($opencalais_type)){
+    return isset($suggestions[$opencalais_type]) ? $suggestions[$opencalais_type] : array();
+  } else {
+    return $suggestions;
+  }
 }
 
 /**
@@ -398,7 +406,6 @@ function opencalais_check_suggestion($settings, $term){
     return $settings['settings']['threshold'] <= $term->relevance;
   }
 }
-
 
 /**
  * Get a list of the entities that OpenCalais API defines:
@@ -535,17 +542,21 @@ function opencalais_preprocess_system_settings_form(&$variables){
  *  Function to handle the submit from the add_fields form
  */
 function opencalais_add_fields_submit($form, &$form_state){
-  $content_type = $form_state['values']['content_type'];
-
-  $to_add = array_filter($form_state['values']['config']['entities'], '_opencalais_filter');
-  $to_rem = array_filter($form_state['values']['config']['entities'], '_opencalais_delete_filter');
-  opencalais_create_fields($content_type, $to_add);
-  opencalais_remove_fields($content_type, $to_rem);
-  //I'm slightly worried about batch operations causing a race condition here - we'll have to see
-  $settings = variable_get('opencalais_autotagging', array());
-  
-  $settings[$content_type] = $form_state['values'][$content_type.'_autotagging'];
-  variable_set('opencalais_autotagging', $settings);
+  if(!isset($form_state['opencalais_processed']) || !$form_state['opencalais_processed']){
+        
+    $content_type = $form_state['values']['content_type'];
+    
+    $to_add = array_filter($form_state['values']['config']['entities'], '_opencalais_filter');
+    $to_rem = array_filter($form_state['values']['config']['entities'], '_opencalais_delete_filter');
+    
+    opencalais_create_fields($content_type, $to_add);
+    opencalais_remove_fields($content_type, $to_rem);
+    //I'm slightly worried about batch operations causing a race condition here - we'll have to see
+    $settings = variable_get('opencalais_autotagging', array());
+    
+    $settings[$content_type] = $form_state['values'][$content_type.'_autotagging'];
+    variable_set('opencalais_autotagging', $settings);
+  }
 }
 
 

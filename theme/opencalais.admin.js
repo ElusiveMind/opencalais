@@ -51,6 +51,7 @@ Drupal.behaviors.opencalaisEntityConfig = {
             $(holder).removeClass('selected');
           }
         });
+                
         this.processed = true;
       }
     });

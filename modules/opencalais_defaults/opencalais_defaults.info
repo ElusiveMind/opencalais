@@ -1,0 +1,8 @@
+core = "7.x"
+dependencies[] = "ctools"
+dependencies[] = "opencalais"
+description = "Default Presets for OpenCalais"
+features[ctools][] = "opencalais:opencalais_default_presets:1"
+features[opencalais_preset][] = "geo_tags"
+name = "Opencalais Defaults"
+package = "Features"
