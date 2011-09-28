@@ -42,12 +42,12 @@ function opencalais_export_apply_preset($preset, $content_type, $level=1, $add_o
   //just make sure its an array;
   $preset = (array)$preset;
   
-  $multiplier = .5 * (2 * $level); //0 = .5, 1 = 1, 2=2
+  $multiplier = .5 * ((2 * $level) || 1); //0 = .5, 1 = 1, 2=2
   
   if($multiplier > 1){ $multiplier = 1; }
-  
+    
   foreach($preset['config'] as $key=>$value){
-    $preset['config'][$key]['threshold'] = $value['threshold'] * $multiplier;
+    $preset['config'][$key]['threshold'] = round($value['threshold'] * $multiplier, 2);
   }
   
   //figure out which fields (if any) are already attached
@@ -63,17 +63,41 @@ function opencalais_export_apply_preset($preset, $content_type, $level=1, $add_o
 } 
 
 /**
+ *  Removes all the fields from a preset on a content type
+ */
+function opencalais_export_apply_preset_inverse($preset, $content_type){
+  $current = opencalais_get_fields_for_content_type($content_type);
+  
+  foreach($preset as $key=>$value){
+    $machine_name = _opencalais_make_machine_name($key);
+    $preset[$machine_name] = $value;
+  }
+  $to_rem = array();
+  foreach($current as $key=>$setting){
+    if(isset($preset[$name])){
+      $key = str_ireplace('_', '', $key);
+      $to_rem[$key] = $setting; 
+    }
+  }
+  
+  opencalais_remove_fields($content_type, $to_rem);
+}
+
+/**
  *  Helper function to find fields in current fields not in presets for removal
  */
 function _opencalais_export_array_diff($preset, $current){
   $ret = array();
   //make sure we have comparable keys
   foreach($preset as $key=>$value){
-    $preset[_opencalais_make_machine_name($key)] = $value;
+    $machine_name = _opencalais_make_machine_name($key);
+    $preset[$machine_name] = $value;
   }
   
   foreach($current as $key => $setting){
     if(!isset($preset[$key])){
+      $key = str_ireplace('_', '', $key);
+      
       $ret[$key] = $setting;
     }
   }
@@ -148,19 +172,54 @@ function opencalais_export_check_name($name){
 }
 
 /**
+ *  Simple wrapper function to reutrn a boolean
+ */
+function opencalais_export_check_name_exists($name){
+  return opencalais_export_check_name($name) ? TRUE : FALSE;
+}
+
+/**
  *  Save a preset on submit from the preset button
  */
-function opencalais_export_form_validate($form, &$form_state){
-  if($form_state['values']['op'] == $form_state['values']['apply_preset']){
-
-    $content_type = $form_state['values']['content_type'];
-    $preset_name = $form_state['values']['preset_name'];
+function opencalais_export_form_submit($form, &$form_state){
+  $content_type = $form_state['values']['content_type'];
+  $preset_name = $form_state['values']['preset_name'];
+  
+  $level = $form_state['values']['preset_value'];
+  $add_only = ($form_state['values']['preset_add_only']) ? TRUE : FALSE;
+  
+  $preset = (array)opencalais_export_load_preset($preset_name);
+   
+  //create a pseudo-confirm step here to ensure that they actually want to save the form even though data will be lost  
+  // We're doing this instead of the confirm form since we're not really confirming the whole form. Only a certain kind of submit.
+  if(!$add_only && $to_rem && !isset($form_state['storage']['confirm']) ){
+    //figure out which fields (if any) are already attached and what will end up being removed
+    $current_fields = opencalais_get_fields_for_content_type($content_type);
+    $to_rem = array_keys(_opencalais_export_array_diff($preset[$preset_name]->config, $current_fields));
     
-    $level = $form_state['values']['preset_value'];
-    $add_only = ($form_state['values']['preset_add_only']) ? TRUE : FALSE;
-            
-    $preset = (array)opencalais_export_load_preset($preset_name);
-
+    if(!$to_rem){ 
+      $message = t('Applying this preset could result in the loss of data. Any fields not in this preset will be removed and their data lost permanently. This cannot be undone.');
+      $message .= '<br/><br/>';
+      //this theming turns out a bit weird with the rest - might want to use something else
+      $message .= theme_item_list(array(
+        'items'=>$to_rem, 
+        'title'=>t('Fields that will be removed:'), 
+        'type'=>'ul', 
+        'attributes'=>array()
+      ));
+      
+      $message .= '<strong>';
+      $message .= t('Please click \'@button_name\' again to confirm and remove these fields.', array('@button_name'=>$form['preset']['apply_preset']['#value']));
+      $message .= '</strong>';
+       
+      drupal_set_message($message, 'warning');
+      
+      $form_state['storage']['confirm'] = TRUE;
+      $form_state['rebuild'] = TRUE; 
+      return;
+    }
+  } 
+  else {
     if($preset){
       $preset = $preset[$preset_name];
       
@@ -220,27 +279,30 @@ function opencalais_form_opencalais_add_fields_form_alter(&$form, &$form_state, 
   $form['preset']['preset_value'] = array(
     '#type' => 'select',
     '#options' => array(
-      '0' => 'Low',
-      '1' => 'Normal',
-      '2' => 'High'
+      '0' => 'Low (Half of Default)',
+      '1' => 'Normal (Default)',
+      '2' => 'High (Double Default)'
     ),
     '#title' => t('Threshold Level'),
-    '#description' => t('The level to set the threshold at, compared to the default.  The lower the threshold, the more terms that will be returned.'),
+    '#description' => t('The level to set the threshold at, compared to the default.  This simply multiplies the default values by either .5, 1 or 2 depending on what value you select. The lower the threshold, the more terms that will be returned.'),
     '#default_value' => 1
   );
   
   $form['preset']['preset_add_only'] = array(
     '#type' => 'checkbox',
     '#title' => t('Only Add and Update Fields'),
-    '#description' => t('Do not remove any fields that aren\'t included in the selected preset')
+    '#description' => t('Do not remove any fields that aren\'t included in the selected preset'),
+    '#default_value' => 1
   );
   
   $form['preset']['apply_preset'] = array(
     '#type' => 'submit',
-    '#value' => 'Apply Selected Preset'
+    '#value' => 'Apply Selected Preset',
+    '#submit' => array('opencalais_export_form_submit')
   );
-    
-  $form['#validate'][] = 'opencalais_export_form_validate';
+  
+  //add some js so we can have the confirm delete behavior here:
+  drupal_add_js(array('opencalais'=>array('confirm_delete'=>TRUE)), 'setting');
 }
 
 /**

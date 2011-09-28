@@ -153,11 +153,9 @@ function opencalais_create_vocabulary($entity) {
       try{
         if(!field_read_instance('taxonomy_term', $instance['field_name'], $machine)){
           field_create_instance($instance);
-          drupal_set_message(t('OpenCalais MetaData Field for '.$readable.' has been successfully created'));
         } else {
           //If the field already exists then we should just update it
           field_update_instance($instance);
-          drupal_set_message(t('OpenCalais MetaData Field for %field has been successfully updated', array('%field' => $readable)));
         }
       } catch (FieldException $f){
         drupal_set_message('Error creating MetaData Field: ' . $f->getMessage(), $type = 'error');
@@ -218,15 +216,32 @@ function opencalais_remove_fields($content_type, $fields){
   foreach($fields as $vname => $vocab){
     //add the field 
     $name = substr($vname, 0, 15);  
-    $instance['field_name'] = 'opencalais_'.$name.'_tags';
-    $instance['bundle'] = $content_type;
-    $instance['entity_type'] = 'node';
-    
-    field_delete_instance($instance);
+    _opencalais_remove_field_by_name($content_type, $name);
     drupal_set_message('OpenCalais Field for ' . $vname . ' has been successfully deleted');
   }
 }
 
+/**
+ *  Helper function to remove a field by its field name
+ */
+function _opencalais_remove_field_by_name($content_type, $name){
+  $instance['field_name'] = $name;
+  $instance['bundle'] = $content_type;
+  $instance['entity_type'] = 'node';
+  
+  field_delete_instance($instance);
+}
+
+/**
+ *  function to remove all opencalais fields on a content type
+ */
+function opencalais_remove_all_fields($content_type){
+  $fields = opencalais_get_fields_for_content_type($content_type);
+  foreach($fields as $name=>$info){
+    $field_name = $info['field'];
+    _opencalais_remove_field_by_name($content_type, $field_name);
+  }
+} 
 
 //Purely utility functions
 

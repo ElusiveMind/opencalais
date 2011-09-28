@@ -34,17 +34,21 @@ function opencalais_export_presets_form(&$form, &$form_state){
   $form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Preset Title'),
-    '#description' => t('Title for this preset.'),
+    '#description' => t(' A unique title for this preset.'),
     '#default_value' => isset($item->title) ? $item->title : '',
     '#weight' => 0,
   );
   
   $form['name'] = array(
-    '#type' => 'textfield',
+    '#type' => 'machine_name',
     '#title' => t('Preset Machine Name'),
     '#required' => TRUE,
     '#description' => t('A unique machine name for this preset.'),
     '#default_value' => isset($item->name) ? $item->name : '',
+    '#machine_name' => array(
+      'exists' => 'opencalais_export_check_name_exists',
+      'source' => array('title'),
+    ),
     '#weight' => 1,
   );
   
@@ -74,19 +78,21 @@ function opencalais_export_presets_form(&$form, &$form_state){
   $entities = $opencalais_entities;
   sort($entities);
   
-  $entity_defaults = isset($item->config) ? $item->config : array();
+  //drupal_set_message('<pre>'.print_r($item, true).'</pre>');
+  
+  $entity_defaults = isset($item->config['entities']) ? $item->config['entities'] : array();
   
   foreach ($entities as $entity) {
-    $machine_name = _opencalais_make_machine_name($entity);
-    $defaults = isset($entity_defaults[$entity]) ? $entity_defaults[$entity] : $entity_defaults;
-
     //load in defaults for existing fields
-    $defaults['enabled'] = isset($entity_defaults[$entity]) ? TRUE : FALSE;
-    $defaults['threshold'] = isset($entity_defaults[$entity]['threshold']) ? $entity_defaults[$entity]['threshold'] : 0;
+    $machine_name = _opencalais_make_machine_name($entity);
+    $defaults = array();
+      
+    $defaults['enabled'] = $entity_defaults[$entity]['enabled'] == 1;
+    $defaults['threshold'] = $entity_defaults[$entity]['threshold'];
         
     $form['info']['config']['entities'][$entity]['existing'] = array(
       '#type' => 'hidden',
-      '#value' => isset($existing[$machine_name]) ? TRUE : FALSE
+      '#value' => $defaults['enabled']
     );
     
     $form['info']['config']['entities'][$entity]['enabled'] = array(
@@ -116,4 +122,22 @@ function opencalais_export_presets_form_validate(&$form, &$form_state){
 
 function opencalais_export_presets_form_submit(&$form, &$form_state){
 
+  $form_state['item']->name = $form_state['values']['name'];
+  $form_state['item']->title = $form_state['values']['title'];
+  $form_state['item']->description = $form_state['values']['description'];
+  $form_state['item']->process = 0;
+  $form_state['item']->config = _opencalais_export_presets_process_config($form_state['values']['config']);
+
+}
+
+function _opencalais_export_presets_process_config($config){
+  $settings = array();
+  foreach($config['entities'] as $name=>$item){
+    if($item['threshold']){
+      $settings[_opencalais_make_machine_name($name)] = array(
+        'threshold' => $item['threshold']
+      );
+    }  
+  }
+  return $settings; 
 }

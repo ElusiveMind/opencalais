@@ -63,9 +63,14 @@ Drupal.behaviors.opencalaisEntityConfig = {
         $('input', this).each(function(){
           if(this.type == 'hidden' && this.value){
             $(row).addClass('existing');
+                     
             $('.form-checkbox', row).click(function(e){
               if(!this.checked){
-                this.checked = !confirm('When you save the form, this field and all its data will be removed from this content type. Continue?');
+                if(Drupal.settings.oepncalais && Drupal.settings.opencalais.confirm_delete){
+                  this.checked = !confirm('When you save the form, this field and all its data will be removed from this content type. Continue?');
+                } else { 
+                  this.checked = false;
+                }
                 if(!this.checked){
                   $(row).addClass('deleted');
                 } 
@@ -74,6 +79,7 @@ Drupal.behaviors.opencalaisEntityConfig = {
                 $(row).removeClass('deleted');
               }
             });
+
           }
         });
         this.processedExisting = true;

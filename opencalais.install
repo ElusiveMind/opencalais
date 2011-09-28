@@ -20,6 +20,40 @@ function opencalais_install() {
  * Implements hook_uninstall().
  */
 function opencalais_uninstall() {
+  //Remove all the fields we've created
+  if(variable_get('opencalais_rm_fields', FALSE)){
+    drupal_load('module', 'field');
+    drupal_load('module', 'opencalais');
+    drupal_load('module', 'taxonomy');
+    
+    $content_types = _opencalais_get_content_types();
+    foreach($content_types as $ct=>$info){
+      opencalais_remove_all_fields($ct);
+    }
+    $entities = opencalais_get_all_entities();
+    foreach($entities as $name){
+      $machine = _opencalais_make_machine_name($name);
+      $vocabulary = taxonomy_vocabulary_machine_name_load($machine);
+      
+      if(isset($vocabulary->vid)){
+        try{
+          taxonomy_vocabulary_delete($vocabulary->vid);
+        } catch(Exception $e){
+          //this may be a PDO exception related to https://drupal.org/node/1007830
+          //do nothing
+        }
+      }
+    }
+  }
+  
+  //remove all our variables
+  global $conf;
+  foreach (array_keys($conf) as $key) {
+    // It's important to use === instead of == with strpos()
+    if (strpos($key, 'opencalais_') === 0) {
+      variable_del($key);
+    }
+  }
 }
 
 /**

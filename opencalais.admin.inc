@@ -14,23 +14,23 @@ function opencalais_admin_general_settings() {
     '#description' => t('This will move all of the OpenCalais related Tag fields on the edit form into a Vertical Tab toward the bottom of the form entitled "Show OpenCalais Tags"'), 
     '#default_value' => variable_get('opencalais_tags_in_verticaltab', 1),
   );    
+  /*
   $form['opencalais_lookup_uri'] = array(
     '#type' => 'checkbox',
     '#title' => t('Lookup Linked Open Data URI'),
     '#description' => t('If checked, an additional HTTP request will be made for each disambiguated entity to find the Linked Open Data URIs to DBPedia, Freebase, etc.  It does involve additional requests to external servers.  If you don\'t know what this is, you should leave it disabled.'),
     '#default_value' => variable_get('opencalais_lookup_uri', 0),
   );
-  
-  $form['opencalais_bulk_processing_enabled'] = array(
+  */
+  $form['opencalais_rm_fields'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Bulk Processing on Cron'),
-    '#description' => t('Enable bulk processing of nodes for content types with auto tagging enabled.  This processing will happen in batches
-      during cron runs until complete.'),
-    '#default_value' => variable_get('opencalais_bulk_processing_enabled', FALSE)
+    '#title' => t('Remove all OpenCalais fields when OpenCalais is uninstalled [WARNING]'),
+    '#description' => t('This will remove all fields and vocabularies that OpenCalais has created when the module is uninstalled. THIS WILL RESULT IN LOSS OF ALL TAGS IF OPENCALAIS IS UNINSTALLED. Use Caution.'),
+    '#default_value' => variable_get('opencalais_rm_fields', 0),
   );
-
+  
   $form['help_text'] = array(
-    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
+    '#markup' => '<div class="messages">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
       '<br/><br/>' . l('Content Types Edit Screen', 'admin/structure/types') .
       '</div>'
   );
