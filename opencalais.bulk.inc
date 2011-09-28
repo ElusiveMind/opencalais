@@ -5,8 +5,6 @@
  *  Makes use of the bulk operations api
  */
 
-//Controls how many nodes will be processed per cron run
-define('OPENCALAIS_PROCESS_COUNT', 25);
  
 /**
  *  Create a queue of all the nodes that need to be tagged, 
@@ -40,7 +38,7 @@ function opencalais_queue_add_items($content_type){
     $queue->createItem(array('nid' => $nid));
     $count++;
   }
-  if(isset($nid)){
+  if($count){
     $processed = variable_get('opencalais_processed', array());
     $processed[$content_type] = $nid;
     variable_set('opencalais_processed', $processed);
@@ -83,7 +81,8 @@ function opencalais_queue_get_progress(){
     return t('All queued nodes have been processed.');
   }
   else {
-    return t('%n nodes remaining in the queue.  These items will be processed %max at a time during cron runs.', array('%n'=> $items, '%max'=>OPENCALAIS_PROCESS_COUNT));
+    
+    return t('%n nodes remaining in the queue.  These items will be processed %max at a time during cron runs.', array('%n'=> $items, '%max' => variable_get('opencalais_bulk_process_limit', 25)));
   }
 }
 
@@ -93,7 +92,7 @@ function opencalais_queue_get_progress(){
  */
 function opencalais_queue_cron(){
   $queue = DrupalQueue::get('opencalais_tagging_queue');
-  $count = OPENCALAIS_PROCESS_COUNT;
+  $count = variable_get('opencalais_bulk_process_limit', 25);
   while($count--){
     $item = $queue->claimItem(15);
     if(!$item){
@@ -134,6 +133,23 @@ function opencalais_bulk_operations_form(){
     '#markup' => '<div class="messages status>'.opencalais_queue_get_progress().'</div>'
   );
   
+  
+  $form['configarea']['opencalais_bulk_process_limit'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Nodes per cron run'),
+    '#description' => t('How many nodes to process during a cron run. Setting this too high may result in timeouts on your cron run'),
+    '#default_value' => variable_get('opencalais_bulk_process_limit', 25),
+    '#required' => TRUE,
+  );
+  
+  $form['configarea']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Configuration'),
+  );
+  
+  $form['#submit'][] = 'opencalais_save_bulk_settings';
+  $form['#validate'][] = 'opencalais_validate_bulk_settings';
+  
   $form['types'] = array(
     '#type' => 'fieldset',
     '#title' => t('Process Content Types'),
@@ -145,7 +161,10 @@ function opencalais_bulk_operations_form(){
   
   foreach($available_types as $type){
     $form['types']['opencalais_queue_content_type_'.$type] = array(
-      '#markup' => '<li>Process all (remaining) '. l($type . ' nodes', 'admin/config/content/opencalais/bulk/'.$type, array('absolute'=>TRUE, 'class'=>array('button'))) . '.</div>',
+      '#markup' => '<li>' . t('Process all (remaining) @type', 
+        array(
+          '@type'=> l($type . ' nodes', 'admin/config/content/opencalais/bulk/' . $type, array( 'absolute' => TRUE, 'class' => array( 'button') ) )
+        )) . '.</div>',
     );
   }
   return $form;
@@ -183,4 +202,20 @@ function opencalais_get_messages(){
   //empty the queue
   variable_set('opencalais_message_queue', array());
 }
- 
+
+
+/**
+ *  Save the values from the bulk settings form opencalais_bulk_operations_form
+ */
+function opencalais_save_bulk_settings($form, &$form_state){
+  variable_set('opencalais_bulk_process_limit', $form_state['values']['opencalais_bulk_process_limit']);
+}
+
+/**
+ *  Ensure that our process limit is numeric and greater than 0
+ */
+function opencalais_validate_bulk_settings($form, &$form_state){
+  if(!is_numeric($form_state['values']['opencalais_bulk_process_limit']) || !$form_state['values']['opencalais_bulk_process_limit'] > 0){
+    form_set_error('opencalais_bulk_process_limit', t('Nodes per cron run must be a number greater than 0'));
+  }
+}

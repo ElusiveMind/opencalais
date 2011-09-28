@@ -67,14 +67,15 @@ function opencalais_export_apply_preset($preset, $content_type, $level=1, $add_o
  */
 function opencalais_export_apply_preset_inverse($preset, $content_type){
   $current = opencalais_get_fields_for_content_type($content_type);
-  
+  $preset = $preset->config;
   foreach($preset as $key=>$value){
     $machine_name = _opencalais_make_machine_name($key);
     $preset[$machine_name] = $value;
   }
+  
   $to_rem = array();
   foreach($current as $key=>$setting){
-    if(isset($preset[$name])){
+    if(isset($preset[$key])){
       $key = str_ireplace('_', '', $key);
       $to_rem[$key] = $setting; 
     }
