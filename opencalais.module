@@ -2,27 +2,12 @@
 /**
  * @file opencalais.module
  */
- 
+
 //Include the utils file which provides all the field utility functions required to create and remove fields, and some purely utility functions
 include_once('opencalais.utils.inc');
 
 include_once('opencalais.export.inc');
 
-// Request constants
-define('CALAIS_REQUEST_NO',             0);
-define('CALAIS_REQUEST_MANUAL',         1);
-define('CALAIS_REQUEST_AUTO',           2);
-define('CALAIS_REQUEST_AUTO_PUBLISHED', 3);
- 
-// Constants for how to apply tags once retrieved
-define('CALAIS_PROCESS_MANUAL', 0);
-define('CALAIS_PROCESS_AUTO',   1);
- 
-define('CALAIS_WATCHDOG', 'OpenCalais');
- 
-// Node Build Mode Contant
-define('CALAIS_PROCESSED', TRUE);
-  
 /**
  * Implements hook_permission().
  */
@@ -30,7 +15,7 @@ function opencalais_permission() {
   return array(
     'administer opencalais' => array(
       'title' => t('Administer OpenCalais'),
-      'description' => t('Add and remove OpenCalais Fields and change OpenCalais settings.') 
+      'description' => t('Add and remove OpenCalais Fields and change OpenCalais settings.')
     )
   );
 }
@@ -40,7 +25,7 @@ function opencalais_permission() {
  */
 function opencalais_menu() {
   $items = array();
-  
+
   $items['admin/config/content/opencalais/tagging'] = array(
     'title' => 'Tagging',
     'description' => 'Configure Entity Tagging',
@@ -50,7 +35,7 @@ function opencalais_menu() {
     'file' => 'opencalais.admin.inc',
     'type' => MENU_LOCAL_TASK,
   );
-  
+
   $items['admin/structure/types/manage/%/opencalais_fields'] = array(
     'title' => 'OpenCalais Fields',
     'page callback' => 'drupal_get_form',
@@ -59,7 +44,7 @@ function opencalais_menu() {
     'file' => 'opencalais.admin.inc',
     'type' => MENU_LOCAL_TASK,
   );
-  
+
   $items['admin/config/content/opencalais/bulk'] = array(
     'title' => 'Bulk Operations',
     'page callback' => 'drupal_get_form',
@@ -68,7 +53,7 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_LOCAL_TASK
   );
-  
+
   $items['admin/config/content/opencalais/bulk/%'] = array(
     'title' => t('Process Content Type'),
     'page callback' => 'opencalais_add_items_to_queue_callback',
@@ -77,7 +62,7 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_CALLBACK
   );
-  
+
   return $items;
 }
 
@@ -130,7 +115,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
    
     $themed_suggestions = theme('opencalais_suggestions', $vars); 
     $form[$field_name]['#suffix'] = $themed_suggestions;
-    if($auto){
+    if ($auto) {
       $form[$field_name][$form[$field_name]['#language']]['#default_value'] = _opencalais_make_field_values($suggestions);
     }
     
@@ -138,7 +123,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
   }
   $form_state['opencalais_extras'] = $extra;
   
-  if($fields){
+  if ($fields) {
     $path = drupal_get_path('module', 'opencalais');
     $form['actions']['suggest_tags'] = array(
       '#type' => 'submit', 
@@ -190,24 +175,26 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
  *
  *  TODO: See if we can also add in the addition of the disambiguation information here
  */
-function opencalais_node_form_submit($form, &$form_state){
-  if(isset($form_state['opencalais_building']) && $form_state['opencalais_building']){ return; }
-  
+function opencalais_node_form_submit($form, &$form_state) {
+  if (isset($form_state['opencalais_building']) && $form_state['opencalais_building']) { 
+    return; 
+  }
+
   $content_type = $form_state['values']['type'];
-    
+
   //Add extra meta data to the taxonomy term items
   $lang = $form['language']['#value'];
   //find the the extra fields with extra values
   $extras = $form_state['opencalais_extras'];
 
-  foreach($extras as $field=>$value){
-    if(isset($form_state['values'][$field])){
+  foreach ($extras as $field=>$value) {
+    if (isset($form_state['values'][$field])) {
 
       $field_values = $form_state['values'][$field][$lang];
-      foreach($field_values as $i=>$v){
-        if(isset($extras[$field][$v['name']])){
+      foreach ($field_values as $i => $v) {
+        if (isset($extras[$field][$v['name']])) {
           $eV = $extras[$field][$v['name']]['extra'];
-          foreach($eV as $n=>$extra_val){
+          foreach ($eV as $n=>$extra_val) {
             $form_state['values'][$field][$lang][$i][$n][$lang] = array();
             $form_state['values'][$field][$lang][$i][$n][$lang][] = array('value' => $extra_val);
           }//end foreach
@@ -215,7 +202,6 @@ function opencalais_node_form_submit($form, &$form_state){
       }//end foreach
     }
   } //end foreach
-  
 }
 
 /** 
@@ -228,8 +214,8 @@ function opencalais_node_presave($node){
   $content_type = $node->type;
   $auto = variable_get('opencalais_autotagging', array());
   $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
-  
-  if($auto && !_opencalais_already_tagged($node)){
+
+  if ($auto && !_opencalais_already_tagged($node)) {
     $fields = opencalais_get_fields_for_content_type($node->type);
 
     $suggestions = array();
@@ -243,7 +229,7 @@ function opencalais_node_presave($node){
           $node->language => array()
         );
       
-        foreach($suggestions as $term=>$meta){
+        foreach ($suggestions as $term=>$meta) {
           $term = _opencalais_create_term($term, $real_field, $node, $meta);
           $node->{$name}[$node->language][] = $term;
         }
@@ -262,7 +248,9 @@ function opencalais_node_presave($node){
 function opencalais_get_opencalais_tag_fields($form, $entity, $bundle) {
   $fields = array();
   $entities = opencalais_get_all_entities();
-  foreach($entities as $key=>$item) $entities[$key] = _opencalais_make_machine_name($item);
+  foreach ($entities as $key=>$item) {
+    $entities[$key] = _opencalais_make_machine_name($item);
+  }
   $instances = field_info_instances($entity, $bundle);
   foreach ($instances as $field_name => $instance) {
     
@@ -311,7 +299,7 @@ function opencalais_suggest_tags_callback($form, &$form_state, $norebuild=FALSE)
   }
   
   $form_state['opencalais_extras'] = $extra;
-  if(!$norebuild){
+  if (!$norebuild) {
     $form_state['rebuild'] = TRUE;
 
     /**
@@ -341,7 +329,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
     $suggestions = $tag_cache[$node->ocid];    
   }
   else {
-    if(!$node->title){
+    if (!$node->title) {
       //we need some way to break out if its a node being prepped to show on the node form (with no content)
       return;
     }
@@ -371,7 +359,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
       $terms = array();  
       $machine_name = _opencalais_make_machine_name($type);
       
-      if(isset($fields[$machine_name])){
+      if (isset($fields[$machine_name])) {
         $settings = field_info_instance('node', $fields[$machine_name]['field'], $node->type);
         foreach ($metadata->terms as $guid => $term) {
           //only add it if its relevant
@@ -390,7 +378,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
   $tag_cache[$node->ocid] = $suggestions;
   
   //Return the suggestions - for the oc type if its set or all of them
-  if(isset($opencalais_type)){
+  if (isset($opencalais_type)) {
     return isset($suggestions[$opencalais_type]) ? $suggestions[$opencalais_type] : array();
   } else {
     return $suggestions;
@@ -402,7 +390,7 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
  */
 function opencalais_check_suggestion($settings, $term){
   
-  if($settings && is_array($settings['settings']) && isset($settings['settings']['threshold'])){
+  if ($settings && is_array($settings['settings']) && isset($settings['settings']['threshold'])) {
     return $settings['settings']['threshold'] <= $term->relevance;
   }
 }
@@ -439,7 +427,6 @@ function opencalais_get_all_entities() {
   }
   else {
     // Defaults
-    //TODO: These aren't in the right format
     $entities = array(
       'Anniversary',
       'City',
@@ -501,7 +488,7 @@ function opencalais_get_all_entities() {
  */    
 function opencalais_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id){
   //only show the threshold editor for nodes created by opencalais (nodes that already have a threshold and have the correct name)
-  if(isset($form['#instance']['settings']['threshold']) && stristr($form['#field']['field_name'], 'opencalais_')){
+  if (isset($form['#instance']['settings']['threshold']) && stristr($form['#field']['field_name'], 'opencalais_')) {
     $form['instance']['settings']['threshold'] = array(
       '#type' => 'textfield',
       '#title' => t('OpenCalais Threshold Value'),
@@ -520,7 +507,7 @@ function opencalais_form_field_ui_field_edit_form_alter(&$form, &$form_state, $f
  */
 function opencalais_check_threshold($form, $form_state){
   $threshold = $form_state['values']['instance']['settings']['threshold'];
-  if(!isset($threshold) || $threshold < 0 || $threshold > 1){
+  if (!isset($threshold) || $threshold < 0 || $threshold > 1) {
     form_set_error('instance[settings][threshold]', 'Threshold must be between 0 and 1');
   } 
 }
@@ -530,7 +517,7 @@ function opencalais_check_threshold($form, $form_state){
  *  Proprocessor for the system_settings form form to move OpenCalais Terms to the sidebar (for rubik)
  */
 function opencalais_preprocess_system_settings_form(&$variables){
-  if($variables['form']['#form_id'] == 'opencalais_add_fields_form'){
+  if ($variables['form']['#form_id'] == 'opencalais_add_fields_form') {
     //push the help into the sidebar - this will work on rubik - not sure what else right now.
     $variables['sidebar'][] = $variables['form']['help'];
     unset($variables['form']['help']);
@@ -542,7 +529,7 @@ function opencalais_preprocess_system_settings_form(&$variables){
  *  Function to handle the submit from the add_fields form
  */
 function opencalais_add_fields_submit($form, &$form_state){
-  if(!isset($form_state['opencalais_processed']) || !$form_state['opencalais_processed']){
+  if (!isset($form_state['opencalais_processed']) || !$form_state['opencalais_processed']) {
         
     $content_type = $form_state['values']['content_type'];
     
@@ -569,11 +556,11 @@ function opencalais_get_extra_fields($vocab){
   $company = array('Company');
   $product = array('Product');
   
-  if(in_array($vocab, $geo)){
+  if (in_array($vocab, $geo)) {
     return array('Latitude', 'Longitude', 'ContainedByState', 'ContainedByCounty');
-  } else if(in_array($vocab, $company)){
+  } else if (in_array($vocab, $company)) {
     return array('Ticker', 'LegalName');
-  } else if(in_array($vocab, $product)){
+  } else if (in_array($vocab, $product)) {
     return array();
   }
 }

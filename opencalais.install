@@ -2,12 +2,14 @@
 /**
  * @file opencalais.install
  */
- 
+
 /**
  * Implements hook_install().
  */
 function opencalais_install() {
+  //unsure if we still need this. todo: investigate
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'opencalais'");
+  
   foreach (opencalais_get_all_entities() as $entity) {
     opencalais_create_vocabulary($entity);
   }
@@ -112,7 +114,7 @@ function opencalais_update_7001(){
    $new_auto = variable_get('opencalais_autotagging', array());
    foreach($content_types as $ct=>$info){
      $auto = variable_get('opencalais_' . $ct . '_autotagging', FALSE);
-     if($auto){
+     if ($auto) {
        $new_auto[$ct] = $auto == 'automatic' ? 1 : 0;
      }
      variable_del('opencalais_'.$ct.'_autotagging');
