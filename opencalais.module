@@ -375,6 +375,9 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
     }   
   }
 
+  //Allow other modules to alter the suggestions before they are cached.
+  drupal_alter('opencalais_tags', array('content_type' => $node->type, 'suggestions' => $suggestions));
+
   $tag_cache[$node->ocid] = $suggestions;
   
   //Return the suggestions - for the oc type if its set or all of them
