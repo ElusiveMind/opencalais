@@ -62,7 +62,25 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_CALLBACK
   );
-
+  
+ $items['admin/config/content/opencalais/filters'] = array(
+   'title' => 'OpenCalais Filters',
+   'page callback' => 'drupal_get_form',
+   'page arguments' => array('opencalais_filters_config_form'),
+   'access arguments' => array('administer opencalais'),
+   'file' => 'opencalais.filters.inc',
+   'type' => MENU_LOCAL_TASK
+ );
+ 
+ $items['admin/config/content/opencalais/filters/%'] = array(
+   'title' => t('Configure Filter'),
+   'page callback' => 'opencalais_filters_configure_filter',
+   'page arguments' => array(5),
+   'access arguments' => array('administer opencalais'),
+   'file' => 'opencalais.filters.inc',
+   'type' => MENU_NORMAL_ITEM
+ );
+ 
   return $items;
 }
 
@@ -376,8 +394,11 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
   }
 
   //Allow other modules to alter the suggestions before they are cached.
-  drupal_alter('opencalais_tags', array('content_type' => $node->type, 'suggestions' => $suggestions));
-
+  $data = array('content_type' => $node->type, 'tags' => $suggestions);
+  drupal_alter('opencalais_tags', $data);
+  //not sure we need this - but lets be sure
+  $suggestions = $data['tags'];
+  
   $tag_cache[$node->ocid] = $suggestions;
   
   //Return the suggestions - for the oc type if its set or all of them
@@ -574,4 +595,14 @@ function opencalais_get_extra_fields($vocab){
 function opencalais_cron(){
   module_load_include('inc', 'opencalais', 'opencalais.bulk');
   opencalais_queue_cron();
+}
+
+/**
+ *  Implements hook_opencalais_tags_alter()
+ *
+ *  calls our apply filters function to alter the tags
+ */
+function opencalais_opencalais_tags_alter(&$data){
+  module_load_include('inc', 'opencalais', 'opencalais.filters');
+  opencalais_filters_apply_filters($data['tags'], $data['content_type']);
 }
