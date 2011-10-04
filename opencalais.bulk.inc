@@ -147,6 +147,10 @@ function opencalais_bulk_operations_form(){
     '#value' => t('Save Configuration'),
   );
   
+  $form['break'] = array(
+    '#markup' => '<br/><br/>',
+  );
+  
   $form['#submit'][] = 'opencalais_save_bulk_settings';
   $form['#validate'][] = 'opencalais_validate_bulk_settings';
   
@@ -161,10 +165,9 @@ function opencalais_bulk_operations_form(){
   
   foreach($available_types as $type){
     $form['types']['opencalais_queue_content_type_'.$type] = array(
-      '#markup' => '<li>' . t('Process all (remaining) @type', 
-        array(
-          '@type'=> l($type . ' nodes', 'admin/config/content/opencalais/bulk/' . $type, array( 'absolute' => TRUE, 'class' => array( 'button') ) )
-        )) . '.</div>',
+      '#markup' => '<li>' . t('Process all (remaining)') . ' ' . 
+        l($type . ' nodes', 'admin/config/content/opencalais/bulk/' . $type, array( 'absolute' => TRUE, 'class' => array( 'button') ) )
+        . '.</div>',
     );
   }
   return $form;

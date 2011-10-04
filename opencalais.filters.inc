@@ -101,7 +101,7 @@ function opencalais_filters_config_form(){
   }
   
   $form['config'] = array(
-    '#type' => 'fieldset',
+    '#type' => 'vertical_tabs',
     '#title' => t('Apply Filters'),
   );
   
@@ -109,8 +109,11 @@ function opencalais_filters_config_form(){
   foreach($content_types as $type=>$info){
     $filters = opencalais_filters_get_enabled_filters($type);
     $filters = _opencalais_filters_make_options_array($filters);
-
-    $form['config'][$type] = array(
+    $form['config'][$type.'tab'] = array(
+      '#type' => 'fieldset',
+      '#title' => $info['label'],
+    );
+    $form['config'][$type.'tab'][$type] = array(
       '#type' => 'checkboxes',
       '#options' => $filter_options,
       '#title' => t('@type Filters', array('@type' => $info['label'])),
