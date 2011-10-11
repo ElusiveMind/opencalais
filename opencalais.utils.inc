@@ -137,7 +137,6 @@ function opencalais_create_vocabulary($entity) {
   
       // Create all the instances for our fields.
       // http://api.drupal.org/api/function/field_create_instance/7
-      $instance['field_name'] = $field['field_name'];
       $instance['title'] = $e;
       $instance['label'] = 'OpenCalais Metadata: ' . $e;
       $instance['description'] = $vocabulary->description;
@@ -216,6 +215,7 @@ function opencalais_remove_fields($content_type, $fields){
   foreach($fields as $vname => $vocab){
     //add the field 
     $name = substr($vname, 0, 15);  
+    $name = 'opencalais_' . strtolower($name). '_tags';
     _opencalais_remove_field_by_name($content_type, $name);
     drupal_set_message('OpenCalais Field for ' . $vname . ' has been successfully deleted');
   }

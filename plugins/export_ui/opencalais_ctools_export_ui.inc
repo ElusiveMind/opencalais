@@ -80,16 +80,16 @@ function opencalais_export_presets_form(&$form, &$form_state){
   
   //drupal_set_message('<pre>'.print_r($item, true).'</pre>');
   
-  $entity_defaults = isset($item->config['entities']) ? $item->config['entities'] : array();
+  $entity_defaults = isset($item->config) ? $item->config : array();
   
   foreach ($entities as $entity) {
     //load in defaults for existing fields
     $machine_name = _opencalais_make_machine_name($entity);
     $defaults = array();
-      
-    $defaults['enabled'] = $entity_defaults[$entity]['enabled'] == 1;
-    $defaults['threshold'] = $entity_defaults[$entity]['threshold'];
-        
+
+    $defaults['enabled'] = isset($entity_defaults[$entity]);
+    $defaults['threshold'] = isset($entity_defaults[$entity]['threshold']) ? $entity_defaults[$entity]['threshold'] : 0;
+
     $form['info']['config']['entities'][$entity]['existing'] = array(
       '#type' => 'hidden',
       '#value' => $defaults['enabled']
