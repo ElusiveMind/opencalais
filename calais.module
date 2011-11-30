@@ -250,7 +250,10 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
 
   db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
 
-  module_invoke_all('calais_preprocess', $node, $keywords);
+	foreach (module_implements('calais_preprocess') as $name) {
+	  $function = $name .'_calais_preprocess';
+	  $function($node, $keywords);
+	}
 
   $vocabularies = calais_get_entity_vocabularies($node->type);
   foreach ($keywords as $cat => $metadata) {
@@ -267,8 +270,11 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
   }
 
   calais_store_rdf($node, $node->calais->service->flatTriples);
-  module_invoke_all('calais_postprocess', $node, $keywords);
-  
+	foreach (module_implements('calais_postprocess') as $name) {
+	  $function = $name .'_calais_postprocess';
+	  $function($node, $keywords);
+	}  
+ 
   $node->calais_processed = TRUE;
 }
 
