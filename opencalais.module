@@ -145,7 +145,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
     $path = drupal_get_path('module', 'opencalais');
     $form['actions']['suggest_tags'] = array(
       '#type' => 'submit', 
-      '#value' => t('Suggest Tags'),
+      '#value' => t('Suggest tags'),
       '#prefix' => '<div class="messages status opencalais_button_holder">',
       '#suffix' => '</div>',
       '#attributes' => array('class' => array('opencalais_submit')),
@@ -165,7 +165,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
     if (variable_get('opencalais_tags_in_verticaltab', TRUE)) {
       $form['opencalais']  = array(
         '#type' => 'fieldset', 
-        '#title' => t('OpenCalais Tags'), 
+        '#title' => t('OpenCalais tags'), 
         '#collapsible' => TRUE, 
         '#collapsed' => TRUE, 
         '#group' => 'additional_settings', 
