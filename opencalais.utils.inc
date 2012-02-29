@@ -131,7 +131,7 @@ function opencalais_create_vocabulary($entity) {
           field_create_field($field);
         }
       } catch (FieldException $f){
-        drupal_set_message('Error creating MetaData Field: ' . $f->getMessage(), $type = 'error');
+        watchdog_exception('opencalais', $f);
       }
       $instance = current($text_field);
   
@@ -157,7 +157,7 @@ function opencalais_create_vocabulary($entity) {
           field_update_instance($instance);
         }
       } catch (FieldException $f){
-        drupal_set_message('Error creating MetaData Field: ' . $f->getMessage(), $type = 'error');
+        watchdog_exception('opencalais', $f);
       }
     }
   }
