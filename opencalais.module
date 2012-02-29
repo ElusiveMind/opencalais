@@ -146,7 +146,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
     $form['actions']['suggest_tags'] = array(
       '#type' => 'submit', 
       '#value' => t('Suggest tags'),
-      '#prefix' => '<div class="messages status opencalais_button_holder">',
+      '#prefix' => '<div class="opencalais_button_holder">',
       '#suffix' => '</div>',
       '#attributes' => array('class' => array('opencalais_submit')),
       '#weight' => -20,
