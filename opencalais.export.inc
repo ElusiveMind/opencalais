@@ -110,6 +110,7 @@ function _opencalais_export_array_diff($preset, $current){
  *  $name - the preset's machine name ($preset['name'])
  */
 function opencalais_export_load_preset($name){
+  ctools_include('export');
   $objects = ctools_export_load_object('opencalais_preset', 'names', array($name));
   return $objects;
 }
@@ -118,6 +119,7 @@ function opencalais_export_load_preset($name){
  *  Load all the presets
  */
 function opencalais_export_load_all_presets(){
+  ctools_include('export');
   $objects = ctools_export_load_object('opencalais_preset');
 
   return $objects;
