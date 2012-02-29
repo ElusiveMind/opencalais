@@ -113,7 +113,7 @@ function opencalais_create_vocabulary($entity) {
     $size = count($extra);
     for($i = 0; $i < $size; $i++){
       $e = $extra[$i];
-      drupal_set_message('<pre>'.print_r($e, true).'</pre>');
+
       //we just need to add these as text fields for right now
       $text_field = text_field_info();
   
