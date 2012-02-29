@@ -108,12 +108,12 @@ function opencalais_create_vocabulary($entity) {
    * @see opencalais_get_extra_fields
    */
   $extra = opencalais_get_extra_fields($entity);
-  if($extra){
+  if(!empty($extra)){
 
     $size = count($extra);
     for($i = 0; $i < $size; $i++){
       $e = $extra[$i];
-
+      drupal_set_message('<pre>'.print_r($e, true).'</pre>');
       //we just need to add these as text fields for right now
       $text_field = text_field_info();
   
@@ -140,7 +140,7 @@ function opencalais_create_vocabulary($entity) {
       $instance['title'] = $e;
       $instance['label'] = 'OpenCalais Metadata: ' . $e;
       $instance['description'] = $vocabulary->description;
-  
+      $instance['field_name'] = $field['field_name'];
       $instance['widget'] = array(
         'type' => 'text_textfield',
         'settings' => array(),
