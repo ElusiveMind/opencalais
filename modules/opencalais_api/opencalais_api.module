@@ -13,6 +13,17 @@
  * @file
  */
 
+/**
+ * Implements hook_permission().
+ */
+function opencalais_api_permission() {
+  return array(
+    'administer opencalais' => array(
+      'title' => t('Administer OpenCalais'),
+      'description' => t('Add and remove OpenCalais Fields and change OpenCalais settings.')
+    )
+  );
+}
 
 /**
  * Implements hook_init().

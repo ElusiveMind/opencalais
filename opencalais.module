@@ -9,18 +9,6 @@ include_once('opencalais.utils.inc');
 include_once('opencalais.export.inc');
 
 /**
- * Implements hook_permission().
- */
-function opencalais_permission() {
-  return array(
-    'administer opencalais' => array(
-      'title' => t('Administer OpenCalais'),
-      'description' => t('Add and remove OpenCalais Fields and change OpenCalais settings.')
-    )
-  );
-}
-
-/**
  *  Implementation of hook_menu().
  */
 function opencalais_menu() {
