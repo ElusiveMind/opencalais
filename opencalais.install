@@ -82,7 +82,7 @@ function opencalais_update_7001(){
 
    $entities = opencalais_get_all_entities();
    foreach($entities as $key=>$item){
-     $entities[$key] = opencalais_make_machine_name($item);
+     $entities[$key] = _opencalais_make_machine_name($item);
    }
 
    //fields will be an empty array if no instances are found
