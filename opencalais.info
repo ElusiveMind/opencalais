@@ -13,4 +13,4 @@ files[] = opencalais.admin.inc
 files[] = opencalais.pages.inc
 files[] = tests/opencalais.test
 
-configure = admin/config/opencalais/tagging
+configure = admin/config/content/opencalais
