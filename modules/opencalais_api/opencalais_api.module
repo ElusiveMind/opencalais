@@ -117,7 +117,7 @@ function opencalais_api_get_service($options = array(), $type = NULL) {
 */
 function is_opencalais_api_key_set($show_warning = TRUE) {
 
-  $apikey = variable_get('calais_api_key', FALSE);
+  $apikey = variable_get('opencalais_api_key', FALSE);
 
   if (empty($apikey)) {
     if ($show_warning) {
