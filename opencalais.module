@@ -345,10 +345,16 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
       $node->ocid = !empty($node->nid) ? $node->nid : uniqid();
     }
     
-    $elements = node_view($node);
-    //$body = strip_tags(drupal_render($elements));
-    $body = drupal_render($elements);
-    $date = format_date($node->created, 'custom', 'r');
+    if (!empty($node->nid)) {
+      $elements = node_view($node);
+      //$body = strip_tags(drupal_render($elements));
+      $body = drupal_render($elements);
+      $date = format_date($node->created, 'custom', 'r');
+    } 
+    else {
+      $body = $node->body[$node->language][0]['value'];
+      $date = format_date(REQUEST_TIME, 'custom', 'r');
+    }
     
     // Allow modification of the content sent to Calais
     drupal_alter("opencalais_body", $body, $node);
