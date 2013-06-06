@@ -165,7 +165,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
           
       foreach ($fields as $field_name) {
         $form['opencalais'][$field_name] = $form[$field_name];
-        unset($form[$field_name]);
+        hide($form[$field_name]);
       }
     }
     
