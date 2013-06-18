@@ -589,6 +589,7 @@ function opencalais_add_fields_submit($form, &$form_state){
 
     opencalais_create_fields($content_type, $to_add);
     opencalais_remove_fields($content_type, $to_rem);
+    
     //I'm slightly worried about batch operations causing a race condition here - we'll have to see
     $settings = variable_get('opencalais_settings', array());
     $settings['autotagging'][$content_type] = $form_state['values'][$content_type.'_autotagging'];
