@@ -93,6 +93,11 @@ function opencalais_theme($existing, $type, $theme, $path) {
       'path' => "$path/theme",
       'file' => 'theme.inc',
     ),
+    'opencalais_node_fields' => array(
+      'variables' => array('html' => NULL),
+      'path' => "$path/theme",
+      'template' => 'opencalais_node_fields',
+    ),
   );
 }
 
@@ -356,12 +361,40 @@ function opencalais_get_suggestions(&$node, $opencalais_type = NULL) {
       $date = format_date(REQUEST_TIME, 'custom', 'r');
     }
     
+    $html_array['title'] = $node->title;
+
+    // adding all text fields and text area in the node to be 
+    // evalulated in OC
+    $settings = variable_get('opencalais_settings', array());
+    $html_array['fields'] = array();
+    if (array_key_exists('node_fields', $settings)) {
+      if (array_key_exists($node->type, $settings['node_fields'])) {
+        if ((bool) $settings['node_fields'][$node->type]) {
+          $node_fields = field_info_instances('node', $node->type);
+          foreach ($node_fields as $field_name => $instance) {
+            // add all textfields and textareas
+            if ($instance['widget']['module'] === 'text') {
+              if (empty($node->{$field_name})) {
+                continue;
+              }
+              // get all of that field into the html render array
+              foreach ($node->{$field_name}[$node->language] as $item) {
+                $html_array['fields'][$field_name][] = $item['value'];
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    $html = theme('opencalais_node_fields', array('html' => $html_array));
+      
     // Allow modification of the content sent to Calais
-    drupal_alter("opencalais_body", $body, $node);
+    drupal_alter("opencalais_body", $html, $node);
         
     $opencalais = opencalais_api_get_service();
     //$tags = $opencalais->analyzeXML($node->title, $body, $date);
-    $tags = $opencalais->analyzeHTML($body);
+    $tags = $opencalais->analyzeHTML($html);
     
     //get a list of all the fields for this content type
     $fields = opencalais_get_fields_for_content_type($node->type);
@@ -548,19 +581,19 @@ function opencalais_preprocess_system_settings_form(&$variables){
  */
 function opencalais_add_fields_submit($form, &$form_state){
   if (!isset($form_state['opencalais_processed']) || !$form_state['opencalais_processed']) {
-        
+
     $content_type = $form_state['values']['content_type'];
-    
+
     $to_add = array_filter($form_state['values']['config']['entities'], '_opencalais_filter');
     $to_rem = array_filter($form_state['values']['config']['entities'], '_opencalais_delete_filter');
-    
+
     opencalais_create_fields($content_type, $to_add);
     opencalais_remove_fields($content_type, $to_rem);
     //I'm slightly worried about batch operations causing a race condition here - we'll have to see
-    $settings = variable_get('opencalais_autotagging', array());
-    
-    $settings[$content_type] = $form_state['values'][$content_type.'_autotagging'];
-    variable_set('opencalais_autotagging', $settings);
+    $settings = variable_get('opencalais_settings', array());
+    $settings['autotagging'][$content_type] = $form_state['values'][$content_type.'_autotagging'];
+    $settings['node_fields'][$content_type] = $form_state['values'][$content_type.'_node_fields'];
+    variable_set('opencalais_settings', $settings);
   }
 }
 

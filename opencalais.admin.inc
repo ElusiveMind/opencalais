@@ -69,9 +69,10 @@ function opencalais_add_fields_form($content_type){
     '#value' => str_ireplace('-', '_', $content_type),
   );
   
-  $auto = variable_get('opencalais_autotagging', array());
-  $auto = (isset($auto[$content_type]) ? $auto[$content_type] : 0);
-  
+  $settings = variable_get('opencalais_settings', array());
+  $auto = (array_key_exists('autotagging', $settings)) ? $settings['autotagging'] : array();
+  $auto = (isset($auto[$content_type])) ? $auto[$content_type] : 0;
+      
   //Settings for auto tagging
   $form[$content_type . '_autotagging'] = array(
     '#type' => 'radios',
@@ -80,6 +81,18 @@ function opencalais_add_fields_form($content_type){
     '#default_value' => $auto,
     '#options' => array( 0 => t('Manual Tagging'), 1 => t('Automatic Tagging'))
   );
+  
+  // Settings for mapping node fields
+  $node_fields = (array_key_exists('node_fields', $settings)) ? $settings['node_fields'] : array();
+  $node_fields = (isset($node_fields[$content_type])) ? $node_fields[$content_type] : 0;
+  
+  $form[$content_type . '_node_fields'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Index textfields'),
+    '#description' => t('Index all textfields/textarea on the content type'),
+    '#default_value' => $node_fields,
+  );  
+  
   $form['info'] = array(
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
@@ -151,7 +164,7 @@ function opencalais_add_fields_form($content_type){
     '#prefix' => '<div class="">',
     '#suffix' => '</div>'
   );
-  
+    
   $form['#submit'][] = 'opencalais_add_fields_submit';
   
   $form['#theme'] = 'system_settings_form';
