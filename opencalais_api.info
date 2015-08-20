@@ -1,4 +1,3 @@
-; $Id $
 name = OpenCalais API
 description = "Integration module for the OpenCalais Web Service API"
 package = "OpenCalais"
@@ -13,6 +12,6 @@ files[] = includes/SemanticProxyService.inc
 
 files[] = tests/opencalais_api.test
 
-configure = admin/config/content/opencalais
+configure = admin/config/opencalais/api
 
 dependencies[] = libraries

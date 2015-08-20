@@ -4,33 +4,46 @@
  */
  
 /**
- * Present some configuration options.
+ * Form callback for configuration options.
  */ 
-function opencalais_admin_general_settings() {
-  $form = array();
+function opencalais_admin_general_settings($form, &$form_state) {
   $form['opencalais_tags_in_verticaltab']  = array(
     '#type' => 'checkbox', 
     '#title' => t('Collect Tags into Vertical Tab'), 
     '#description' => t('This will move all of the OpenCalais related Tag fields on the edit form into a Vertical Tab toward the bottom of the form entitled "Show OpenCalais Tags"'), 
     '#default_value' => variable_get('opencalais_tags_in_verticaltab', 1),
   );    
-  /*
   $form['opencalais_lookup_uri'] = array(
     '#type' => 'checkbox',
     '#title' => t('Lookup Linked Open Data URI'),
     '#description' => t('If checked, an additional HTTP request will be made for each disambiguated entity to find the Linked Open Data URIs to DBPedia, Freebase, etc.  It does involve additional requests to external servers.  If you don\'t know what this is, you should leave it disabled.'),
     '#default_value' => variable_get('opencalais_lookup_uri', 0),
   );
-  */
-  $form['opencalais_rm_fields'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Remove all OpenCalais fields when OpenCalais is uninstalled [WARNING]'),
-    '#description' => t('This will remove all fields and vocabularies that OpenCalais has created when the module is uninstalled. THIS WILL RESULT IN LOSS OF ALL TAGS IF OPENCALAIS IS UNINSTALLED. Use Caution.'),
-    '#default_value' => variable_get('opencalais_rm_fields', 0),
+  $form['opencalais_bulk'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Bulk Processing Options',
   );
-  
+  $form['opencalais_bulk']['opencalais_bulk_processing_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Bulk Processing on Cron'),
+    '#description' => t('Enable bulk processing of nodes for content types with auto tagging enabled.  This processing will happen in batches
+      during cron runs until complete.'),
+    '#default_value' => variable_get('opencalais_bulk_processing_enabled', FALSE)
+  );
+  $form['opencalais_bulk']['opencalais_bulk_processing_count'] = array(
+    '#type' => 'textfield',
+    '#maxlength' => 4,
+    '#size' => 4,
+    '#title' => t('Number of nodes to bulk process on every cron run.'),
+    '#default_value' => variable_get('opencalais_bulk_processing_count', 25),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="opencalais_bulk_processing_enabled"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
   $form['help_text'] = array(
-    '#markup' => '<div class="messages">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
+    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
       '<br/><br/>' . l('Content Types Edit Screen', 'admin/structure/types') .
       '</div>'
   );
@@ -39,19 +52,21 @@ function opencalais_admin_general_settings() {
 }
 
 /**
-*  A form to add the fields necessary for OpenCalais to a content type.
-*/
-function opencalais_add_fields_form($content_type){
+ * A form to add the fields necessary for OpenCalais to a content type.
+ *
+ * @param string $content_type
+ *   The node (or content type) we are working with.
+ */
+function opencalais_add_fields_form($form, &$form_state, $content_type){
   //Handle any errors on the form
   if (!empty($_POST) && form_get_errors()) {
     drupal_set_message(t('The fields have not been created because of the errors.'), 'error');
   }
   
-  //try to get the content type from the arguments (or passed via menu system) (/admin/structure/types/manage/<typename>)
-  //can't do anything if its not there so just return
-  $content_type = $content_type ? $content_type : arg(4);
+  // Convert the content type from our URL structure to the machine name so Drupal can
+  // handle it.
   $content_type = str_ireplace('-', '_', $content_type);
-  if(!$content_type){ 
+  if (!isset($content_type)) { 
   
     drupal_set_message(t('An error has occured, no content type was specified'), 'error');
     return array(); 
@@ -66,38 +81,19 @@ function opencalais_add_fields_form($content_type){
   
   $form['content_type'] = array(
     '#type' => 'hidden',
-    '#value' => str_ireplace('-', '_', $content_type),
+    '#value' => $content_type,
   );
   
-  $settings = variable_get('opencalais_settings', array());
-  $auto = (array_key_exists('autotagging', $settings)) ? $settings['autotagging'] : array();
-  $auto = (isset($auto[$content_type])) ? $auto[$content_type] : 0;
-      
+  $auto = variable_get('opencalais_autotagging', array());
+  $auto = (isset($auto[$content_type]) ? $auto[$content_type] : 0);
+  
   //Settings for auto tagging
   $form[$content_type . '_autotagging'] = array(
     '#type' => 'radios',
     '#title' => t('Tagging Method'),
     '#description' => t('How should OpenCalais manage the tagging?'),
     '#default_value' => $auto,
-    '#options' => array( 0 => t('Manual Tagging'), 1 => t('Automatic Tagging'))
-  );
-  
-  // Settings for mapping node fields
-  $node_fields = (array_key_exists('node_fields', $settings)) ? $settings['node_fields'] : array();
-  $node_fields = (isset($node_fields[$content_type])) ? $node_fields[$content_type] : 0;
-  
-  $form[$content_type . '_node_fields'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Index textfields'),
-    '#description' => t('Index all textfields/textarea on the content type'),
-    '#default_value' => $node_fields,
-  );  
-  
-  $form['info'] = array(
-    '#type' => 'fieldset',
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-    '#title' => t('Category Level Settings'),
+    '#options' => array( 0 => t('Manual Tagging'), 1 => t('Automatic Tagging'), 2 => t('Automatic & Manual Tagging'))
   );
   
   $form['info']['config'] = array('#tree' => TRUE);
@@ -164,7 +160,7 @@ function opencalais_add_fields_form($content_type){
     '#prefix' => '<div class="">',
     '#suffix' => '</div>'
   );
-    
+  
   $form['#submit'][] = 'opencalais_add_fields_submit';
   
   $form['#theme'] = 'system_settings_form';

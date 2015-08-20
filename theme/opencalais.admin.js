@@ -51,7 +51,6 @@ Drupal.behaviors.opencalaisEntityConfig = {
             $(holder).removeClass('selected');
           }
         });
-                
         this.processed = true;
       }
     });
@@ -63,14 +62,9 @@ Drupal.behaviors.opencalaisEntityConfig = {
         $('input', this).each(function(){
           if(this.type == 'hidden' && this.value){
             $(row).addClass('existing');
-                     
             $('.form-checkbox', row).click(function(e){
               if(!this.checked){
-                if(Drupal.settings.oepncalais && Drupal.settings.opencalais.confirm_delete){
-                  this.checked = !confirm('When you save the form, this field and all its data will be removed from this content type. Continue?');
-                } else { 
-                  this.checked = false;
-                }
+                this.checked = !confirm('When you save the form, this field and all its data will be removed from this content type. Continue?');
                 if(!this.checked){
                   $(row).addClass('deleted');
                 } 
@@ -79,7 +73,6 @@ Drupal.behaviors.opencalaisEntityConfig = {
                 $(row).removeClass('deleted');
               }
             });
-
           }
         });
         this.processedExisting = true;

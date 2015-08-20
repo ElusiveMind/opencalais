@@ -1,5 +1,5 @@
 <?php
-// $Id$
+
 /**
  * @file CalaisRdfProcessor.inc
  *  The parser for the Calais RDF/XML responses.
@@ -29,6 +29,10 @@ class CalaisRdfProcessor {
    *    CalaisMetadata.inc
    */
   public function parse_rdf($rdf_xml) {
+    if (!class_exists('ARC2')) {
+      drupal_set_message('Unable to process, ARC2 Library is missing.', 'error');
+      drupal_goto('<front>');
+    }
     $parser = ARC2::getRDFXMLParser();
     $parser->parse(NULL, $rdf_xml);
     $this->triples = $parser->getSimpleIndex();
@@ -181,8 +185,9 @@ class CalaisRdfProcessor {
    * @param $data The indexed triple for the current Calais Term/GUID
    */
    protected function extract_categories(&$keywords, $type, $guid, $data) {
-     $cat_guid = $data['http://s.opencalais.com/1/pred/category'][0];
-     $cat_val = $data['http://s.opencalais.com/1/pred/categoryName'][0];
+   
+     $cat_guid = $data['http://s.opencalais.com/1/pred/docId'][0];
+     $cat_val = $data['http://s.opencalais.com/1/pred/name'][0];
      $cat_score = array_key_exists('http://s.opencalais.com/1/pred/score', $data)
                      ? $data['http://s.opencalais.com/1/pred/score'][0]
                      : 0;
@@ -368,7 +373,12 @@ class CalaisRdfProcessor {
     if (isset($ret->error)) {
       return array();
     }
-  
+
+    if (!class_exists('ARC2')) {
+      drupal_set_message('Unable to process, ARC2 Library is missing.', 'error');
+      drupal_goto('<front>');
+    }
+
     $parser = ARC2::getRDFXMLParser();
     $parser->parse(NULL, $ret->data);
     $triples = $parser->getSimpleIndex();
@@ -383,8 +393,7 @@ class CalaisRdfProcessor {
         }
       }
     }
-  
     return $uris;
   }
- 
+
 }

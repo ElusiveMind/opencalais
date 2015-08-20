@@ -1,5 +1,5 @@
 <?php
-// $Id: CalaisMetadata.inc,v 1.1.2.7 2009/02/06 22:32:53 febbraro Exp $
+
 /**
  * @file CalaisMetadata.inc
  */
@@ -124,7 +124,8 @@ class CalaisMetadata {
   /**
    * Takes the CamelCase type and adds spaces (to make it Camel Case)
    *
-   * @return string
+   * @return string $type
+   *   A string representation of the input type with spaces.
    */
   function readable_type() {
     return calais_api_make_readable($this->type);

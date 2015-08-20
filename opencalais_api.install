@@ -1,20 +1,8 @@
 <?php
-// $Id$
-/*
-  Copyright (C) 2010 by Phase2 Technology.
-  Author(s): Frank Febbraro, Irakli Nadareishvili
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
-*/
-/**
- * @file
- */
  
 /**
  * Implementation of hook_requirements(). 
+ *
  * Check to make sure the API key is specified and the ARC2 library is installed.
  */
 function opencalais_api_requirements($phase) {

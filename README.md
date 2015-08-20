@@ -1,5 +1,3 @@
-CALAIS
-
 INTRO
 =====
 
@@ -23,7 +21,7 @@ After this ARC2.php should live at sites/all/libraries/arc/ARC2.php
    administration -> site configuration -> modules (admin/build/modules)
 
 3) Obtain Calais API from their website: 
-   http://www.opencalais.com/user/register
+   https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser
 
 4) Add Calais API Key and tune other settings at:
    administration -> site configuration -> modules -> Calais
@@ -41,9 +39,12 @@ installed and enabled.
 CREDITS
 ========
 Written by
-  - Irakli Nadareshvili <irakli at phase2technology dot com>
-  - Frank Febbraro <frank at phase2technology dot com>
-  
+  - Irakli Nadareshvili - irakli at phase2technology dot com
+  - Frank Febbraro - frank at phase2technology dot com
+
+Maintained by:
+  - Michel R. Bagnall - mrbagnall@icloud.com  
+
 Sponsored by
   - Phase2 Technology <http://www.phase2technology.com>
   - ThomsonReuters <http://www.thomsonreuters.com/>

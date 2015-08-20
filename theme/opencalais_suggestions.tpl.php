@@ -7,7 +7,7 @@ $id = $field_name . '_suggestions';
 $for = 'edit-' . strtr(drupal_strtolower($field_name . '-' . $language), array(' ' => '-', '_' => '-', '[' => '-', ']' => ''));
 ?>
 <div id='<?php print $id; ?>' class='suggestions'>
-  <?php print t('Tag suggestions: '); ?>
+  <?php print t('Tag Suggestions: '); ?>
 <?php
   if (!empty($suggestions)):
     foreach ($suggestions as $term => $data):

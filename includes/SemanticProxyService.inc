@@ -1,5 +1,5 @@
 <?php
-// $Id: SemanticProxy.inc,v 1.1.2.2 2009/03/26 22:51:30 febbraro Exp $
+
 /**
  * @file SemanticProxy.inc
  * The main interface to the semantic proxy web service
@@ -79,13 +79,6 @@ class SemanticProxyService implements Calais {
       $this->flatTriples = $this->processor->flatTriples;
     }
     return $this->keywords;    
-  }
-
-  /**
-   *
-   */
-  public function analyzeXML($title, $body, $date) {
-    throw new Exception('Method analyzeXML is not implemented in SemanticProxyService');
   }
 
   private static function log_url_error($url) {
