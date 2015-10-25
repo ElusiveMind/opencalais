@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file CalaisRdfProcessor.inc
  *  The parser for the Calais RDF/XML responses.

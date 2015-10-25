@@ -299,7 +299,7 @@ function calais_process_with_calais(&$node) {
   }
 
   $calais = new Calais();
-  $keywords = $calais->analyzeXML($node->title, $body, $date);
+  $keywords = $calais->analyze($body);
   $node->calais->service = $calais;
 
   return $keywords;

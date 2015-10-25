@@ -6,10 +6,10 @@
 
 class Calais {
   
-  const PATH = '/enlighten/rest/';
+  const PATH = '/permid/calais';
   
   private $defaults = array(
-    'protocol' => 'http',
+    'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
@@ -41,7 +41,7 @@ class Calais {
    */
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
-    $this->defaults['host'] = variable_get('calais_api_server', 'api1.opencalais.com');
+    $this->defaults['host'] = variable_get('calais_api_server', 'api.thomsonreuters.com');
     
     $this->parameters = array_merge($this->defaults, $options);
   }
@@ -67,27 +67,43 @@ class Calais {
    * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
    */
   public function analyze($content) {
-
-    $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
-    $data    = array(
-      'licenseID' => variable_get('calais_api_key', NULL),
-      'content' => $content,
-      'paramsXML' => $this->build_xml_params(),
+  
+    $headers = array(
+      'Content-Type: text/raw',
+      'X-AG-Access-Token: ' . variable_get('calais_api_key', NULL),
+      'Content-Length: ' . strlen($content),
+      'outputformat:XML/RDF',
+    );
+    
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
+    
+    $curlOptions = array (
+      CURLOPT_URL => $uri,
+      CURLOPT_HTTPHEADER => $headers,
+      CURLOPT_SSL_VERIFYPEER => FALSE,
+      CURLOPT_RETURNTRANSFER => 1,
+      CURLOPT_POSTFIELDS => $content,
     );
 
-    $data_enc = http_build_query($data, '', '&');
-    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
-    $ret = drupal_http_request($uri, $headers, 'POST', $data_enc);
-    if (isset($ret->error)) {
-      self::log_calais_error($ret);
+    $ch = curl_init();
+    curl_setopt_array($ch,$curlOptions);
+
+    // send request and get response from api..........
+    $response = curl_exec($ch);
+    
+    if (isset($response->error)) {
+      self::log_calais_error($response);
       return array();
     }
 
-    $this->rdf = $ret->data;
+    $this->rdf = $response;
     $this->processor = new CalaisRdfProcessor();
     $this->keywords = $this->processor->parse_rdf($this->rdf);    
     $this->triples = $this->processor->triples;
-    $this->flatTriples = $this->processor->flatTriples;
+    if (isset($this->processor->flatTriples)) {  
+      $this->flatTriples = $this->processor->flatTriples;
+    }
+    
     return $this->keywords;    
   }
 

@@ -371,12 +371,17 @@ function calais_schema() {
  * Implementation of hook_uninstall().
  */
 function calais_uninstall() {
+  global $conf;
   drupal_uninstall_schema('calais');
   calais_remove_vocabularies();
 
   if (function_exists('rdf_db_delete_repository')) {
     rdf_db_delete_repository(CALAIS_RDF_REPOSITORY);
   }
+
+  db_query("DELETE FROM {variable} WHERE name LIKE '%%%s%%'", 'calais');
+  cache_clear_all('variables', 'cache');
+
 }
 
 // Update to 6.x-2.x (and migrate from 5.x if needed)

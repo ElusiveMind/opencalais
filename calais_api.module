@@ -74,7 +74,7 @@ function calais_api_admin_settings() {
   $form['calais_api_server'] = array(
     '#type' => 'textfield',
     '#title' => t('Calais Server'),
-    '#default_value' => variable_get('calais_api_server', 'api1.opencalais.com'),
+    '#default_value' => variable_get('calais_api_server', 'api.thomsonreuters.com'),
     '#size' => 60,
     '#description' => t('The domain name for the server to use.  Typically you will not have to change this unless you want to test beta functionality.'),
   );
@@ -179,56 +179,29 @@ function calais_api_rdf_namespaces() {
 }
 
 /**
- * Get a list of the entities that Calais API defines:
- * http://opencalais.mashery.com/page/calaissemanticmetadata
+ * Get a list of the entities that OpenCalais API defines.
  *
- * TODO: When Calais updates to have a static list at a URL or via API call, return that instead.
+ * As of the new API for OpenCalais, there is no dynamic way to get the list of entities.
+ * This list was taken from the API documentation, which I was told is the correct way
+ * to get this information.
  *
- * @return flat array listing of Calais entities
+ * @return array $entities
+ *   OpenCalais entities, use local defaults if they cannot be retrieved remotely.
  */
 function calais_api_get_all_entities() {
-  return array(
-    'Anniversary',
-    'City',
-    'Company',
-    'Continent',
-    'Country',
-    'Currency',
-    'EmailAddress',
-    'EntertainmentAwardEvent',
-    'Facility',
-    'FaxNumber',
-    'Holiday',
-    'IndustryTerm',
-    'MarketIndex',
-    'MedicalCondition',
-    'MedicalTreatment',
-    'Movie',
-    'MusicAlbum',
-    'MusicGroup',
-    'NaturalDisaster',
-    'NaturalFeature',
-    'OperatingSystem',
-    'Organization',
-    'Person',
-    'PhoneNumber',
-    'Position',
-    'Product',
-    'ProgrammingLanguage',
-    'ProvinceOrState',
-    'PublishedMedium',
-    'RadioProgram',
-    'RadioStation',
-    'Region',
-    'SportsEvent',
-    'SportsGame',
-    'SportsLeague',
-    'Technology',
-    'TVShow',
-    'TVStation',
-    'URL',
-    'SocialTags', // Special reserved vocab for Calais Social Tags
-    'CalaisDocumentCategory', // Special reserved vocab for Calais Document Categorization
-    'EventsFacts', // Special reserved vocab for Events & Facts
-  );
+  $entities = array(
+    'Anniversary', 'City', 'Company', 'Continent', 'Country', 'Currency', 'Editor', 
+    'EmailAddress', 'EntertainmentAwardEvent', 'Facility', 'FaxNumber', 'Holiday', 
+    'IndustryTerm', 'Journalist', 'MarketIndex', 'MedicalCondition', 'MedicalTreatment', 
+    'Movie', 'MusicAlbum', 'MusicGroup', 'NaturalFeature', 'OperatingSystem', 
+    'Organization', 'Person', 'PharmaceuticalDrug', 'PhoneNumber', 'PoliticalEvent', 
+    'Position', 'Product', 'ProgrammingLanguage', 'ProvinceOrState', 'PublishedMedium', 
+    'RadioProgram', 'RadioStation', 'Region', 'SportsEvent', 'SportsGame', 'SportsLeague', 
+    'Technology', 'TVShow', 'TVStation', 'URL');
+      
+  // Special Reserved Vocabularies    
+  array_push($entities, 'SocialTags', 'CalaisDocumentCategory', 'EventsFacts');
+  sort($entities);
+ 
+  return $entities;
 }
