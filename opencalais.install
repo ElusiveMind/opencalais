@@ -273,4 +273,11 @@ function opencalais_update_7101() {
   variable_set('opencalais_api_server', 'api.thomsonreuters.com');
 }
 
+/**
+ * Update to remove semantic proxy class and calls.
+ */
+function opencalais_update_7102() {
+  variable_get('opencalais_default_impl', 'CalaisService');
+}
+
   

@@ -69,18 +69,9 @@ function opencalais_api_admin_settings($form, &$form_state) {
  * Get the service implementing the Calais interface.
  */
 function opencalais_api_get_service($options = array(), $type = NULL) {
-  switch ($type) {
-    case 'semanticproxy':
-      $class = variable_get('calais_semanticproxy_impl', 'SemanticProxyService');
-      break;
-    case 'opencalais':
-    default:
-      $class = variable_get('opencalais_default_impl', 'CalaisService');
-  }
-  
+  $class = variable_get('opencalais_default_impl', 'CalaisService');
   return new $class($options);
 }
-
 
 /**
  * 

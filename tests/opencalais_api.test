@@ -98,7 +98,7 @@ class OpenCalaisWebServiceTestCase extends OpenCalaisApiTestCase {
 		$body = filter_xss($this->get_test_content());
 		$date = format_date(time(), 'custom', 'r');
 		
-		$opencalais = opencalais_api_get_service(array('host' => 'api1.opencalais.com'));
+		$opencalais = opencalais_api_get_service(array('host' => variable_get('opencalais_api_server', 'api.thomsonreuters.com')));
 		$results = $opencalais->analyzeXML('OpenCalais API Test', $body, $date);
 		debug($results);
 		$this->assertCalaisResults($results);
@@ -166,25 +166,3 @@ EOD;
 		return $str;		
 	}
 }
-
-
-class SemanticProxyTestCase extends OpenCalaisApiTestCase {
-  function getInfo() {
-    return array(
-      'name' => t('SemanticProxy Test'),
-      'description' => t('Verify that a SemanticProxy request returns expected results.'),
-      'group' => t('OpenCalais')
-    );
-  }
-
-	function testAnalyze() {
-  	$sp = opencalais_api_get_service(array(), 'semanticproxy');
-		$results = $sp->analyze('http://voices.washingtonpost.com/44/2008/03/31/three_turning_points_on_the_ro.html');
-		drupal_set_message($sp->rdf);
-		$this->assertCalaisResults($results);
-		
-		$this->arrayContains($results->CalaisDocumentCategory, 'Politics', 'Politics is in Document Category');
-	}
-}
-
-
