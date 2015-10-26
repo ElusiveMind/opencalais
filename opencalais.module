@@ -375,7 +375,7 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
       $node->ocid = !empty($node->nid) ? $node->nid : uniqid();
     }
     
-    $body = (!empty($node->body[$node->language][0]['value']) ? $node->body[$node->language][0]['value'] : '';
+    $body = (!empty($node->body[$node->language][0]['value'])) ? $node->body[$node->language][0]['value'] : '';
     $date = format_date($node->created, 'custom', 'r');
     
     // Allow modification of the content sent to Calais
