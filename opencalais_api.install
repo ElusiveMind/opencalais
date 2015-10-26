@@ -33,7 +33,7 @@ function opencalais_api_requirements($phase) {
     $requirements['opencalais-rdf'] = array(
       'title' => $t('RDF Parser'),
       'value' => $arc2 ? $t('ARC2 @version is installed', array('@version' => ARC2::getVersion())) : $t('ARC2 Not installed'),
-      'description' => $arc2 ? '' : $t('<a href="@arc2">ARC2</a> is not available. Please <a href="@download">download</a> the latest version of the library and install it in sites/all/libraries/arc.', array('@arc2' => 'http://arc.semsol.org/', '@download' => 'http://arc.semsol.org')),
+      'description' => $arc2 ? '' : $t('<a href="@arc2">ARC2</a> is not available. Please <a href="@download">download</a> the latest version of the library and install it in sites/all/libraries/arc.', array('@arc2' => 'https://github.com/semsol/arc2', '@download' => 'https://github.com/semsol/arc2/releases/tag/v2.2.4')),
       'severity' => $arc2 ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     );
   }
