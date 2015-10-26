@@ -365,7 +365,7 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
     $suggestions = $tag_cache[$node->ocid];    
   }
   else {
-    if (!$node->title) {
+    if (empty($node->title)) {
       //we need some way to break out if its a node being prepped to show on the node form (with no content)
       return;
     }
@@ -375,7 +375,7 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
       $node->ocid = !empty($node->nid) ? $node->nid : uniqid();
     }
     
-    $body = $node->body[$node->language][0]['value'];
+    $body = (!empty($node->body[$node->language][0]['value']) ? $node->body[$node->language][0]['value'] : '';
     $date = format_date($node->created, 'custom', 'r');
     
     // Allow modification of the content sent to Calais
