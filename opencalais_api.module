@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * The API module settings page.
+ */
+
+/**
  * Implements hook_menu().
  */
 function opencalais_api_menu() {
@@ -33,9 +38,9 @@ function opencalais_api_init() {
       include_once libraries_get_path('arc') . '/ARC2.php';
     }
     else {
-	    drupal_set_message('Could not find the ARC2.php library in ' . libraries_get_path('arc'), 'error');
-	  }
-	}
+      drupal_set_message(check_plain(t('Could not find the ARC2.php library in ' . libraries_get_path('arc'))), 'error');
+    }
+  }
 }
 
 /**
@@ -47,7 +52,7 @@ function opencalais_api_admin_settings($form, &$form_state) {
     '#title' => t('OpenCalais API Key'),
     '#default_value' => variable_get('opencalais_api_key', NULL),
     '#size' => 60,
-    '#description' => t('Required to utilize the Calais service. ') . l(t('Click here to get one.'), 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold'),
+    '#description' => 'Required to utilize the Calais service. ' . l(t('Click here to get one.'), 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold'),
   );
   $form['opencalais_api_server'] = array(
     '#type' => 'textfield',
@@ -57,8 +62,8 @@ function opencalais_api_admin_settings($form, &$form_state) {
     '#description' => t('The domain name for the server to use.  Typically you will not have to change this unless you want to test beta functionality.'),
   );
   $form['help_text'] = array(
-    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') . 
-      '<br/><br/>' . l('Content Types Edit Screen', 'admin/structure/types') .
+    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') .
+      '<br /><br />' . l(t('Content Types Edit Screen'), 'admin/structure/types') .
       '</div>'
   );
   $form = system_settings_form($form);
@@ -74,7 +79,7 @@ function opencalais_api_get_service($options = array(), $type = NULL) {
 }
 
 /**
- * 
+ *
  * Checks if Calais API Key is set
  *
  * @param $bool show_warning
@@ -85,13 +90,18 @@ function is_opencalais_api_key_set($show_warning = TRUE) {
   $apikey = variable_get('calais_api_key', FALSE);
   if (empty($apikey)) {
     if ($show_warning) {
-      drupal_set_message(t('OpenCalais semantic analysis skipped because OpenCalais API Key is not set. Please configure it at: !link', 
-                              array('!link' => l('admin/config/opencalais/api', 'admin/config/opencalais/api', 
-                                                array('attributes' => array('target' => '_blank'))
-                                                )
-                              )
-                          ),
-                          $type = 'warning', $repeat = FALSE);
+    drupal_set_message(check_plain(t('OpenCalais semantic analysis skipped because OpenCalais API Key is not set. Please configure by !link',
+      array(
+        '!link' => l(t('Clicking Here'), 'admin/config/opencalais/api',
+        array(
+          'attributes' => array(
+            'target' => '_blank',
+          )
+          )
+        )
+      )
+    )),
+    $type = 'warning', $repeat = FALSE);
     }
     return FALSE;
   }
@@ -122,7 +132,7 @@ function opencalais_api_analyze($content, $parameters = array()) {
  *
  * @param $title The title of the content
  * @param $body The entire body of the content
- * @param $date The date of the content (can be created or updated date) 
+ * @param $date The date of the content (can be created or updated date)
  *    This date is used to base calculations of words like "tomorrow" or "yesterday"
  * @param $parameters Array of Calais parameters for overriding defaults.
  * @see http://www.opencalais.com/APIcalls#inputparameters

@@ -1,8 +1,9 @@
 <?php
 /**
- * @file opencalais.install
+ * @file
+ * The Drupal install file with schema and update hooks.
  */
- 
+
 /**
  * Implements hook_schema().
  */
@@ -22,21 +23,21 @@ function opencalais_schema() {
     ),
     'fields' => array(
       'pid' => array(
-        'type' => 'serial', 
-        'unsigned' => TRUE, 
+        'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
         'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
         'no export' => TRUE,
       ),
       'name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
         'description' => 'Unique ID for presets. Used to identify them programmatically.'
       ),
       'title' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
         'description' => 'Unique ID for presets. Used to identify them programmatically.'
       ),
@@ -61,9 +62,9 @@ function opencalais_schema() {
       ),
       'config' => array(
         'type' => 'text',
-        'serialize' => TRUE,      
+        'serialize' => TRUE,
       ),
-    ),    
+    ),
     'primary key' => array('pid'),
     'unique keys' => array(
       'name' => array('name'),
@@ -73,53 +74,53 @@ function opencalais_schema() {
     'description' => 'Holds retrieved OpenCalais terms and the Vocabulary to which they are associated',
     'fields' => array(
       'tid' => array(
-        'type' => 'serial', 
-        'unsigned' => TRUE, 
+        'type' => 'serial',
+        'unsigned' => TRUE,
         'not null' => TRUE,
         'description' => 'Identifier for an OpenCalais term'
       ),
       'name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
         'description' => 'The name of the term'
       ),
       'type' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
         'description' => 'The type of the term'
       ),
       'vocabulary' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
-        'not null' => TRUE, 
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
         'description' => 'The Vocabulary machine name this term is in'
       ),
       'tdid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
         'description' => 'The Taxonomy Term ID for this OpenCalais Term'
       ),
       'guid' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
         'description' => 'The OpenCalais GUID of this term'
       ),
       'resolved_guid' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => 'The Disambiguated OpenCalais GUID of this term (if it exists)'
       ),
       'resolved_name' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => 'The normalized/resolved name of the term'
       ),
       'resolved_type' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => 'The disambiguated type of this Entity'
       ),
     ),
@@ -132,38 +133,38 @@ function opencalais_schema() {
       'opencalais_term_taxonomy_term_tid' => array(
         'table' => 'taxonomy_term_data',
         'columns' => array('tdid' => 'tid'),
-       ),
+      ),
       'opencalais_term_vocabulary_vid' => array(
         'table' => 'taxonomy_vocabulary',
         'columns' => array('vocabulary' => 'machine_name'),
-       ),
-    ),    
+      ),
+    ),
     'primary key' => array('tid'),
   );
-  
+
   $schema['opencalais_term_node'] = array(
     'description' => 'Holds the association between a retrieved OpenCalais term and a Node',
     'fields' => array(
       'tid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The term identifier')
       ),
       'nid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The node for this term')
       ),
       'relevance' => array(
-        'type' => 'numeric', 
-        'size' => 'normal', 
-        'not null' => TRUE, 
-        'default' => 0.0, 
-        'precision' => 5, 
+        'type' => 'numeric',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0.0,
+        'precision' => 5,
         'scale' => 3,
         'description' => t('The relevence score from OpenCalais for this term/node combination')
         ),
@@ -173,7 +174,7 @@ function opencalais_schema() {
       'nid'    => array('nid'),
     ),
     'primary key' => array('tid', 'nid'),
-  );  
+  );
   return $schema;
 }
 
@@ -202,35 +203,35 @@ function opencalais_uninstall() {
 
 /**
  * Update fields to the new version.
- * 
+ *
  * @param string content_type
  *   The machine name of the content type to find the fields for.
  */
-function _opencalais_update_fields_for_content_type($content_type){
- $fields = field_info_instances('node', $content_type);
+function _opencalais_update_fields_for_content_type($content_type) {
+  $fields = field_info_instances('node', $content_type);
 
- $entities = opencalais_get_all_entities();
- foreach($entities as $key=>$item){
-   $entities[$key] = opencalais_make_machine_name($item);
- }
+  $entities = opencalais_get_all_entities();
+  foreach ($entities as $key => $item) {
+    $entities[$key] = opencalais_make_machine_name($item);
+  }
 
- //fields will be an empty array if no instances are found
- foreach($fields as $field_name => $field){
+  // fields will be an empty array if no instances are found
+  foreach ($fields as $field_name => $field) {
 
-   if (isset($field['settings']['opencalais']) && $field['settings']['opencalais']) {
-     $main_field = field_info_field($field_name);
-     $opencalais_type = $main_field['settings']['allowed_values'][0]['vocabulary'];
-     if (in_array($opencalais_type, $entities)) {
-       $field['settings']['opencalais'] = $opencalais_type;
-       try{
-         field_update_instance($field);
-         drupal_set_message(t('%field on %type has been successfully updated', array('%field' => $field['label'], '%type'=>$content_type)));
-       } catch (FieldException $fe) {
-         drupal_set_message(t('Unable to update field %field on %type, you will need to manually update it', array('%field'=>$field['label'], '%type'=>$content_type)), 'error');
-       }
-     }
-   }
- }
+    if (isset($field['settings']['opencalais']) && $field['settings']['opencalais']) {
+      $main_field = field_info_field($field_name);
+      $opencalais_type = $main_field['settings']['allowed_values'][0]['vocabulary'];
+      if (in_array($opencalais_type, $entities)) {
+        $field['settings']['opencalais'] = $opencalais_type;
+        try{
+          field_update_instance($field);
+          drupal_set_message(t('%field on %type has been successfully updated', array('%field' => $field['label'], '%type' => $content_type)));
+        } catch (FieldException $fe) {
+          drupal_set_message(t('Unable to update field %field on %type, you will need to manually update it', array('%field' => $field['label'], '%type' => $content_type)), 'error');
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -242,33 +243,32 @@ function opencalais_update_7001() {
   $content_types = _opencalais_get_content_types();
   foreach ($content_types as $ct => $info) {
     $fields = _opencalais_update_fields_for_content_type($ct);
-  }  
-  
+  }
+
   return t('Fields Successfully Updated');
 }
 
 /**
- * Update the autotagging variables to be a single variable . 
+ * Update the autotagging variables to be a single variable .
  */
- function opencalais_update_7002(){
-   drupal_load('module', 'opencalais');
- 
-   $content_types = _opencalais_get_content_types();
-   $new_auto = variable_get('opencalais_autotagging', array());
-   foreach($content_types as $ct=>$info){
-     $auto = variable_get('opencalais_' . $ct . '_autotagging', FALSE);
-     if($auto){
-       $new_auto[$ct] = $auto == 'automatic' ? 1 : 0;
-     }
-     variable_del('opencalais_'.$ct.'_autotagging');
-   } 
-   variable_set('opencalais_autotagging', $new_auto);
-   return 'OpenCalais variables successfully updated.';
- }
+function opencalais_update_7002() {
+  drupal_load('module', 'opencalais');
+  $content_types = _opencalais_get_content_types();
+  $new_auto = variable_get('opencalais_autotagging', array());
+  foreach ($content_types as $ct => $info) {
+    $auto = variable_get('opencalais_' . $ct . '_autotagging', FALSE);
+    if ($auto) {
+      $new_auto[$ct] = $auto == 'automatic' ? 1 : 0;
+    }
+    variable_del('opencalais_' . $ct . '_autotagging');
+  }
+  variable_set('opencalais_autotagging', $new_auto);
+  return 'OpenCalais variables successfully updated.';
+}
 
 /**
  * Update the api server to the one for Thomson Reuters.
- */ 
+ */
 function opencalais_update_7101() {
   variable_set('opencalais_api_server', 'api.thomsonreuters.com');
 }
@@ -279,5 +279,3 @@ function opencalais_update_7101() {
 function opencalais_update_7102() {
   variable_get('opencalais_default_impl', 'CalaisService');
 }
-
-  

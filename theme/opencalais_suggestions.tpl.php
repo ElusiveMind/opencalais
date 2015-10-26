@@ -1,7 +1,10 @@
 <?php
+
 /**
- *
- */   
+ * @file
+ * Theme file for suggestions on the node edit page.
+ */
+
 $score_value = array(0 => t('Low'), 1 => t('Low'), 2 => t('Moderate'), 3 => t('High'));
 $id = $field_name . '_suggestions';
 $for = 'edit-' . strtr(drupal_strtolower($field_name . '-' . $language), array(' ' => '-', '_' => '-', '[' => '-', ']' => ''));

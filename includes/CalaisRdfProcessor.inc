@@ -1,12 +1,11 @@
 <?php
 
 /**
- * @file CalaisRdfProcessor.inc
- *  The parser for the Calais RDF/XML responses.
+ * @file
+ * The parser for the Calais RDF/XML responses.
  */
-
 class CalaisRdfProcessor {
-  
+
   const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
   const CALAIS_SUBJECT = 'http://s.opencalais.com/1/pred/subject';
   const CALAIS_NAME = 'http://s.opencalais.com/1/pred/name';
@@ -23,14 +22,15 @@ class CalaisRdfProcessor {
    *
    * @param $rdf_xml
    *    The RDF to parse
+   *
    * @return
    *    An array of CalaisMetadata objects.
-   * @see 
-   *    CalaisMetadata.inc
+   *
+   * @see CalaisMetadata.inc
    */
   public function parse_rdf($rdf_xml) {
     if (!class_exists('ARC2')) {
-      drupal_set_message('Unable to process, ARC2 Library is missing.', 'error');
+      drupal_set_message(t('Unable to process, ARC2 Library is missing.'), 'error');
       drupal_goto('<front>');
     }
     $parser = ARC2::getRDFXMLParser();
@@ -50,7 +50,7 @@ class CalaisRdfProcessor {
   /**
    * Build the set of entities from this RDF triples returned from Calais.
    *
-   * @param $keywords 
+   * @param $keywords
    *    The object containing type keyed CalaisMetadata
    */
   protected function extract_document() {
@@ -76,16 +76,16 @@ class CalaisRdfProcessor {
   /**
    * Build the set of entities from this RDF triples returned from Calais.
    *
-   * @param $keywords 
+   * @param $keywords
    *    The object containing type keyed CalaisMetadata
    */
   protected function build_entities(&$keywords) {
     foreach ($this->triples as $guid => $data) {
       if (!isset($data[self::RDF_TYPE]))
           continue;
-          
+
       $type = $data[self::RDF_TYPE];
-       
+
       if (strpos($type[0], "http://s.opencalais.com/1/type/em/e") !== FALSE) {
         $this->extract_entities($keywords, $type, $guid, $data);
       }
@@ -94,10 +94,10 @@ class CalaisRdfProcessor {
       }
       elseif ($type[0] == 'http://s.opencalais.com/1/type/cat/DocCat') {
         $this->extract_categories($keywords, $type, $guid, $data);
-      }      
+      }
       elseif ($type[0] == 'http://s.opencalais.com/1/type/tag/SocialTag') {
         $this->extract_tags($keywords, $type, $guid, $data);
-      }      
+      }
     }
   }
 
@@ -105,16 +105,16 @@ class CalaisRdfProcessor {
    * Process the RDF triple and grab the additional metadata on entities.
    * Additional metadata is relevance score and a slew of resolved entity dismbiguation
    *
-   * @param $keywords 
+   * @param $keywords
    *    The object containing type keyed CalaisMetadata
    */
   protected function extract_entity_metadata(&$keywords) {
     foreach ($this->triples as $guid => $data) {
       $type = $data[self::RDF_TYPE];
-      
-      if (!isset($type)) 
+
+      if (!isset($type))
         continue;
-        
+
       if ($type[0] == 'http://s.opencalais.com/1/type/sys/RelevanceInfo') {
         $this->set_relevance($keywords, $data);
       }
@@ -122,11 +122,11 @@ class CalaisRdfProcessor {
         $er_type = preg_replace('@http://s.opencalais.com/1/type/er/@ims', '', $type[0]);
         $er_type = drupal_strtolower(str_replace('/', '_', $er_type));
         $func = 'apply_resolved_' . $er_type;
-        
+
         if (!method_exists($this, $func)) {
           $func = 'apply_resolved_data';
         }
-        
+
         $this->{$func}($keywords, $guid, $data, $er_type);
       }
     }
@@ -134,7 +134,7 @@ class CalaisRdfProcessor {
 
   /**
    * Extracts the entities from the returned data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $type The RDF type for this record
    * @param $guid The guid for the current Calais Term
@@ -145,102 +145,100 @@ class CalaisRdfProcessor {
     $entity_type = preg_replace('/.*\//ims', '', $entity_type_guid);
 
     $entity_value = $data[self::CALAIS_NAME][0];
-    
+
     if (!property_exists($keywords, $entity_type)) {
       $keywords->{$entity_type} = new CalaisMetadata($entity_type_guid, $entity_type);
     }
 
     $metadata = &$keywords->{$entity_type};
-    $metadata->set_term_data($guid, $entity_value);        
+    $metadata->set_term_data($guid, $entity_value);
   }
-  
+
   /**
    * Extracts the events & facts from the returned data. For now it is considered best that all
    * Events & Facts are put into one Vocabulary and identified by their type.
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $type The RDF type for this record
    * @param $guid The guid for the current Calais Term
    * @param $data The indexed triple for the current Calais Term/GUID
    */
-   protected function extract_events(&$keywords, $type, $guid, $data) {
-     $type_guid = $type[0];
-     $type_value = preg_replace('/.*\//ims', '', $type_guid);
-     $type_value = opencalais_api_make_readable($type_value);
-   
-     if (!property_exists($keywords, 'EventsFacts')) {
-       $keywords->EventsFacts = new CalaisMetadata('http://drupal.org/project/opencalais/EventsFacts', 'EventsFacts');
-     }
+  protected function extract_events(&$keywords, $type, $guid, $data) {
+    $type_guid = $type[0];
+    $type_value = preg_replace('/.*\//ims', '', $type_guid);
+    $type_value = opencalais_api_make_readable($type_value);
 
-     // Not sure if the best number for relevance of an Event/Fact, for now 1 will always include
-     $keywords->EventsFacts->set_term_data($type_guid, $type_value, 1.000);      
-   }
-   
+    if (!property_exists($keywords, 'EventsFacts')) {
+      $keywords->EventsFacts = new CalaisMetadata('http://drupal.org/project/opencalais/EventsFacts', 'EventsFacts');
+    }
+
+    // Not sure if the best number for relevance of an Event/Fact, for now 1 will always include
+    $keywords->EventsFacts->set_term_data($type_guid, $type_value, 1.000);
+  }
+
   /**
    * Extracts the document level categorization from the returned data.
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $type The RDF type for this record
    * @param $guid The guid for the current Calais Term
    * @param $data The indexed triple for the current Calais Term/GUID
    */
-   protected function extract_categories(&$keywords, $type, $guid, $data) {
-   
-     $cat_guid = $data['http://s.opencalais.com/1/pred/docId'][0];
-     $cat_val = $data['http://s.opencalais.com/1/pred/name'][0];
-     $cat_score = array_key_exists('http://s.opencalais.com/1/pred/score', $data)
-                     ? $data['http://s.opencalais.com/1/pred/score'][0]
-                     : 0;
+  protected function extract_categories(&$keywords, $type, $guid, $data) {
 
-     if (!property_exists($keywords, 'CalaisDocumentCategory')) {
-       $keywords->CalaisDocumentCategory = new CalaisMetadata($type[0], 'CalaisDocumentCategory');
-     }
+    $cat_guid = $data['http://s.opencalais.com/1/pred/docId'][0];
+    $cat_val = $data['http://s.opencalais.com/1/pred/name'][0];
+    $cat_score = array_key_exists('http://s.opencalais.com/1/pred/score', $data) ? $data['http://s.opencalais.com/1/pred/score'][0] : 0;
 
-     $cat_val = preg_replace('/_.*/ims', '', $cat_val); // remove everything after the first underscore
-     $keywords->CalaisDocumentCategory->set_term_data($cat_guid, $cat_val, $cat_score);      
-   }
+    if (!property_exists($keywords, 'CalaisDocumentCategory')) {
+      $keywords->CalaisDocumentCategory = new CalaisMetadata($type[0], 'CalaisDocumentCategory');
+    }
 
-   /**
-    * Extracts the Social Tags from the returned data.
-    * 
-    * @param $keywords The result array for CalaisMetadata
-    * @param $type The RDF type for this record
-    * @param $guid The guid for the current Calais Term
-    * @param $data The indexed triple for the current Calais Term/GUID
-    */
-    protected function extract_tags(&$keywords, $type, $guid, $data) {
-      $tag_guid = $data['http://s.opencalais.com/1/pred/socialtag'][0];
-      $tag_val = $data['http://s.opencalais.com/1/pred/name'][0];
-      $importance = $data['http://s.opencalais.com/1/pred/importance'][0];
-      
-      // This is built off of the Calais documentation:
-      // A topic extracted by Categorization with a score higher than 0.6 
-      // will also be extracted as a SocialTag. If its score is higher 
-      // than 0.8, its importance (as a SocialTag) will be set to 1. If 
-      // the score is between 0.6 and 0.8 its importance is set to 2.
-      switch ($importance) {
-        case 1:
-          $tag_score = 0.9;
-          break;
-        case 2:
-          $tag_score = 0.7;
-          break;
-        default:
-          $tag_score = 0;
-      }
+    $cat_val = preg_replace('/_.*/ims', '', $cat_val); // remove everything after the first underscore
+    $keywords->CalaisDocumentCategory->set_term_data($cat_guid, $cat_val, $cat_score);
+  }
 
-      if (!property_exists($keywords, 'SocialTags')) {
-        $keywords->SocialTags = new CalaisMetadata($type[0], 'SocialTags');
-      }
+  /**
+   * Extracts the Social Tags from the returned data.
+   *
+   * @param $keywords The result array for CalaisMetadata
+   * @param $type The RDF type for this record
+   * @param $guid The guid for the current Calais Term
+   * @param $data The indexed triple for the current Calais Term/GUID
+   */
+  protected function extract_tags(&$keywords, $type, $guid, $data) {
+    $tag_guid = $data['http://s.opencalais.com/1/pred/socialtag'][0];
+    $tag_val = $data['http://s.opencalais.com/1/pred/name'][0];
+    $importance = $data['http://s.opencalais.com/1/pred/importance'][0];
 
-      // When certain Document Category tags get here, they have underscores, remove them
-      $tag_val = preg_replace('/_.*/ims', '', $tag_val); // remove everything after the first underscore
-      $keywords->SocialTags->set_term_data($tag_guid, $tag_val, $tag_score);      
+    // This is built off of the Calais documentation:
+    // A topic extracted by Categorization with a score higher than 0.6
+    // will also be extracted as a SocialTag. If its score is higher
+    // than 0.8, its importance (as a SocialTag) will be set to 1. If
+    // the score is between 0.6 and 0.8 its importance is set to 2.
+    switch ($importance) {
+      case 1:
+        $tag_score = 0.9;
+        break;
+      case 2:
+        $tag_score = 0.7;
+        break;
+      default:
+        $tag_score = 0;
+    }
+
+    if (!property_exists($keywords, 'SocialTags')) {
+      $keywords->SocialTags = new CalaisMetadata($type[0], 'SocialTags');
+    }
+
+    // When certain Document Category tags get here, they have underscores, remove them
+    $tag_val = preg_replace('/_.*/ims', '', $tag_val); // remove everything after the first underscore
+    $keywords->SocialTags->set_term_data($tag_guid, $tag_val, $tag_score);
     }
 
   /**
    * Extracts the relevance score from the returned data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $data The indexed triple for the current Calais Term
    */
@@ -249,14 +247,14 @@ class CalaisRdfProcessor {
     $relevance = $data['http://s.opencalais.com/1/pred/relevance'][0];
     foreach ($keywords as &$entity) {
       if ($entity->has_guid($subject)) {
-        $entity->set_term_relevance($subject, $relevance);      
+        $entity->set_term_relevance($subject, $relevance);
       }
     }
   }
 
   /**
    * Extracts the basic resolved entity data.
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
@@ -265,18 +263,18 @@ class CalaisRdfProcessor {
   protected function apply_resolved_data(&$keywords, $guid, $data, $type, $extra = array()) {
     $subject = $data[self::CALAIS_SUBJECT][0];
     $resolved_name = $data[self::CALAIS_NAME][0];
-      
+
     foreach ($keywords as &$entity) {
       if ($entity->has_guid($subject)) {
         $uris = variable_get('opencalais_lookup_uri', FALSE) ? self::lookup_linked_data_uris($guid) : array();
-        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $type, $extra, $uris);      
+        $entity->set_term_resolved_data($subject, $resolved_name, $guid, $type, $extra, $uris);
       }
     }
   }
 
   /**
    * Extracts the disambiguation geo city data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
@@ -289,16 +287,16 @@ class CalaisRdfProcessor {
       'containedbycountry' => isset($data['http://s.opencalais.com/1/pred/containedbycountry']) ? $data['http://s.opencalais.com/1/pred/containedbycountry'][0] : ''
     );
     //Only set this if its actually available
-    if(isset($data['http://s.opencalais.com/1/pred/containedbystate'])){
+    if (isset($data['http://s.opencalais.com/1/pred/containedbystate'])) {
       $extra['containedbystate'] = $data['http://s.opencalais.com/1/pred/containedbystate'][0];
     }
-    
+
     $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
-  
+
   /**
    * Extracts the disambiguation geo province or state data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
@@ -312,10 +310,10 @@ class CalaisRdfProcessor {
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
-  
+
   /**
    * Extracts the disambiguation geo country data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
@@ -327,29 +325,29 @@ class CalaisRdfProcessor {
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
   }
-  
+
   /**
    * Extracts the disambiguated company data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
    */
   protected function apply_resolved_company(&$keywords, $guid, $data) {
-   $extra = array(
-     'score' => $data[self::CALAIS_SCORE][0],
-   );
-   //only set if its actually available
-   if(isset($data['http://s.opencalais.com/1/pred/ticker'])){
-     $extra['ticker'] = $data['http://s.opencalais.com/1/pred/ticker'][0];
-   }
-   
-   $this->apply_resolved_data($keywords, $guid, $data, 'company', $extra);
+    $extra = array(
+      'score' => $data[self::CALAIS_SCORE][0],
+    );
+    //only set if its actually available
+    if (isset($data['http://s.opencalais.com/1/pred/ticker'])) {
+      $extra['ticker'] = $data['http://s.opencalais.com/1/pred/ticker'][0];
+    }
+
+    $this->apply_resolved_data($keywords, $guid, $data, 'company', $extra);
   }
-  
+
   /**
    * Extracts the disambiguation geo country data
-   * 
+   *
    * @param $keywords The result array for CalaisMetadata
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
@@ -359,8 +357,8 @@ class CalaisRdfProcessor {
       'score' => $data[self::CALAIS_SCORE][0],
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'product', $extra);
-  } 
-  
+  }
+
   /**
    * For a give Calais URI, lookup the RDF document and creat the connected Linked Open Data URIs
    * to other places like DBPedia, Freebase, Crunchbase, Musicbrainz, Geonames, etc.
@@ -375,7 +373,7 @@ class CalaisRdfProcessor {
     }
 
     if (!class_exists('ARC2')) {
-      drupal_set_message('Unable to process, ARC2 Library is missing.', 'error');
+      drupal_set_message(t('Unable to process, ARC2 Library is missing.'), 'error');
       drupal_goto('<front>');
     }
 

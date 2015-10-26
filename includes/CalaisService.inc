@@ -1,16 +1,15 @@
 <?php
 
 /**
- * @file Calais.inc
+ * @file
  * The main interface to the calais web service
  */
-
 class CalaisService implements Calais {
-  
+
   const PATH = '/permid/calais';
-  
+
   private $defaults = array(
-    'protocol' => 'http',
+    'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
     'externalID' => '',
@@ -21,21 +20,21 @@ class CalaisService implements Calais {
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
   );
-  
+
   public $parameters;
   public $rdf;
   public $triples = array();
   public $flatTriples = array();
   public $keywords = array();
-  
+
   /**
    * Constructs an instance of the Calais facade.
    *
    * Valid parameters are specified in the options array as key/value pairs with the
    * parameter name being the key and the parameter setting being the value
-   * e.g. array('allowSearch' => 'false')
+   * for example array('allowSearch' => 'false')
    *
-   * @param options  An array of parameter options for the Calais Web Service. 
+   * @param options  An array of parameter options for the Calais Web Service.
    *                  These will override the defaults.
    *
    * @see http://opencalais.com/APIcalls#inputparameters
@@ -43,16 +42,15 @@ class CalaisService implements Calais {
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
     $this->defaults['host'] = variable_get('opencalais_api_server', 'api.thomsonreuters.com');
-    
     $this->parameters = array_merge($this->defaults, $options);
   }
-  
+
   /**
    * Analyze the provided content, passing it to Calais in HTML format .
    *
-   * @param $content  
+   * @param $content
    *    The HTML content to process
-   * @return 
+   * @return
    *    The processed Calais results. The raw RDF result is contained in the $this->rdf field.
    */
   public function analyzeHTML($content, $api_key) {
@@ -79,10 +77,10 @@ class CalaisService implements Calais {
       'Content-Length: ' . strlen($content),
       'outputformat:XML/RDF',
     );
-    
-    $uri = $this->parameters['protocol'] . 's://' . $this->parameters['host'] . self::PATH;
-    
-    $curlOptions = array (
+
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
+
+    $curlOptions = array(
       CURLOPT_URL => $uri,
       CURLOPT_HTTPHEADER => $headers,
       CURLOPT_SSL_VERIFYPEER => FALSE,
@@ -91,7 +89,7 @@ class CalaisService implements Calais {
     );
 
     $ch = curl_init();
-    curl_setopt_array($ch,$curlOptions);
+    curl_setopt_array($ch, $curlOptions);
 
     // send request and get response from api..........
     $response = curl_exec($ch);
@@ -103,15 +101,21 @@ class CalaisService implements Calais {
 
     $this->rdf = $response;
     $this->processor = new CalaisRdfProcessor();
-    $this->keywords = $this->processor->parse_rdf($this->rdf);    
+    $this->keywords = $this->processor->parse_rdf($this->rdf);
     $this->triples = $this->processor->triples;
-    if (isset($this->processor->flatTriples)) {  
+    if (isset($this->processor->flatTriples)) {
       $this->flatTriples = $this->processor->flatTriples;
     }
-    
-    return $this->keywords;    
+
+    return $this->keywords;
   }
 
+  /**
+   * An error logging function and message setting.
+   *
+   * @param object $ret
+   *   The response from the analyze function.
+   */
   private static function log_calais_error($ret) {
     $msg = t('OpenCalais processing error: @msg', array('@msg' => $ret->data));
     drupal_set_message($msg, 'error');
