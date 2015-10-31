@@ -1,14 +1,5 @@
 <?php
-/*
-  Copyright (C) 2008 by Phase2 Technology.
-  Author(s): Frank Febbraro
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
-
- */
 /**
  * @file
  */
@@ -18,7 +9,7 @@
  */
 function calais_geo_settings_form() {
   $node_options = array();
-  foreach(node_get_types() as $key => $type) {
+  foreach (node_get_types() as $key => $type) {
     $node_options[$key] = $type->name;
   }
 
@@ -39,6 +30,6 @@ function calais_geo_settings_form() {
     '#options' => array_flip($entities),
     '#description' => t("Choose which vocabulary's terms can be used to represent markers in a map display (this is a node-specific selection available in the Locations field group on the node's edit page."),
   );
-  
+
   return system_settings_form($form);
 }

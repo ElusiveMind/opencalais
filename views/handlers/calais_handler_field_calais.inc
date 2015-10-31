@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Field handler to provide simple renderer that allows linking to a calais term.
  */
 class calais_handler_field_calais extends views_handler_field {

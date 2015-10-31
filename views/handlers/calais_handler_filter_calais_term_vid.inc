@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Filter by vocabulary id
  */
 class calais_handler_filter_calais_term_vid extends views_handler_filter_in_operator {

@@ -7,7 +7,7 @@
 /**
  * Implementation of hook_drush_command().
  *
- * @See drush_parse_command() for a list of recognized keys.
+ * @See drush_parse_command()
  *
  * @return
  *   An associative array describing your command(s).
@@ -83,18 +83,18 @@ function calais_drush_reindex() {
 /**
  * Bulk process nodes with Calais.
  */
-function calais_drush_process_queue() {  
-  $args = func_get_args();  
+function calais_drush_process_queue() {
+  $args = func_get_args();
   $argc = count($args);
-  
+
   $count = 25;
   $type = NULL;
-  
+
   if ($argc === 2) {
     $count = intval($args[0]);
     $type = $args[1];
   }
-  else if ($argc === 1) {
+  elseif ($argc === 1) {
     $arg = $args[0];
     if (is_numeric($arg)) {
       $count = intval($arg);
@@ -108,25 +108,25 @@ function calais_drush_process_queue() {
     return drush_set_error(dt('Invalid content type: @type', array('@type' => $type)));
   }
 
-  calais_process_queue($count, $type);    
+  calais_process_queue($count, $type);
 }
 
 /**
  * Process a single node with Calais.
  */
-function calais_drush_process_node() {  
-  $args = func_get_args();  
-  
+function calais_drush_process_node() {
+  $args = func_get_args();
+
   if (!is_numeric($args[0])) {
     return drush_set_error(dt('Bad value "@param". Parameter must be an int', array('@param' => $args[0])));
   }
-  
+
   $nid = intval($args[0]);
   $node = node_load($nid);
 
   if (!$node) {
     return drush_set_error(dt('Invalid Node ID: @nid', array('@nid' => $nid)));
   }
-  
-  calais_process_node($node);    
+
+  calais_process_node($node);
 }

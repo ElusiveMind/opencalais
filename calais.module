@@ -1,16 +1,8 @@
 <?php
-/*
-  Copyright (C) 2008 by Phase2 Technology.
-  Author(s): Frank Febbraro, Irakli Nadareishvili
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
-
- */
 /**
  * @file
+ * The business of using Calais for Drupal 6.
  */
 
 // Request constants
@@ -118,7 +110,7 @@ function calais_menu() {
 function calais_preprocess_node(&$variables) {
   $node = $variables['node'];
   $count = rdf_count(NULL, NULL, NULL, calais_rdf_options($node->nid));
-  
+
   // Add an RDF autodiscovery link when the node is displayed by itself as a page:
   if (user_access('access calais rdf') && $count) {
     rdf_add_autodiscovery_link(t('Calais RDF'), url("node/$node->nid/calais/rdf"), 'rdf+xml');
@@ -139,7 +131,7 @@ function calais_get_rdf($nid) {
   $formats  = rdf_get_formats();
   $output_format = $formats[$format];
   drupal_set_header('Content-Type: '. $output_format->mime_type .'; charset='. $output_format->encoding);
-  drupal_set_header('Content-Length: '. strlen($rdf));
+  drupal_set_header('Content-Length: '. drupal_strlen($rdf));
   print $rdf;
 }
 
@@ -175,8 +167,8 @@ function calais_theme() {
  *
  * Update the Calais terms if scheduler is ran to publish a node.
  */
-function calais_scheduler_api(&$node, $action){
-  if($action == 'published'){
+function calais_scheduler_api(&$node, $action) {
+  if ($action == 'published') {
     node_invoke_nodeapi($node, 'update');
   }
 }
@@ -215,30 +207,28 @@ function calais_delete_node($node) {
 /**
  * Process the provided node according to the processing type.
  *
- * @param $node 
+ * @param $node
  *    The node to process
- * @param $process_type 
+ * @param $process_type
  *    The processing type override for this node.
- * @param $threshold 
+ * @param $threshold
  *    The threshold override for this node.
- * @param $op 
+ * @param $op
  *    Is this an 'insert' (first time) or and 'update'
  */
 function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $op = 'insert') {
   $request_type = calais_get_request_type($node);
-  if ($request_type == CALAIS_REQUEST_NO || $node->calais_processed == TRUE){
+  if ($request_type == CALAIS_REQUEST_NO || $node->calais_processed == TRUE) {
     return;
   }
   // On feedapi runs, updates are missing vid so get it.
-  if(!isset($node->vid)) {
+  if (!isset($node->vid)) {
     $node->vid = db_result(db_query("SELECT vid FROM {node} WHERE nid=%d", $node->nid));
   }
 
-  $keywords = _calais_use_semanticproxy($node) 
-                  ? calais_process_with_semanticproxy($node)
-                  : calais_process_with_calais($node);
+  $keywords = calais_process_with_calais($node);
 
-  if(empty($keywords))
+  if (empty($keywords))
     return;
 
   if (!isset($process_type)) {
@@ -250,10 +240,10 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
 
   db_query("DELETE FROM {calais_term_node} WHERE nid=%d", $node->nid);
 
-	foreach (module_implements('calais_preprocess') as $name) {
-	  $function = $name .'_calais_preprocess';
-	  $function($node, $keywords);
-	}
+  foreach (module_implements('calais_preprocess') as $name) {
+    $function = $name . '_calais_preprocess';
+    $function($node, $keywords);
+  }
 
   $vocabularies = calais_get_entity_vocabularies($node->type);
   foreach ($keywords as $cat => $metadata) {
@@ -261,7 +251,7 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
     if ($vid) { // Only process terms for vocabularies that we care about
       foreach ($metadata->terms as $term) {
         calais_associate_term($vid, $term, $node);
-        if ( ($process_type == CALAIS_PROCESS_AUTO || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert")) 
+        if ( ($process_type == CALAIS_PROCESS_AUTO || ($process_type == CALAIS_PROCESS_AUTO_ONCE && $op == "insert"))
             && round($term->relevance * 1000) >= round($threshold * 1000)) {
           calais_apply_to_node($vid, $term, $node);
         }
@@ -270,11 +260,10 @@ function calais_process_node(&$node, $process_type = NULL, $threshold = NULL, $o
   }
 
   calais_store_rdf($node, $node->calais->service->flatTriples);
-	foreach (module_implements('calais_postprocess') as $name) {
-	  $function = $name .'_calais_postprocess';
-	  $function($node, $keywords);
-	}  
- 
+  foreach (module_implements('calais_postprocess') as $name) {
+    $function = $name .'_calais_postprocess';
+    $function($node, $keywords);
+  }
   $node->calais_processed = TRUE;
 }
 
@@ -303,60 +292,6 @@ function calais_process_with_calais(&$node) {
   $node->calais->service = $calais;
 
   return $keywords;
-}
-
-/**
- * Use SemanticProxy to process this Node.
- *
- * @param $node The node to process
- * @return The Calais keywords for this node.
- */
-function calais_process_with_semanticproxy(&$node) {
-  $key = drupal_strtolower($node->type);
-  $spfield = variable_get("calais_semanticproxy_field_{$key}", '');
-  
-  if(!empty($spfield)) {
-    if($spfield == 'calais_feedapi_node') {
-      // On insert, $node->feedapi_node is available
-      if(isset($node->feedapi_node)) {
-        $url = $node->feedapi_node->feed_item->options->original_url;
-      }
-      else { // On update, we need to pull the URL from the DB. Should always be the same. #feedapifail
-        $url = db_result(db_query('SELECT fi.url FROM {feedapi_node_item} fi WHERE fi.nid = %d', $node->nid));
-      }
-    }
-    else {
-      // Grab URL from link or textfield 
-      $field = $node->{$spfield};
-      if(isset($field)) {
-       $url = isset($field[0]['url']) ? $field[0]['url'] : $field[0]['value'];
-      }
-    }
-    
-    drupal_alter('semanticproxy_url', $url);
-    
-    $sp = new SemanticProxy();
-    $keywords = $sp->analyze($url);
-    $node->calais->service = $sp;
-    
-    if($keywords) {
-      // Store the document text if configured
-      $docfield = variable_get("calais_semanticproxy_document_{$key}", '');
-      if(!empty($docfield) && module_exists('content')) {
-        $original_text = $sp->processor->document;
-        $node->{$docfield}[0]['value'] = trim($original_text);
-        if($node->is_new) {
-          content_insert($node);
-        }
-        else {
-          content_update($node);
-        }
-      }
-      return $keywords;
-    }
-  } 
-  
-  return array(); 
 }
 
 /**
@@ -390,16 +325,25 @@ function calais_associate_term($vid, &$term, $node) {
   $local_term = calais_get_term($vid, $term);
 
   $calais_term = $local_term ? $local_term : new CalaisTerm($term->guid, $term->name, $term->relevance);
-  // We could array_merge, but defined properties with no value will 
+
+  if (is_array($calais_term->extra) == FALSE) {
+    $calais_term->extra = array();
+  }
+
+  if (is_array($term->extra) == FALSE) {
+    $term->extra = array();
+  }
+
+  // We could array_merge, but defined properties with no value will
   // overwrite the locals (tid, tdid, etc.), so just be explicit for now.
-  $calais_term->vid = $vid; 
+  $calais_term->vid = $vid;
   $calais_term->relevance = $term->relevance;
   $calais_term->resolved_guid = $term->resolved_guid;
   $calais_term->resolved_name = $term->resolved_name;
   $calais_term->resolved_type = $term->resolved_type;
   $calais_term->extra = array_merge($calais_term->extra, $term->extra);
   $calais_term->uris = $term->uris;
-  
+
   calais_save_term($calais_term);
   calais_assign_term_to_node($node->nid, $calais_term);
   $term = $calais_term;
@@ -412,12 +356,12 @@ function calais_associate_term($vid, &$term, $node) {
  *    The Vocabulary ID of the calais term
  * @param $term
  *    The CalaisTerm object to lookup, or a term id
- * @return  
+ * @return
  *    The Calais Term object, false is the term is not found.
  */
 function calais_get_term($vid, $term) {
-  
-  if(is_numeric($term)) {
+
+  if (is_numeric($term)) {
     $local_term = db_fetch_object(db_query("SELECT * FROM {calais_term} WHERE tid = %d", $term));
   }
   else {
@@ -431,18 +375,18 @@ function calais_get_term($vid, $term) {
   if ($local_term) {
     calais_load_term_extra($local_term);
     calais_load_term_uris($local_term);
-    return $local_term;    
+    return $local_term;
   }
-  
+
   return FALSE;
 }
 
 /**
- * Find the Calais Term by Taxonomy Term Data 
+ * Find the Calais Term by Taxonomy Term Data
  *
  * @param $term_id
  *    The Term Data ID
- * @return  
+ * @return
  *    The Calais Term object, false is the term is not found.
  */
 function calais_get_term_by_taxonomy($term_id) {
@@ -450,13 +394,13 @@ function calais_get_term_by_taxonomy($term_id) {
   if ($term) {
     calais_load_term_extra($term);
     calais_load_term_uris($term);
-    return $term;    
+    return $term;
   }
   return FALSE;
 }
 
 /**
- * Get the CalaisTerm for the term name and node id. 
+ * Get the CalaisTerm for the term name and node id.
  * NOTE: Columns were renamed here so that this object has the same attributes as CalaisTerm for consistency
  *
  * @param $nid The node id to limit the calais term look up
@@ -478,11 +422,11 @@ function calais_get_node_term_by_name($nid, $term_name) {
  *    The CalaisTerm to lookup extra data
  */
 function calais_save_term(&$term) {
-  if(empty($term->tid)) {
-    drupal_write_record('calais_term', $term);        
+  if (empty($term->tid)) {
+    drupal_write_record('calais_term', $term);
   }
   else {
-    drupal_write_record('calais_term', $term, 'tid');        
+    drupal_write_record('calais_term', $term, 'tid');
   }
   calais_save_term_extra($term);
   calais_save_term_uris($term);
@@ -495,13 +439,15 @@ function calais_save_term(&$term) {
  *    The CalaisTerm to lookup extra data
  */
 function calais_load_term_extra(&$term) {
-  if(isset($term->resolved_type)) {
+  if (isset($term->resolved_type)) {
     $table = 'calais_term_data_' . $term->resolved_type;
-    $data = db_fetch_array(db_query("SELECT * FROM {" . $table . "} WHERE tid = %d", $term->tid));
-    $term->extra = $data ? $data : array();
+    if (db_table_exists($table)) {
+      $data = db_fetch_array(db_query("SELECT * FROM {" . $table . "} WHERE tid = %d", $term->tid));
+      $term->extra = $data ? $data : array();
+    }
   }
   else {
-    $term->extra = array();    
+    $term->extra = array();
   }
 }
 
@@ -539,17 +485,17 @@ function calais_get_term_uri_by_service($tid, $service) {
  *    The CalaisTerm to lookup extra data
  */
 function calais_save_term_extra(&$term) {
-  if(isset($term->resolved_type) && !empty($term->extra)) {
+  if (isset($term->resolved_type) && !empty($term->extra)) {
     $table = 'calais_term_data_' . $term->resolved_type;
     $data = &$term->extra;
-    $data['tid'] = $term->tid;        
-    if(isset($data['did'])) {
-      drupal_write_record($table, $data, 'did');        
+    $data['tid'] = $term->tid;
+    if (isset($data['did'])) {
+      drupal_write_record($table, $data, 'did');
     }
     else {
       drupal_write_record($table, $data);
     }
-  }  
+  }
 }
 
 /**
@@ -559,7 +505,7 @@ function calais_save_term_extra(&$term) {
  *    The CalaisTerm to save
  */
 function calais_save_term_uris($term) {
-  if(!empty($term->uris)) {
+  if (!empty($term->uris)) {
     db_query("DELETE FROM {calais_term_uri} WHERE tid = %d", $term->tid);
     foreach ($term->uris as $service => $uri) {
       db_query("INSERT INTO {calais_term_uri} (tid, service, uri) VALUES(%d, '%s', '%s')", $term->tid, $service, $uri);
@@ -576,8 +522,8 @@ function calais_save_term_uris($term) {
  * @param $node The node for association
  */
 function calais_apply_to_node($vid, &$term, $node) {
-  
-  if(empty($term->tdid)) {
+
+  if (empty($term->tdid)) {
     $term->tdid = calais_find_taxonomy_term($vid, $term->name);
     if (!$term->tdid) {
       // An existing term was not found, create it
@@ -586,7 +532,7 @@ function calais_apply_to_node($vid, &$term, $node) {
       $term->tdid = $tax_term['tid'];
     }
     calais_save_term($term);
-  }  
+  }
   calais_assign_taxonomyterm_to_node($node->nid, $node->vid, $term->tdid);
 }
 
@@ -597,7 +543,7 @@ function calais_apply_to_node($vid, &$term, $node) {
  *    The vocabulary id for the term to find.
  * @param $term_name
  *    The Term Name to find a matching taxonomy term
- * @return $tid 
+ * @return $tid
  *    Term id from the {term_data} table, or FALSE is one is not found.
  */
 function calais_find_taxonomy_term($vid, $term_name) {
@@ -635,7 +581,7 @@ function calais_assign_taxonomyterm_to_node($nid, $vid, $tid) {
 /**
  * Implementation of hook_taxonomy();
  *
- * Process the delete of taxonomy terms to make sure the proper cleanup 
+ * Process the delete of taxonomy terms to make sure the proper cleanup
  * happens to Calais Terms that reference them.
  */
 function calais_taxonomy($op, $type, $data) {
@@ -690,7 +636,7 @@ function calais_get_node_threshold($node_type) {
  *
  * @param $type
  *    A node type, if Entities need to be filtered.
- * @return 
+ * @return
  *    Associative array of [entity_name => vid]'s
  */
 function calais_get_entity_vocabularies($type = NULL) {
@@ -728,10 +674,10 @@ function calais_get_entity_vocabularies($type = NULL) {
 function calais_get_vocabularies($type = NULL) {
 
   $vocs = calais_get_entity_vocabularies($type);
-  
-  if(empty($vocs))
+
+  if (empty($vocs))
     return array();
-  
+
   $pattern = implode(",", $vocs);
 
   if ($type) {
@@ -778,7 +724,7 @@ function calais_get_vocabularies($type = NULL) {
  * @param $nid The node id to get the calais keywords
  * @param $type The node type
  * @param $vid Optional, a specific vocabulary id to return terms
- * @param $threshold 
+ * @param $threshold
  *    Optional, A relevance threshold for suggestions. If not specified the default for the node type will be used.
  *
  * @return Array { $vid => array(termObj1, termObj2, termObj3) }
@@ -786,7 +732,7 @@ function calais_get_vocabularies($type = NULL) {
 function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
   $terms = array();
 
-  if(!isset($threshold)) {
+  if (!isset($threshold)) {
     $threshold = calais_get_node_threshold(drupal_strtolower($type));
   }
 
@@ -817,7 +763,7 @@ function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
  */
 function calais_create_entity_vocabulary($entity) {
     $description = t("Calais Entity Vocabulary: @name", array('@name' => $entity));
-    db_query("INSERT INTO {vocabulary} (name,description,module,tags) 
+    db_query("INSERT INTO {vocabulary} (name,description,module,tags)
               VALUES('%s','%s','calais',1)", $entity, $description);
     return db_last_insert_id('vocabulary', 'vid');
 }
@@ -829,7 +775,7 @@ function calais_create_entity_vocabulary($entity) {
  */
 function calais_rdf_options($nid) {
   return array(
-    'graph' => "node/$nid/calais/rdf", 
+    'graph' => "node/$nid/calais/rdf",
     'repository' => CALAIS_RDF_REPOSITORY,
   );
 }
@@ -844,9 +790,9 @@ function calais_rdf_options($nid) {
  * @param $triples The flat set of triples
  */
 function calais_store_rdf($node, $triples) {
-  if(variable_get('calais_store_rdf', TRUE) && !empty($triples)) {
+  if (variable_get('calais_store_rdf', TRUE) && !empty($triples)) {
     calais_remove_rdf($node);
-    rdf_insert_all($triples, calais_rdf_options($node->nid));  
+    rdf_insert_all($triples, calais_rdf_options($node->nid));
   }
 }
 
@@ -860,62 +806,8 @@ function calais_store_rdf($node, $triples) {
  * @param $triples The flat set of triples
  */
 function calais_remove_rdf($node) {
-  if(variable_get('calais_store_rdf', TRUE)) {
+  if (variable_get('calais_store_rdf', TRUE)) {
     rdf_delete(NULL, NULL, NULL, calais_rdf_options($node->nid));
-  }
-}
-
-/**
- * Is this node configured to use SemanticProxy?
- *
- * @param $node 
- *    The node to examine
- * @return 
- *    TRUE if this node is configured to use SemanticProxy, FALSE otherwise.
- */
-function _calais_use_semanticproxy($node) {
-  $key = drupal_strtolower($node->type);
-  $spfield = variable_get("calais_semanticproxy_field_{$key}", '');
-  return !empty($spfield);
-}
-
-/**
- * Implementation of hook_semanticproxy_url_alter().
- *
- * SemanticProxy obeys robots.txt and as such will not follow redirects, etc. For example,
- * RSS feeds for Google News Search will send you through Google News to redirect to the real source.
- * SemanticProxy will give a <em>Content Permissions Validator Exception</em> and not follow the 
- * link b/c Google's robots.txt disallows following /news.  We try to strip those out.
- *
- * TODO: Make this URL extraction configurable via admin ui, if possible
- *
- * @param $url 
- *    The URL to alter.
- */
-function calais_semanticproxy_url_alter(&$url) {
-  $host = parse_url($url, PHP_URL_HOST);
-
-  // Google's robot.txt disallows the follow by bots, so lets extract the real source
-  if ($host == 'news.google.com') {
-    $querystring = parse_url($url, PHP_URL_QUERY);
-
-    // Split on &, but not if the & is in an html entity. This is a better impl of parse_str().
-    $args = preg_split('|&(?!.[a-z0-9]{1,6}+;)|ims', $querystring);
-    if(!is_array($args)) {
-      return;
-    }
-
-    // Process query string args, find the 'url' arg and return the value if it's a valid URL
-    foreach($args as $arg) {
-      list($key, $val) = explode('=', $arg, 2);
-      if ($key == 'url') {
-        $val = urldecode($val);
-        if(valid_url($val, TRUE)) {
-          $url = $val;
-          return;
-        }
-      }
-    }
   }
 }
 
@@ -943,7 +835,7 @@ function calais_build_queue($type = NULL, $process_type = NULL, $threshold = NUL
       watchdog(CALAIS_WATCHDOG, 'Node type @type is not configured to process with OpenCalais. Skipped adding to queue for bulk processing.', array('@type' => $type));
       return;
     }
-  
+
     if (!isset($process_type)) {
       $process_type = calais_get_processing_type($type);
     }
@@ -954,10 +846,10 @@ function calais_build_queue($type = NULL, $process_type = NULL, $threshold = NUL
     db_query("INSERT INTO {calais_node_queue} (nid, type, changed, process_type, threshold)
               SELECT n.nid, n.type, n.changed, '%s', %f
               FROM {node} n WHERE n.status = 1 AND n.type = '%s'", array($process_type, $threshold, $type));
-      
-    return db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue} WHERE type = '%s'", $type));    
+
+    return db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue} WHERE type = '%s'", $type));
   }
-  
+
   return 0;
 }
 
@@ -976,16 +868,16 @@ function calais_process_queue($count, $type = NULL) {
   else {
     $result = db_query_range("SELECT * FROM {calais_node_queue} ORDER BY changed DESC, nid DESC", 0, $count);
   }
-  
+
   while ($data = db_fetch_object($result)) {
     $node = node_load($data->nid, NULL, TRUE);
     calais_process_node($node, $data->process_type, $data->threshold);
     db_query("DELETE FROM {calais_node_queue} WHERE nid = %d", $data->nid);
-    // Sleep for .1 seconds to avoid throttling by OpenCalais 
-    usleep(100000); 
+    // Sleep for .1 seconds to avoid throttling by OpenCalais
+    usleep(100000);
   }
-  
-  watchdog(CALAIS_WATCHDOG, "Processed @count nodes with Calais", array('@count' => $count));  
+
+  watchdog(CALAIS_WATCHDOG, "Processed @count nodes with Calais", array('@count' => $count));
 }
 
 

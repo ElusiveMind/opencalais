@@ -1,14 +1,5 @@
 <?php
-/*
-  Copyright (C) 2008 by Phase2 Technology.
-  Author(s): Frank Febbraro, Irakli Nadareishvili
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
-
-*/
 /**
  * @file
  */
@@ -18,7 +9,7 @@
  */
 function calais_tagmods_menu() {
   $items = array();
-  
+
   $items['admin/settings/calais/calais-tagmods'] = array(
     'title' => 'Calais Tag Modifications',
     'description' => 'Configurations for Calais Tag Modifications',
@@ -36,7 +27,7 @@ function calais_tagmods_menu() {
  */
 function calais_tagmods_settings() {
   $form = array();
-  
+
   $form['calais_tag_blacklist'] = array(
     '#type' => 'textarea',
     '#title' => t('Calais Blacklist'),
@@ -44,7 +35,7 @@ function calais_tagmods_settings() {
     '#rows' => 6,
     '#description' => t('Prevent terms from being suggested by Calais using a comma-separated list.  Example: funny, bungee jumping, "Company, Inc."'),
   );
-  
+
   $form['calais_tag_rename'] = array(
     '#type' => 'textarea',
     '#title' => t('Calais Rename'),
@@ -52,13 +43,13 @@ function calais_tagmods_settings() {
     '#rows' => 6,
     '#description' => t('Customize Calais term names using key-value pairs (one option per line).  Example: OldName=NewName'),
   );
-  
+
   $form = system_settings_form($form);
   return $form;
 }
 
 /**
- * Implementation of hook_calais_preprocess.
+ * Implementation of hook_calais_preprocess().
  *
  * Make sure that a vocabulary exists for all entities returned, if not, create it.
  */
@@ -71,7 +62,7 @@ function calais_tagmods_calais_preprocess($node, &$keywords) {
  * Filter out unwanted keywords
  */
 function _calais_tagmods_apply_blacklist(&$keywords) {
-  
+
   $bl_string = variable_get('calais_tag_blacklist', NULL);
   $blacklist = drupal_explode_tags($bl_string);
   foreach ($keywords as $cat => &$metadata) {
@@ -113,11 +104,11 @@ function _calais_tagmods_apply_rename(&$keywords) {
  */
 function _calais_tagmods_rename_term($term) {
   // Rename the calais term
-  db_query("UPDATE {calais_term} SET name = '%s' 
+  db_query("UPDATE {calais_term} SET name = '%s'
             WHERE guid IS NOT NULL AND guid = '%s' AND name != '%s'", $term->name, $term->guid, $term->name);
-  
+
   // Rename the taxonomy term
-  db_query("UPDATE {term_data} t SET t.name = '%s' 
+  db_query("UPDATE {term_data} t SET t.name = '%s'
             WHERE t.tid = (SELECT ct.tdid FROM {calais_term} ct WHERE ct.guid = '%s')", $term->name, $term->guid);
 }
 

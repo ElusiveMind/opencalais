@@ -1,14 +1,5 @@
 <?php
-/*
-  Copyright (C) 2008 by Phase2 Technology.
-  Author(s): Frank Febbraro
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
-
- */
 /**
  * @file
  */
@@ -30,21 +21,21 @@ function calais_geo_uninstall() {
  */
 function calais_geo_install() {
   drupal_install_schema('calais_geo');
-  
+
   // Module weights: put after calais (which is 10)
   db_query("UPDATE {system} SET weight = 15 WHERE name = 'calais_geo'");
-  
+
   // Setup a default/minimal configuration
   $entities = calais_get_entity_vocabularies();
-    
+
   $geo_vocabs = array();
   $default_vocabs = array('City', 'ProvinceOrState', 'Country');
   foreach ($default_vocabs as $vocab) {
     $readable = calais_api_make_readable($vocab);
-    if(isset($entities[$vocab])) {
+    if (isset($entities[$vocab])) {
       $geo_vocabs[$entities[$vocab]] = $entities[$vocab];
     }
-    else if(isset($entities[$readable])) {
+    elseif (isset($entities[$readable])) {
       $geo_vocabs[$entities[$readable]] = $entities[$readable];
     }
   }
@@ -59,42 +50,42 @@ function calais_geo_schema() {
     'description' => 'Data associated with Calais Geomapping for nodes',
     'fields' => array(
       'nid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The node id')
       ),
       'vid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The node revision id')
       ),
       'center_tid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
         'description' => t('The Calais Term id to use as the map center')
       ),
       'center_latitude' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => t('The manual latitude center')
       ),
       'center_longitude' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => t('The manual longitude center')
       ),
       'width' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => t('Width of the map')
       ),
       'height' => array(
-        'type' => 'varchar', 
-        'length' => 255, 
+        'type' => 'varchar',
+        'length' => 255,
         'description' => t('Height of the map')
       ),
     ),
@@ -113,22 +104,22 @@ function calais_geo_schema() {
         'not null' => TRUE
       ),
       'nid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The node id')
       ),
       'vid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
-        'not null' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
         'default' => 0,
         'description' => t('The node revision id')
       ),
       'tid' => array(
-        'type' => 'int', 
-        'unsigned' => TRUE, 
+        'type' => 'int',
+        'unsigned' => TRUE,
         'not null' => TRUE,
         'description' => t('The Calais Term id')
       ),
@@ -145,20 +136,20 @@ function calais_geo_schema() {
 
 function calais_geo_update_6300() {
   $ret = array();
-  
+
   // Add default for nodes enabled to all, users can then turn them off instead of having them all disappear
   $enabled_types = array();
-  foreach(node_get_types() as $key => $type) {
+  foreach (node_get_types() as $key => $type) {
     $enabled_types[$key] = $key;
   }
   variable_set('calais_geo_nodes_enabled', $enabled_types);
-  
+
   // Zoom was not working, lets get rid of it
   db_drop_field($ret, 'calais_geo', 'zoom');
   _cg_migrate_manual_center($ret);
-  _cg_migrate_term_center($ret);  
-  _cg_migrate_terms($ret); 
-  return $ret; 
+  _cg_migrate_term_center($ret);
+  _cg_migrate_terms($ret);
+  return $ret;
 }
 
 
@@ -171,13 +162,13 @@ function _cg_migrate_manual_center(&$ret) {
   // Add new center columns to be actual numeric fields
   db_add_field($ret, 'calais_geo', 'center_latitude', array('type' => 'numeric', 'precision' => 10, 'scale' => 6));
   db_add_field($ret, 'calais_geo', 'center_longitude', array('type' => 'numeric', 'precision' => 10, 'scale' => 6));
-  
+
   // Migrate the manual center terms to the center lat/lon fields (make sure they are the proper type)
   $result = db_query("SELECT * FROM {calais_geo} WHERE latlon_center IS NOT NULL AND latlon_center <> ''");
-  while($geo = db_fetch_object($result)) {
+  while ($geo = db_fetch_object($result)) {
     list($lat, $lon) = explode(',', $geo->latlon_center);
-    if(is_numeric($lat) && is_numeric($lon)) {
-      $ret[] = update_sql("UPDATE {calais_geo} SET center_latitude = $lat, center_longitude = $lon WHERE vid = {$geo->vid}");      
+    if (is_numeric($lat) && is_numeric($lon)) {
+      $ret[] = update_sql("UPDATE {calais_geo} SET center_latitude = $lat, center_longitude = $lon WHERE vid = {$geo->vid}");
     }
   }
 

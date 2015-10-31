@@ -1,13 +1,13 @@
 <?php
 /**
- * @file Calais.inc
+ * @file
  * The main interface to the calais web service
  */
 
 class Calais {
-  
+
   const PATH = '/permid/calais';
-  
+
   private $defaults = array(
     'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
@@ -20,13 +20,13 @@ class Calais {
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
   );
-  
+
   public $parameters;
   public $rdf;
   public $triples = array();
   public $flatTriples = array();
   public $keywords = array();
-  
+
   /**
    * Constructs an instance of the Calais facade.
    *
@@ -34,18 +34,16 @@ class Calais {
    * parameter name being the key and the parameter setting being the value
    * e.g. array('allowSearch' => 'false')
    *
-   * @param options  An array of parameter options for the Calais Web Service. 
+   * @param options  An array of parameter options for the Calais Web Service.
    *                  These will override the defaults.
-   *
-   * @see http://opencalais.com/APIcalls#inputparameters
    */
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
     $this->defaults['host'] = variable_get('calais_api_server', 'api.thomsonreuters.com');
-    
+
     $this->parameters = array_merge($this->defaults, $options);
   }
-  
+
   /**
    * Analyze the provided content, passing it to Calais in XML format for more accurate data processing.
    *
@@ -59,7 +57,7 @@ class Calais {
     $this->parameters['contentType'] = 'TEXT/XML';
     return $this->analyze($content);
   }
-  
+
   /**
    * Analyze the content via Calais.
    *
@@ -67,17 +65,17 @@ class Calais {
    * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
    */
   public function analyze($content) {
-  
+
     $headers = array(
       'Content-Type: text/raw',
       'X-AG-Access-Token: ' . variable_get('calais_api_key', NULL),
-      'Content-Length: ' . strlen($content),
+      'Content-Length: ' . drupal_strlen($content),
       'outputformat:XML/RDF',
     );
-    
+
     $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
-    
-    $curlOptions = array (
+
+    $curlOptions = array(
       CURLOPT_URL => $uri,
       CURLOPT_HTTPHEADER => $headers,
       CURLOPT_SSL_VERIFYPEER => FALSE,
@@ -86,11 +84,11 @@ class Calais {
     );
 
     $ch = curl_init();
-    curl_setopt_array($ch,$curlOptions);
+    curl_setopt_array($ch, $curlOptions);
 
     // send request and get response from api..........
     $response = curl_exec($ch);
-    
+
     if (isset($response->error)) {
       self::log_calais_error($response);
       return array();
@@ -98,13 +96,13 @@ class Calais {
 
     $this->rdf = $response;
     $this->processor = new CalaisRdfProcessor();
-    $this->keywords = $this->processor->parse_rdf($this->rdf);    
+    $this->keywords = $this->processor->parse_rdf($this->rdf);
     $this->triples = $this->processor->triples;
-    if (isset($this->processor->flatTriples)) {  
+    if (isset($this->processor->flatTriples)) {
       $this->flatTriples = $this->processor->flatTriples;
     }
-    
-    return $this->keywords;    
+
+    return $this->keywords;
   }
 
   private static function log_calais_error($ret) {
@@ -112,7 +110,7 @@ class Calais {
     drupal_set_message($msg, 'error');
     watchdog('calais', 'Calais processing error: (@code - @error) @msg', array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $ret->data), WATCHDOG_ERROR);
   }
-  
+
   /**
    * Build the XML Parameters required by the Calais Web-Service
    *
@@ -122,14 +120,14 @@ class Calais {
     $attributes = $this->parameters;
     $ret = <<<EOD
     <c:params xmlns:c="http://s.opencalais.com/1/pred/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <c:processingDirectives c:contentType="$attributes[contentType]" 
+    <c:processingDirectives c:contentType="$attributes[contentType]"
                             c:outputFormat="$attributes[outputFormat]"
                             c:enableMetadataType="$attributes[enableMetadataType]">
                             c:calculateRelevanceScore="$attributes[calculateRelevanceScore]">
     </c:processingDirectives>
-    <c:userDirectives c:allowDistribution="$attributes[allowDistribution]" 
-                      c:allowSearch="$attributes[allowSearch]"           
-                      c:externalID="$attributes[externalID]" 
+    <c:userDirectives c:allowDistribution="$attributes[allowDistribution]"
+                      c:allowSearch="$attributes[allowSearch]"
+                      c:externalID="$attributes[externalID]"
                       c:submitter="$attributes[submitter]">
     </c:userDirectives>
     <c:externalMetadata>
@@ -141,12 +139,11 @@ class Calais {
 EOD;
     return $ret;
   }
-  
+
   /**
    * Build the XML document request format expected by Calais
    *
    * @return an xml string to be submitted to Calais
-   * @see http://opencalais.com/APIcalls#inputcontentformat
    */
   protected function build_xml_content($title, $body, $date) {
     $req = "<DOCUMENT>";
@@ -155,5 +152,5 @@ EOD;
     $req .= "<BODY><![CDATA[$body]]></BODY>";
     $req .= "</DOCUMENT>";
     return $req;
-  }  
+  }
 }

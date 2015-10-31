@@ -1,10 +1,12 @@
 <?php
+
 /**
- * @file calais.views.inc
+ * @file
+ * calais.views.inc
  */
 
 /**
- * Implementation of hook_views_data()
+ * Implementation of hook_views_data().
  */
 function calais_views_data() {
   $data = array();
@@ -56,7 +58,7 @@ function calais_views_data() {
     ),
     'filter' => array(
       'handler' => 'calais_handler_filter_calais_term_vid',
-    ),    
+    ),
   );
 
   $data['calais_term']['name'] = array(
@@ -70,7 +72,7 @@ function calais_views_data() {
       'handler' => 'views_handler_sort',
     ),
   );
-  
+
   $data['calais_term']['guid'] = array(
     'title' => t('Linked Data URI'),
     'help' => t('Calais Linked Data URI'),
@@ -78,7 +80,7 @@ function calais_views_data() {
       'handler' => 'calais_handler_field_guid',
     ),
   );
-  
+
   $data['calais_term']['resolved_name'] = array(
     'title' => t('Resolved Name'),
     'help' => t('The disambiguated Calais Entity name'),
@@ -101,7 +103,7 @@ function calais_views_data() {
       'handler' => 'views_handler_sort',
     ),
   );
-  
+
   // Relevance
   $data['calais_term_node']['table']['group']  = t('Calais');
   $data['calais_term_node']['table']['join'] = array(
@@ -133,7 +135,7 @@ function calais_views_data() {
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
-  );  
+  );
   $data['calais_term_node']['nid'] = array(
     'title' => t('Node ID'),
     'help' => t('A Node ID to limit the results'),
@@ -146,7 +148,7 @@ function calais_views_data() {
       'handler' => 'views_handler_filter_numeric',
     ),
   );
-  
+
   // Calais resovled geo data
   $data['calais_term_data_geo']['table']['group']  = t('Calais Geo Data');
   $data['calais_term_data_geo']['table']['join'] = array(
@@ -165,9 +167,9 @@ function calais_views_data() {
       'left_table' => 'calais_term_node',
       'left_field' => 'tid',
       'field' => 'tid',
-    ),   
-  );  
-  
+    ),
+  );
+
   $data['calais_term_data_geo']['latitude'] = array(
     'title' => t('Latitude'),
     'help' => t('The latitude geo coordinate of the Calais Entity'),
@@ -187,7 +189,7 @@ function calais_views_data() {
     'filter' => array(
      'handler' => 'views_handler_filter_float',
     ),
-  );  
+  );
   $data['calais_term_data_geo']['shortname'] = array(
     'title' => t('Short Name'),
     'help' => t('Core name of a resolved geography'),
@@ -221,7 +223,7 @@ function calais_views_data() {
       'handler' => 'views_handler_sort',
     ),
   );
-  
+
   // Calais resovled company data
   $data['calais_term_data_company']['table']['group']  = t('Calais Company Data');
   $data['calais_term_data_company']['table']['join'] = array(
@@ -235,7 +237,7 @@ function calais_views_data() {
       'left_field' => 'tid',
       'field' => 'tid',
     ),
-  );    
+  );
   $data['calais_term_data_company']['ticker'] = array(
     'title' => t('Ticker'),
     'help' => t('Stock Symbol'),
@@ -264,7 +266,7 @@ function calais_views_data() {
       'left_field' => 'tid',
       'field' => 'tid',
     ),
-  );    
+  );
   $data['calais_term_data_product']['score'] = array(
     'title' => t('Product Score'),
     'help' => t('Confidence score (range: 0 lowest - 1 highest)'),
@@ -272,7 +274,7 @@ function calais_views_data() {
       'handler' => 'views_handler_field',
     ),
   );
-  
+
   return $data;
 }
 

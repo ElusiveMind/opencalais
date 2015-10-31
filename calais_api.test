@@ -1,86 +1,90 @@
 <?php
 
+/**
+ * @file
+ */
+
 class CalaisApiTestCase extends DrupalWebTestCase {
 
-	function setUp() {
-		// Get the configured API key before generating a new $db_prefix
-		$api_key = variable_get('calais_api_key', '');
+  function setUp() {
+    // Get the configured API key before generating a new $db_prefix
+    $api_key = variable_get('calais_api_key', '');
 
-		parent::setUp('calais_api');
-			
-		variable_set('calais_api_key', $api_key);		
-	}
+    parent::setUp('calais_api');
 
-	function tearDown() {
-		parent::tearDown();
-	}
-	
-	function assertCalaisResults($results) {
-		$this->assertFalse(empty($results), "Results were populated");
+    variable_set('calais_api_key', $api_key);
+  }
 
-		$this->arrayContains($results->City, 'Denver', 'Denver is a City');
-		$this->arrayContains($results->City, 'Philadelphia', 'Philadelphia is a City');
-		$this->arrayContains($results->City, 'Chicago', 'Chicago is a City');
+  function tearDown() {
+    parent::tearDown();
+  }
 
-		$this->arrayContains($results->Company, 'CBS', 'CBS is a Company');
+  function assertCalaisResults($results) {
+    $this->assertFalse(empty($results), "Results were populated");
 
-		$this->arrayContains($results->Person, 'Barack Obama', 'Barack Obama is a Person');
-		$this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
-		$this->arrayContains($results->Person, 'Howard Dean', 'Howard Dean is a Person');
-		$this->arrayContains($results->Person, 'Al Gore', 'Al Gore is a Person');
+    $this->arrayContains($results->City, 'Denver', 'Denver is a City');
+    $this->arrayContains($results->City, 'Philadelphia', 'Philadelphia is a City');
+    $this->arrayContains($results->City, 'Chicago', 'Chicago is a City');
 
-		$this->arrayContains($results->PublishedMedium, 'The Wall Street Journal', 'The Wall Street Journal is a PublishedMedium');
+    $this->arrayContains($results->Company, 'CBS', 'CBS is a Company');
 
-		$this->arrayContains($results->ProvinceOrState, 'Indiana', 'Indiana is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Ohio', 'Ohio is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Florida', 'Florida is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'North Carolina', 'North Carolina is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Iowa', 'Iowa is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Pennsylvania', 'Pennsylvania is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Michigan', 'Michigan is a ProvinceOrState');
-		$this->arrayContains($results->ProvinceOrState, 'Vermont', 'Vermont is a ProvinceOrState');
+    $this->arrayContains($results->Person, 'Barack Obama', 'Barack Obama is a Person');
+    $this->arrayContains($results->Person, 'Hillary Clinton', 'Hillary Clinton is a Person');
+    $this->arrayContains($results->Person, 'Howard Dean', 'Howard Dean is a Person');
+    $this->arrayContains($results->Person, 'Al Gore', 'Al Gore is a Person');
 
-		$this->arrayContains($results->EventsFacts, 'Person Career', 'Person Career is an Event/Fact');
-		$this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
-		
-		$this->assertFalse(property_exists($results, 'Geo'), 'GEO data handled correctly');
-		
-		$this->assertRelevance($results->Person, 'Barack Obama', 0.797);
-		$this->assertRelevance($results->ProvinceOrState, 'Indiana', 0.566);
-		
-		$this->assertResolvedName($results->Company, 'CBS', 'CBS Corporation', 'company', 'CBS disambiguates to CBS Corporation');
+    $this->arrayContains($results->PublishedMedium, 'The Wall Street Journal', 'The Wall Street Journal is a PublishedMedium');
 
-		$this->assertResolvedData($results->Company, 'CBS', array('ticker' => 'CBS'));
-		$this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('latitude' => '40.0066019668', 'longitude' => '-86.2913991487'));		
-		$this->assertResolvedData($results->ProvinceOrState, 'North Carolina', array('latitude' => '35.4833648675', 'longitude' => '-79.4002284439'));		
-	}
+    $this->arrayContains($results->ProvinceOrState, 'Indiana', 'Indiana is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Ohio', 'Ohio is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Florida', 'Florida is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'North Carolina', 'North Carolina is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Iowa', 'Iowa is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Pennsylvania', 'Pennsylvania is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Michigan', 'Michigan is a ProvinceOrState');
+    $this->arrayContains($results->ProvinceOrState, 'Vermont', 'Vermont is a ProvinceOrState');
 
-	function arrayContains($haystack, $needle, $message) {
-		if(!isset($haystack)) {
-			$this->fail("No results returned when looking for $needle");
-		}
-		$this->assertTrue($haystack->has_term_value($needle), t($message));
-	}
+    $this->arrayContains($results->EventsFacts, 'Person Career', 'Person Career is an Event/Fact');
+    $this->arrayContains($results->EventsFacts, 'Quotation', 'Quotation is an Event/Fact');
 
-	function assertResolvedName($entitySet, $entity, $resolved, $type, $message) {
-		$term = $entitySet->get_term_by_value($entity);
-		$this->assertTrue($term, "'$entity' was found for disambiguation");
-		$this->assertEqual($term->resolved_name, $resolved, $message);
-		$this->assertEqual($term->resolved_type, $type, "Resolved Type '$term->resolved_type' equals '$type'");
-	}
+    $this->assertFalse(property_exists($results, 'Geo'), 'GEO data handled correctly');
 
-	function assertResolvedData($entitySet, $entity, $data) {
-		$term = $entitySet->get_term_by_value($entity);
-		$extra = $term->extra;
-		foreach ($data as $key => $val) {
-			$this->assertEqual($extra[$key], $val, "Resolved '$key' for $entity is {$extra[$key]}");
-		}
-	}
+    $this->assertRelevance($results->Person, 'Barack Obama', 0.797);
+    $this->assertRelevance($results->ProvinceOrState, 'Indiana', 0.566);
 
-	function assertRelevance($entitySet, $value, $score) {
-		$term = $entitySet->get_term_by_value($value);
-		$this->assertEqual($term->relevance, $score, "Relevance score for $value is {$term->relevance}");
-	}
+    $this->assertResolvedName($results->Company, 'CBS', 'CBS Corporation', 'company', 'CBS disambiguates to CBS Corporation');
+
+    $this->assertResolvedData($results->Company, 'CBS', array('ticker' => 'CBS'));
+    $this->assertResolvedData($results->ProvinceOrState, 'Indiana', array('latitude' => '40.0066019668', 'longitude' => '-86.2913991487'));
+    $this->assertResolvedData($results->ProvinceOrState, 'North Carolina', array('latitude' => '35.4833648675', 'longitude' => '-79.4002284439'));
+  }
+
+  function arrayContains($haystack, $needle, $message) {
+    if (!isset($haystack)) {
+      $this->fail("No results returned when looking for $needle");
+    }
+    $this->assertTrue($haystack->has_term_value($needle), t($message));
+  }
+
+  function assertResolvedName($entitySet, $entity, $resolved, $type, $message) {
+    $term = $entitySet->get_term_by_value($entity);
+    $this->assertTrue($term, "'$entity' was found for disambiguation");
+    $this->assertEqual($term->resolved_name, $resolved, $message);
+    $this->assertEqual($term->resolved_type, $type, "Resolved Type '$term->resolved_type' equals '$type'");
+  }
+
+  function assertResolvedData($entitySet, $entity, $data) {
+    $term = $entitySet->get_term_by_value($entity);
+    $extra = $term->extra;
+    foreach ($data as $key => $val) {
+      $this->assertEqual($extra[$key], $val, "Resolved '$key' for $entity is {$extra[$key]}");
+    }
+  }
+
+  function assertRelevance($entitySet, $value, $score) {
+    $term = $entitySet->get_term_by_value($value);
+    $this->assertEqual($term->relevance, $score, "Relevance score for $value is {$term->relevance}");
+  }
 }
 
 
@@ -94,36 +98,36 @@ class CalaisWebServiceTestCase extends CalaisApiTestCase {
     );
   }
 
-	function testAnalyze() {
-		$body = filter_xss($this->get_test_content());
-		$date = format_date(time(), 'custom', 'r');
-		
-		$calais = new Calais(array('host' => 'api1.opencalais.com'));
-		$results = $calais->analyzeXML('Calais API Test', $body, $date);
-		
-		$this->assertCalaisResults($results);
-		
-		$this->arrayContains($results->SocialTags, 'Pennsylvania Democratic primary', 'Pennsylvania Democratic primary is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Barack Obama', 'Barack Obama is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Hillary Rodham Clinton', 'Hillary Rodham Clinton is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Superdelegate', 'Superdelegate is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Hillary Clinton caucuses and primaries', 'Hillary Clinton caucuses and primaries is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Barack Obama presidential primary campaign', 'Barack Obama presidential primary campaign is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Business', 'Business is in Social Tags');
-		$this->arrayContains($results->SocialTags, 'Labor', 'Labor is in Social Tags');
-		$this->assertRelevance($results->SocialTags, 'Barack Obama', 0.9);
-		$this->assertRelevance($results->SocialTags, 'Barack Obama presidential primary campaign', 0.7);
-		$this->arrayContains($results->CalaisDocumentCategory, 'Business', 'Business is in Document Category');
-		$this->arrayContains($results->CalaisDocumentCategory, 'Labor', 'Labor is in Document Category');
-		$this->arrayContains($results->TVShow, '60 Minutes', '60 Minutes is a TVShow');
-		$this->assertRelevance($results->TVShow, '60 Minutes', 0.052);
-	}
-	
-	// http://voices.washingtonpost.com/44/2008/03/31/three_turning_points_on_the_ro.html
-	function get_test_content() {
-		  $str = <<<EOD
+  function testAnalyze() {
+    $body = filter_xss($this->get_test_content());
+    $date = format_date(time(), 'custom', 'r');
+
+    $calais = new Calais(array('host' => 'api1.opencalais.com'));
+    $results = $calais->analyzeXML('Calais API Test', $body, $date);
+
+    $this->assertCalaisResults($results);
+
+    $this->arrayContains($results->SocialTags, 'Pennsylvania Democratic primary', 'Pennsylvania Democratic primary is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Barack Obama', 'Barack Obama is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Hillary Rodham Clinton', 'Hillary Rodham Clinton is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Superdelegate', 'Superdelegate is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Hillary Clinton caucuses and primaries', 'Hillary Clinton caucuses and primaries is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Barack Obama presidential primary campaign', 'Barack Obama presidential primary campaign is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Business', 'Business is in Social Tags');
+    $this->arrayContains($results->SocialTags, 'Labor', 'Labor is in Social Tags');
+    $this->assertRelevance($results->SocialTags, 'Barack Obama', 0.9);
+    $this->assertRelevance($results->SocialTags, 'Barack Obama presidential primary campaign', 0.7);
+    $this->arrayContains($results->CalaisDocumentCategory, 'Business', 'Business is in Document Category');
+    $this->arrayContains($results->CalaisDocumentCategory, 'Labor', 'Labor is in Document Category');
+    $this->arrayContains($results->TVShow, '60 Minutes', '60 Minutes is a TVShow');
+    $this->assertRelevance($results->TVShow, '60 Minutes', 0.052);
+  }
+
+  // http://voices.washingtonpost.com/44/2008/03/31/three_turning_points_on_the_ro.html
+  function get_test_content() {
+      $str = <<<EOD
 Democratic politicians should have three dates circled on their calendars: April 22, May 6 and July 1. Each represents a potential turning point in the nomination battle between Barack Obama and Hillary Clinton.
- 
+
 April 22, the day of the Pennsylvania primary, is Clinton's next change to make a strong case for staying in the race to the end. Conversely, it is a critical opportunity for Obama to show that he continues to expand his appeal within the party, as someone who hopes to become the nominee must do.
 
 May 6 is when North Carolina and Indiana hold their primaries. It has gained significance over the past two weeks as a potential make-or-break day for both candidates, perhaps the only date between now and the end of the primaries that could deliver a seismic jolt to the trajectory of the nomination battle.
@@ -162,9 +166,9 @@ Al Gore, on CBS's "60 Minutes" Sunday, laughed when asked by correspondent Lesle
 
 Depending on what happens on April 22, May 6 and by July 1, Democrats will know whether they have their nominee, or whether they are truly in need of either a broker or a uniter
 EOD;
-		
-		return $str;		
-	}
+
+    return $str;
+  }
 }
 
 
@@ -177,14 +181,14 @@ class SemanticProxyTestCase extends CalaisApiTestCase {
     );
   }
 
-	function testAnalyze() {
-		$sp = new SemanticProxy();
-		$results = $sp->analyze('http://voices.washingtonpost.com/44/2008/03/31/three_turning_points_on_the_ro.html');
-		drupal_set_message($sp->rdf);
-		$this->assertCalaisResults($results);
-		
-		$this->arrayContains($results->CalaisDocumentCategory, 'Politics', 'Politics is in Document Category');
-	}
+  function testAnalyze() {
+    $sp = new SemanticProxy();
+    $results = $sp->analyze('http://voices.washingtonpost.com/44/2008/03/31/three_turning_points_on_the_ro.html');
+    drupal_set_message($sp->rdf);
+    $this->assertCalaisResults($results);
+
+    $this->arrayContains($results->CalaisDocumentCategory, 'Politics', 'Politics is in Document Category');
+  }
 }
 
 

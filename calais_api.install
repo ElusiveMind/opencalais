@@ -2,9 +2,9 @@
 /**
  * @file
  */
- 
+
 /**
- * Implementation of hook_requirements(). 
+ * Implementation of hook_requirements().
  * Check to make sure the API key is specified and the ARC2 library is installed.
  */
 function calais_api_requirements($phase) {
