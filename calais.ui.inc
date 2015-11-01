@@ -4,8 +4,6 @@
  * @file
  */
 
-define('CALAIS_TERM_MAXLENGTH', 1000);
-
 /**
  * Alter the standard node edit form to remove calais taxonomies so that they are
  * only editable via the Calais tab.
@@ -47,7 +45,7 @@ function calais_form_alter(&$form, $form_state, $form_id) {
  */
 function _calais_disable_taxonomy_field(&$field) {
   $field['#type'] = 'hidden';
-  $field['#maxlength'] = CALAIS_TERM_MAXLENGTH;
+  $field['#maxlength'] = variable_get('opencalais_term_maxlength', 1000);
 }
 
 /**
@@ -108,7 +106,7 @@ function calais_keywords_form(&$form_state, $node) {
       '#autocomplete_path' => 'taxonomy/autocomplete/'. $vocabulary->vid,
       '#weight' => $vocabulary->weight,
       '#size' => 75,
-      '#maxlength' => CALAIS_TERM_MAXLENGTH,
+      '#maxlength' => variable_get('opencalais_term_maxlength', 1000),
     );
 
     if ($has_keywords) {

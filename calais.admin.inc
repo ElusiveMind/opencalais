@@ -26,7 +26,14 @@ function calais_admin_settings() {
     '#default_value' => variable_get('calais_lookup_loduri', FALSE),
     '#description' => t('If checked, an additional HTTP request will be made for each disambiguated entity to find the Linked Open Data URIs to DBPedia, Freebase, etc.  It does involve additional requests to external servers.  If you don\'t know what this is, you should leave it disabled.'),
   );
-
+  $form['general']['opencalais_term_maxlength'] = array(
+    '#type' => 'textfield',
+    '#size' => 5,
+    '#maxlength' => 5,
+    '#title' => t('Maximum Length Of Tagged Terms'),
+    '#default_value' => variable_get('opencalais_term_maxlength', 1000),
+  );
+  
   calais_build_entity_settings($form);
   calais_build_nodetype_settings($form);
 
