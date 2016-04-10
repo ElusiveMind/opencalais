@@ -153,6 +153,9 @@ function opencalais_queue_get_progress() {
     $process_count = variable_get('opencalais_bulk_processing_count', 25);
     return t('%n nodes remaining in the queue. These items will be processed %max at a time during cron runs.', array('%n' => $items, '%max' => $process_count));
   }
+  else {
+    return NULL;
+  }
 }
 
 /**
@@ -202,8 +205,11 @@ function opencalais_bulk_operations_form() {
   $form = array();
   $available_types = _opencalais_get_auto_content_types();
 
-  drupal_set_message(opencalais_queue_get_progress(), 'status');
-
+  $message = opencalais_queue_get_progress();
+  if (!empty($message)) {
+    drupal_set_message($message, 'status');
+  }
+  
   $form['types'] = array(
     '#type' => 'fieldset',
     '#attributes' => array(
@@ -251,7 +257,9 @@ function opencalais_get_messages() {
 
   foreach ($queue as $type => $messages) {
     foreach ($messages as $message) {
-      drupal_set_message(check_plain($message), $type);
+      if (!empty($message) && !empty($type)) {
+        drupal_set_message(check_plain($message), $type);
+      }
     }
   }
   //empty the queue

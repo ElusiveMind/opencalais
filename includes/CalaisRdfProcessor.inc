@@ -12,7 +12,10 @@ class CalaisRdfProcessor {
   const CALAIS_LAT = 'http://s.opencalais.com/1/pred/latitude';
   const CALAIS_LON = 'http://s.opencalais.com/1/pred/longitude';
   const CALAIS_SCORE = 'http://s.opencalais.com/1/pred/score';
+  const CALAIS_PERMID = 'http://s.opencalais.com/1/pred/permid';
+  const CALAIS_OPENPERMID = 'http://s.opencalais.com/1/pred/openpermid';
   const SAMEAS = 'http://www.w3.org/2002/07/owl#sameAs';
+  
   /**
    * Parse the RDF.  First render it into an indexed fashion, then have at it. We need to process
    * in 2 stages. The first stage identifies all of the entities, events, and facts. The second
@@ -283,15 +286,15 @@ class CalaisRdfProcessor {
     $extra = array(
       'latitude' => isset($data[self::CALAIS_LAT]) ? $data[self::CALAIS_LAT][0] : '',
       'longitude' => isset($data[self::CALAIS_LON]) ? $data[self::CALAIS_LON][0] : '',
-      'shortname' => isset($data['http://s.opencalais.com/1/pred/shortname']) ? $data['http://s.opencalais.com/1/pred/shortname'][0] : '',
-      'containedbycountry' => isset($data['http://s.opencalais.com/1/pred/containedbycountry']) ? $data['http://s.opencalais.com/1/pred/containedbycountry'][0] : ''
+      'shortname' => isset($data['http://s.opencalais.com/1/pred/shortname'][0]) ? $data['http://s.opencalais.com/1/pred/shortname'][0] : '',
+      'containedbycountry' => isset($data['http://s.opencalais.com/1/pred/containedbycountry'][0]) ? $data['http://s.opencalais.com/1/pred/containedbycountry'][0] : ''
     );
     //Only set this if its actually available
     if (isset($data['http://s.opencalais.com/1/pred/containedbystate'])) {
       $extra['containedbystate'] = $data['http://s.opencalais.com/1/pred/containedbystate'][0];
     }
-
-    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
+    
+    $this->apply_resolved_data($keywords, $guid, $data, 'city', $extra);
   }
 
   /**
@@ -308,7 +311,7 @@ class CalaisRdfProcessor {
       'shortname' => $data['http://s.opencalais.com/1/pred/shortname'][0],
       'containedbycountry' => isset($data['http://s.opencalais.com/1/pred/containedbycountry']) ? $data['http://s.opencalais.com/1/pred/containedbycountry'][0] : '',
     );
-    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'province_or_state', $extra);
   }
 
   /**
@@ -318,12 +321,27 @@ class CalaisRdfProcessor {
    * @param $guid The resolved entity guid
    * @param $data The indexed triple for the current Calais Term
    */
-  protected function apply_resolved_geo_country(&$keywords, $guid, $data) {
+  protected function apply_resolved_geo_country(&$keywords, $guid, $data) {  
     $extra = array(
       'latitude' => $data[self::CALAIS_LAT][0],
       'longitude' => $data[self::CALAIS_LON][0],
+      'permid' => $data['http://s.opencalais.com/1/pred/permid'],
     );
-    $this->apply_resolved_data($keywords, $guid, $data, 'geo', $extra);
+    $this->apply_resolved_data($keywords, $guid, $data, 'country', $extra);
+  }
+  
+  /**
+   * Extracts the disambiguation person data
+   *
+   * @param $keywords The result array for CalaisMetadata
+   * @param $guid The resolved entity guid
+   * @param $data The indexed triple for the current Calais Term
+   */
+  protected function apply_resolved_person(&$keywords, $guid, $data) {
+    $extra = array(
+      'permid' => $data['http://s.opencalais.com/1/pred/permid'],
+    );
+    $this->apply_resolved_data($keywords, $guid, $data, 'person', 'extra');
   }
 
   /**
@@ -341,7 +359,15 @@ class CalaisRdfProcessor {
     if (isset($data['http://s.opencalais.com/1/pred/ticker'])) {
       $extra['ticker'] = $data['http://s.opencalais.com/1/pred/ticker'][0];
     }
-
+    if (isset($data['http://s.opencalais.com/1/pred/openpermid'])) {
+      $extra['permid_url'] = $data['http://s.opencalais.com/1/pred/openpermid'];
+    }
+    if (isset($data['http://s.opencalais.com/1/pred/openpermid'])) {
+      $extra['permid'] = $data['http://s.opencalais.com/1/pred/permid'];
+    }
+    if (isset($data['http://s.opencalais.com/1/pred/name'])) {
+      $extra['legalname'] = $data['http://s.opencalais.com/1/pred/name'];
+    }
     $this->apply_resolved_data($keywords, $guid, $data, 'company', $extra);
   }
 

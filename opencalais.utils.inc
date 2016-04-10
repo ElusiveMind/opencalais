@@ -67,12 +67,12 @@ function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title
   try {
     if (!field_read_instance('node', $instance['field_name'], $content_type)) {
       field_create_instance($instance);
-      drupal_set_message(check_plain(t('OpenCalais Field for ' . $taxonomy_name . ' has been successfully created')));
+      drupal_set_message(t('OpenCalais Field for %taxonomy_name has been successfully created'), array('%taxonomy_name' => $taxonomy_name));
     }
     else {
       // If the field already exists then we should just update it
       field_update_instance($instance);
-      drupal_set_message(check_plain(t('OpenCalais Field for ' . $taxonomy_name . ' has been successfully updated')));
+      drupal_set_message(t('OpenCalais Field for %taxonomy_name has been successfully created'), array('%taxonomy_name' => $taxonomy_name));
     }
   } catch (FieldException $f) {
     drupal_set_message($f->getMessage(), $type = 'error');
@@ -88,7 +88,7 @@ function opencalais_create_vocabulary($entity) {
   $machine = _opencalais_make_machine_name($entity);
   $vocabulary = taxonomy_vocabulary_machine_name_load($machine);
 
-  if (!$vocabulary) {
+  if (empty($vocabulary)) {
     $vocabulary = (object) array(
       'name' => $readable,
       'description' => t('Tags sourced from OpenCalais about @name.', array('@name' => $readable)),
@@ -102,67 +102,68 @@ function opencalais_create_vocabulary($entity) {
     //map the vid to the machine name for easy lookup
     $vocabs[$vocabulary->vid] = $machine;
     variable_set('opencalais_vocab_mapping', $vocabs);
-  }
 
-  /* Add extra fields for vocabularies that have disabiguation information associated
-   * with them. We want to do this even for existing fields in case we add more fields
-   * in the future ... that way there won't be an issue.
-   */
-  $extra = opencalais_get_extra_fields($entity);
-  if ($extra) {
 
-    $size = count($extra);
-    for ($i = 0; $i < $size; $i++) {
-      $e = $extra[$i];
+    /* Add extra fields for vocabularies that have disabiguation information associated
+     * with them. We want to do this even for existing fields in case we add more fields
+     * in the future ... that way there won't be an issue.
+     */
+    $extra = opencalais_get_extra_fields($entity);
+    if ($extra) {
 
-      //we just need to add these as text fields for right now
-      $text_field = text_field_info();
+      $size = count($extra);
+      for ($i = 0; $i < $size; $i++) {
+        $e = $extra[$i];
 
-      // Create all the fields we are adding to our taxonomy term
-      // http://api.drupal.org/api/function/field_create_field/7
-      $field['field_name'] = strtolower(str_ireplace(' ', '_', $e));
+        //we just need to add these as text fields for right now
+        $text_field = text_field_info();
 
-      $field['type'] = 'text';
-      $field['cardinality'] = 1;
+        // Create all the fields we are adding to our taxonomy term
+        // http://api.drupal.org/api/function/field_create_field/7
+        $field['field_name'] = strtolower(str_ireplace(' ', '_', $e));
 
-      // handle any fieldexceptions that occur by just setting and error message and returning
-      try{
-        // only try to create the field if it doesn't exist, otherwise just create an instance
-        if (!field_read_field($e, array('include_inactive' => TRUE))) {
-          field_create_field($field);
+        $field['type'] = 'text';
+        $field['cardinality'] = 1;
+
+        // handle any fieldexceptions that occur by just setting and error message and returning
+        try{
+          // only try to create the field if it doesn't exist, otherwise just create an instance
+          if (!field_read_field($e, array('include_inactive' => TRUE))) {
+            field_create_field($field);
+          }
+        } catch (FieldException $f) {
+          drupal_set_message(t('Error creating MetaData Field: ' . $f->getMessage()), 'error');
         }
-      } catch (FieldException $f) {
-        drupal_set_message(check_plain(t('Error creating MetaData Field: ' . $f->getMessage())), $type = 'error');
-      }
-      $instance = current($text_field);
+        $instance = current($text_field);
 
-      // Create all the instances for our fields.
-      // http://api.drupal.org/api/function/field_create_instance/7
-      $instance['field_name'] = $field['field_name'];
-      $instance['title'] = $e;
-      $instance['label'] = 'OpenCalais Metadata: ' . $e;
-      $instance['description'] = $vocabulary->description;
+        // Create all the instances for our fields.
+        // http://api.drupal.org/api/function/field_create_instance/7
+        $instance['field_name'] = $field['field_name'];
+        $instance['title'] = $e;
+        $instance['label'] = 'OpenCalais Metadata: ' . $e;
+        $instance['description'] = $vocabulary->description;
 
-      $instance['widget'] = array(
-        'type' => 'text_textfield',
-        'settings' => array(),
-        'module' => 'text'
-      );
-      $instance['entity_type'] = 'taxonomy_term';
-      $instance['bundle'] = $machine;
-      // handle any fieldexceptions that occur by just setting and error message and returning
-      try {
-        if (!field_read_instance('taxonomy_term', $instance['field_name'], $machine)) {
-          field_create_instance($instance);
-          drupal_set_message(check_plain(t('OpenCalais MetaData Field for ' . $readable . ' has been successfully created')));
+        $instance['widget'] = array(
+          'type' => 'text_textfield',
+          'settings' => array(),
+          'module' => 'text'
+        );
+        $instance['entity_type'] = 'taxonomy_term';
+        $instance['bundle'] = $machine;
+        // handle any fieldexceptions that occur by just setting and error message and returning
+        try {
+          if (!field_read_instance('taxonomy_term', $instance['field_name'], $machine)) {
+            field_create_instance($instance);
+            drupal_set_message(t('OpenCalais MetaData Field for %readable has been successfully created'), array('%readable' => $readable), 'status');
+          }
+          else {
+            //If the field already exists then we should just update it
+            field_update_instance($instance);
+            drupal_set_message(t('OpenCalais MetaData Field for %field has been successfully updated'), array('%field' => $readable), 'status');
+          }
+        } catch (FieldException $f) {
+          drupal_set_message(t('Error creating MetaData Field: ' . $f->getMessage()), 'error');
         }
-        else {
-          //If the field already exists then we should just update it
-          field_update_instance($instance);
-          drupal_set_message(check_plain(t('OpenCalais MetaData Field for %field has been successfully updated')), array('%field' => $readable));
-        }
-      } catch (FieldException $f) {
-        drupal_set_message(check_plain(t('Error creating MetaData Field: ' . $f->getMessage())), $type = 'error');
       }
     }
   }
@@ -225,7 +226,7 @@ function opencalais_remove_fields($content_type, $fields) {
     $instance['entity_type'] = 'node';
 
     field_delete_instance($instance);
-    drupal_set_message(check_plain(t('OpenCalais Field for ' . $vname . ' has been successfully deleted')));
+    drupal_set_message(t('OpenCalais Field for %vname has been successfully deleted'), array('%vname' => $vname));
   }
 }
 

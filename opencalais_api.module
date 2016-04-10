@@ -38,7 +38,7 @@ function opencalais_api_init() {
       include_once libraries_get_path('arc') . '/ARC2.php';
     }
     else {
-      drupal_set_message(check_plain(t('Could not find the ARC2.php library in ' . libraries_get_path('arc'))), 'error');
+      drupal_set_message(t('Could not find the ARC2.php library in @path.', array('@path' => libraries_get_path('arc'))), 'error');
     }
   }
 }
@@ -47,6 +47,7 @@ function opencalais_api_init() {
  * Build the admin settings form.
  */
 function opencalais_api_admin_settings($form, &$form_state) {
+  $form = array();
   $form['opencalais_api_key'] = array(
     '#type' => 'textfield',
     '#title' => t('OpenCalais API Key'),
@@ -87,21 +88,21 @@ function opencalais_api_get_service($options = array(), $type = NULL) {
  */
 function is_opencalais_api_key_set($show_warning = TRUE) {
 
-  $apikey = variable_get('calais_api_key', FALSE);
+  $apikey = variable_get('opencalais_api_key', FALSE);
   if (empty($apikey)) {
     if ($show_warning) {
-    drupal_set_message(check_plain(t('OpenCalais semantic analysis skipped because OpenCalais API Key is not set. Please configure by !link',
-      array(
-        '!link' => l(t('Clicking Here'), 'admin/config/opencalais/api',
+      drupal_set_message(check_plain(t('OpenCalais semantic analysis skipped because OpenCalais API Key is not set. Please configure by !link',
         array(
-          'attributes' => array(
-            'target' => '_blank',
+          '!link' => l(t('Clicking Here'), 'admin/config/opencalais/api',
+          array(
+            'attributes' => array(
+              'target' => '_blank',
+            ),
           )
-          )
+          ))
         )
-      )
-    )),
-    $type = 'warning', $repeat = FALSE);
+      ),
+      'warning', $repeat = FALSE);
     }
     return FALSE;
   }
@@ -124,7 +125,7 @@ function opencalais_api_analyze($content, $parameters = array()) {
   }
 
   $opencalais = opencalais_api_get_service($parameters);
-  return $opencalais->analyze($content);
+  return $opencalais->analyze($content, variable_get('opencalais_api_key', FALSE));
 }
 
 /**
@@ -185,4 +186,12 @@ function opencalais_api_rdf_namespaces() {
     'entity'    => 'http://s.opencalais.com/1/type/em/e/',
     'cld'       => "http://s.opencalais.com/1/linkeddata/pred/",
   );
+}
+
+
+/**
+ * Declare the supported languages by Calais.
+ */
+function opencalais_api_supported_languages() {
+  return array('en', 'fr', 'es');
 }

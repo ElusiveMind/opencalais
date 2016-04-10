@@ -518,15 +518,19 @@ function opencalais_get_extra_fields($vocab) {
   $geo = array('City', 'Country', 'ProvinceOrState');
   $company = array('Company');
   $product = array('Product');
+  $person = array('Person');
 
   if (in_array($vocab, $geo)) {
-    return array('Latitude', 'Longitude', 'ContainedByState', 'ContainedByCounty');
+    return array('Latitude', 'Longitude', 'ContainedByState', 'ContainedByCounty', 'PermID');
   }
   elseif (in_array($vocab, $company)) {
-    return array('Ticker', 'LegalName');
+    return array('Ticker', 'LegalName', 'PermID URL', 'PermID');
   }
   elseif (in_array($vocab, $product)) {
     return array();
+  }
+  elseif (in_array($vocab, $person)) {
+    return array('PermID');
   }
 }
 
