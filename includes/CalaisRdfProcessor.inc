@@ -33,7 +33,7 @@ class CalaisRdfProcessor {
    */
   public function parse_rdf($rdf_xml) {
     if (!class_exists('ARC2')) {
-      drupal_set_message(t('Unable to process, ARC2 Library is missing.'), 'error');
+      drupal_set_message(t('Could not find the ARC2.php library. Please download the ARC2 library (<a href="https://github.com/semsol/arc2">click here to download.</a>), rename the folder arc and place into your libraries folder.'), 'error');
       drupal_goto('<front>');
     }
     $parser = ARC2::getRDFXMLParser();
@@ -399,8 +399,8 @@ class CalaisRdfProcessor {
     }
 
     if (!class_exists('ARC2')) {
-      drupal_set_message(t('Unable to process, ARC2 Library is missing.'), 'error');
-      drupal_goto('<front>');
+      drupal_set_message(t('Could not find the ARC2.php library. Please download the ARC2 library (<a href="https://github.com/semsol/arc2">click here to download.</a>), rename the folder arc and place into your libraries folder.'), 'error');
+
     }
 
     $parser = ARC2::getRDFXMLParser();
