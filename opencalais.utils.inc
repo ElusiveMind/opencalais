@@ -34,14 +34,13 @@ function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title
     'parent' => 0,
   );
 
-  //handle any fieldexceptions that occur by just setting and error message and returning
+  // Handle any fieldexceptions that occur by just setting and error message and returning.
   try{
-    //only try to create the field if it doesn't exist, otherwise just create an instance
     if (!field_read_field($field['field_name'], array('include_inactive' => TRUE))) {
       field_create_field($field);
     }
   } catch (FieldException $f) {
-    drupal_set_message($f->getMessage(), $type = 'error');
+    drupal_set_message($f->getMessage(), 'error');
     return;
   }
   $instance = current($taxonomy_field);
@@ -61,21 +60,21 @@ function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title
   $instance['entity_type'] = 'node';
   $instance['bundle'] = $content_type;
   $instance['settings']['threshold'] = $threshold;
-  $instance['settings']['opencalais'] = _opencalais_make_machine_name($taxonomy_name); //Flag so we can know which fields belong to this module.
+  
+  // Flag so we can know which fields belong to this module.
+  $instance['settings']['opencalais'] = _opencalais_make_machine_name($taxonomy_name); 
 
-  // handle any fieldexceptions that occur by just setting and error message and returning
+  // Handle any fieldexceptions that occur by just setting and error message and returning.
   try {
     if (!field_read_instance('node', $instance['field_name'], $content_type)) {
       field_create_instance($instance);
-      drupal_set_message(t('OpenCalais Field for %taxonomy_name has been successfully created'), array('%taxonomy_name' => $taxonomy_name));
     }
     else {
       // If the field already exists then we should just update it
       field_update_instance($instance);
-      drupal_set_message(t('OpenCalais Field for %taxonomy_name has been successfully created'), array('%taxonomy_name' => $taxonomy_name));
     }
   } catch (FieldException $f) {
-    drupal_set_message($f->getMessage(), $type = 'error');
+    drupal_set_message($f->getMessage(), 'error');
     return;
   }
 }
@@ -84,7 +83,7 @@ function opencalais_add_field($content_type, $field_name, $taxonomy_name, $title
  * Create a new vocabulary with the OpenCalais key as the machine name.
  */
 function opencalais_create_vocabulary($entity) {
-  $readable = opencalais_api_make_readable($entity);
+  $readable = opencalais_make_camel_case_readable($entity);
   $machine = _opencalais_make_machine_name($entity);
   $vocabulary = taxonomy_vocabulary_machine_name_load($machine);
 
@@ -125,9 +124,8 @@ function opencalais_create_vocabulary($entity) {
         $field['type'] = 'text';
         $field['cardinality'] = 1;
 
-        // handle any fieldexceptions that occur by just setting and error message and returning
-        try{
-          // only try to create the field if it doesn't exist, otherwise just create an instance
+        // Handle any fieldexceptions that occur by just setting and error message and returning.
+        try {
           if (!field_read_field($e, array('include_inactive' => TRUE))) {
             field_create_field($field);
           }
@@ -150,16 +148,15 @@ function opencalais_create_vocabulary($entity) {
         );
         $instance['entity_type'] = 'taxonomy_term';
         $instance['bundle'] = $machine;
-        // handle any fieldexceptions that occur by just setting and error message and returning
+        // Handle any fieldexceptions that occur by just setting and error message and returning.
+        // Other messaging isn't necessary and, quite frankly, confusing. So it has been removed.
         try {
           if (!field_read_instance('taxonomy_term', $instance['field_name'], $machine)) {
             field_create_instance($instance);
-            drupal_set_message(t('OpenCalais MetaData Field for %readable has been successfully created'), array('%readable' => $readable), 'status');
           }
           else {
-            //If the field already exists then we should just update it
+            // If the field already exists then we should just update it
             field_update_instance($instance);
-            drupal_set_message(t('OpenCalais MetaData Field for %field has been successfully updated'), array('%field' => $readable), 'status');
           }
         } catch (FieldException $f) {
           drupal_set_message(t('Error creating MetaData Field: ' . $f->getMessage()), 'error');
@@ -219,14 +216,11 @@ function opencalais_create_fields($content_type, $vocabs = array(), $all = FALSE
  */
 function opencalais_remove_fields($content_type, $fields) {
   foreach ($fields as $vname => $vocab) {
-    // add the field
     $name = substr($vname, 0, 15);
     $instance['field_name'] = 'opencalais_' . $name . '_tags';
     $instance['bundle'] = $content_type;
     $instance['entity_type'] = 'node';
-
     field_delete_instance($instance);
-    drupal_set_message(t('OpenCalais Field for %vname has been successfully deleted'), array('%vname' => $vname));
   }
 }
 
@@ -319,7 +313,6 @@ function _opencalais_create_term($term, $field, $node, $meta=array()) {
     $term = array_pop($possibilities);
   }
   else {
-
     $vocabulary = reset($vocabularies);
     $term = array(
       'tid' => 'autocreate',
@@ -339,6 +332,14 @@ function _opencalais_create_term($term, $field, $node, $meta=array()) {
       }
     }
   }
-
   return (array) $term;
+}
+
+/**
+ * Takes a 'CamelCase' word and adds spaces to make it 'Camel Case'
+ *
+ * @return an formated string
+ */
+function opencalais_make_camel_case_readable($camel_case) {
+  return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
 }

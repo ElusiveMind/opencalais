@@ -6,12 +6,10 @@
  */
 class CalaisService implements Calais {
 
-  const PATH = '/permid/calais';
-
   private $defaults = array(
     'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
-    'outputFormat' => 'XML/RDF',
+    'outputFormat' => 'application/json',
     'externalID' => '',
     'submitter' => 'Drupal',
     'calculateRelevanceScore' => 'true',
@@ -22,9 +20,7 @@ class CalaisService implements Calais {
   );
 
   public $parameters;
-  public $rdf;
-  public $triples = array();
-  public $flatTriples = array();
+  public $data = array();
   public $keywords = array();
 
   /**
@@ -64,21 +60,39 @@ class CalaisService implements Calais {
   }
 
   /**
+   * Analyze the provided content, passing it to Calais in HTML format .
+   *
+   * @param $content
+   *    The HTML content to process
+   * @return
+   *    The processed Calais results. The raw RDF result is contained in the $this->rdf field.
+   */
+  public function analyzeRaw($content, $api_key) {
+    if (!empty($api_key)) {
+      $this->parameters['contentType'] = 'text/raw';
+      return $this->analyze($content, $api_key);
+    }
+    else {
+      return array();
+    }
+  }
+
+  /**
    * Analyze the content via Calais.
    *
    * @param $content The content to ship off to Calais for analysis
    * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
    */
-  public function analyze($content, $api_key) {
+  private function analyze($content, $api_key) {
 
     $headers = array(
-      'Content-Type: text/raw',
+      'Content-Type: ' . $this->parameters['contentType'],
       'X-AG-Access-Token: ' . $api_key,
       'Content-Length: ' . strlen($content),
-      'outputformat:XML/RDF',
+      'outputformat: application/json',
     );
 
-    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . '/permid/calais';
 
     $curlOptions = array(
       CURLOPT_URL => $uri,
@@ -99,14 +113,9 @@ class CalaisService implements Calais {
       return array();
     }
 
-    $this->rdf = $response;
-    $this->processor = new CalaisRdfProcessor();
-    $this->keywords = $this->processor->parse_rdf($this->rdf);
-    $this->triples = $this->processor->triples;
-    if (isset($this->processor->flatTriples)) {
-      $this->flatTriples = $this->processor->flatTriples;
-    }
-
+    $this->data = json_decode($response);
+    $this->processor = new CalaisJsonProcessor();
+    $this->keywords = $this->processor->parse_json($this->data);
     return $this->keywords;
   }
 

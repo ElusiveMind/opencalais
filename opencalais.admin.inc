@@ -1,8 +1,37 @@
 <?php
+
 /**
  * @file
  * Administrative settings and configurations.
  */
+
+/**
+ * Settings for the API including the server address and API key.
+ */
+function opencalais_admin_api_settings($form, &$form_state) {
+  $form = array();
+  $form['opencalais_api_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OpenCalais API Key'),
+    '#default_value' => variable_get('opencalais_api_key', NULL),
+    '#size' => 60,
+    '#description' => 'Required to utilize the Calais service. ' . l(t('Click here to get one.'), 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold'),
+  );
+  $form['opencalais_api_server'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OpenCalais Server'),
+    '#default_value' => variable_get('opencalais_api_server', 'api.thomsonreuters.com'),
+    '#size' => 60,
+    '#description' => t('The domain name for the server to use.  Typically you will not have to change this unless you want to test beta functionality.'),
+  );
+  $form['help_text'] = array(
+    '#markup' => '<div class="messages status">' . t('To configure tagging visit an individual content type\'s edit area and click the OpenCalais Fields tab.') .
+      '<br /><br />' . l(t('Content Types Edit Screen'), 'admin/structure/types') .
+      '</div>'
+  );
+  $form = system_settings_form($form);
+  return $form;
+}
 
 /**
  * Form callback for configuration options.
@@ -14,12 +43,6 @@ function opencalais_admin_general_settings($form, &$form_state) {
     '#description' => t('This will move all of the OpenCalais related Tag fields on the edit form into a Vertical Tab toward the bottom of the form entitled "Show OpenCalais Tags"'),
     '#default_value' => variable_get('opencalais_tags_in_verticaltab', 1),
   );
-  $form['opencalais_lookup_uri'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Lookup Linked Open Data URI'),
-    '#description' => t('If checked, an additional HTTP request will be made for each disambiguated entity to find the Linked Open Data URIs to DBPedia, Freebase, etc.  It does involve additional requests to external servers.  If you don\'t know what this is, you should leave it disabled.'),
-    '#default_value' => variable_get('opencalais_lookup_uri', 0),
-  );
   $form['opencalais_bulk'] = array(
     '#type' => 'fieldset',
     '#title' => 'Bulk Processing Options',
@@ -27,8 +50,7 @@ function opencalais_admin_general_settings($form, &$form_state) {
   $form['opencalais_bulk']['opencalais_bulk_processing_enabled'] = array(
     '#type' => 'checkbox',
     '#title' => t('Bulk Processing on Cron'),
-    '#description' => t('Enable bulk processing of nodes for content types with auto tagging enabled.  This processing will happen in batches
-      during cron runs until complete.'),
+    '#description' => t('Enable bulk processing of nodes for content types with auto tagging enabled.  This processing will happen in batches during cron runs until complete.'),
     '#default_value' => variable_get('opencalais_bulk_processing_enabled', FALSE)
   );
   $form['opencalais_bulk']['opencalais_bulk_processing_count'] = array(
@@ -59,9 +81,9 @@ function opencalais_admin_general_settings($form, &$form_state) {
  *   The node (or content type) we are working with.
  */
 function opencalais_add_fields_form($form, &$form_state, $content_type) {
-  //Handle any errors on the form
+  // Handle any errors on the form
   if (!empty($_POST) && form_get_errors()) {
-    drupal_set_message(t('The fields have not been created because of the errors.'), 'error');
+    drupal_set_message(t('The fields have not been created.'), 'error');
   }
 
   // Convert the content type from our URL structure to the machine name so Drupal can
@@ -88,7 +110,7 @@ function opencalais_add_fields_form($form, &$form_state, $content_type) {
   $auto = variable_get('opencalais_autotagging', array());
   $auto = (isset($auto[$content_type]) ? $auto[$content_type] : 0);
 
-  //Settings for auto tagging
+  // Settings for auto tagging.
   $form[$content_type . '_autotagging'] = array(
     '#type' => 'radios',
     '#title' => t('Tagging Method'),
@@ -108,7 +130,7 @@ function opencalais_add_fields_form($form, &$form_state, $content_type) {
   foreach ($entities as $entity) {
     $machine_name = _opencalais_make_machine_name($entity);
     $defaults = isset($entity_defaults[$entity]) ? $entity_defaults[$entity] : $entity_defaults;
-    //load in defaults for existing fields
+    // Load in defaults for existing fields.
     $defaults['enabled'] = isset($existing[$machine_name]) ? TRUE : FALSE;
     $defaults['threshold'] = isset($existing[$machine_name]) ? $existing[$machine_name]['threshold'] : $defaults['threshold'];
 
@@ -136,7 +158,7 @@ function opencalais_add_fields_form($form, &$form_state, $content_type) {
   }
 
   $form['info']['#theme'] = 'opencalais_add_fields_entities';
-  //create the buttons and submit handlers and such
+  // Create the buttons and submit handlers and such.
   $form['actions']['#type'] = 'actions';
   $form['actions']['submit'] = array(
    '#type' => 'submit',

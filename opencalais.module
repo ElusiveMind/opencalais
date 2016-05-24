@@ -26,10 +26,23 @@ function opencalais_permission() {
  */
 function opencalais_menu() {
   $items = array();
-
+  $items['admin/config/content/opencalais'] = array(
+    'title' => 'OpenCalais settings',
+    'description' => 'Configure Settings for OpenCalais integration',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('opencalais_admin_api_settings'),
+    'access arguments' => array('administer opencalais'),
+    'file' => 'opencalais.admin.inc',
+    'weight' => 2,
+  );
+  $items['admin/config/content/opencalais/api'] = array(
+    'title' => 'API Settings',
+    'description' => 'Configure Settings for OpenCalais integration',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
   $items['admin/config/content/opencalais/settings'] = array(
     'title' => 'Settings',
-    'description' => 'Configure Entity Tagging',
+    'description' => 'Configure Settings for OpenCalais integration',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('opencalais_admin_general_settings'),
     'access arguments' => array('administer opencalais'),
@@ -37,7 +50,6 @@ function opencalais_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => 0,
   );
-
   $items['admin/structure/types/manage/%/opencalais_fields'] = array(
     'title' => 'OpenCalais Fields',
     'page callback' => 'drupal_get_form',
@@ -46,7 +58,6 @@ function opencalais_menu() {
     'file' => 'opencalais.admin.inc',
     'type' => MENU_LOCAL_TASK,
   );
-
   $items['admin/config/content/opencalais/bulk'] = array(
     'title' => 'Bulk Operations',
     'page callback' => 'drupal_get_form',
@@ -56,7 +67,6 @@ function opencalais_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => 3,
   );
-
   $items['admin/config/content/opencalais/bulk/%'] = array(
     'title' => 'Process Content Type',
     'page callback' => 'opencalais_add_items_to_queue_callback',
@@ -65,7 +75,6 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_CALLBACK
   );
-
   $items['admin/config/content/opencalais/bulk-clear/%'] = array(
     'title' => 'Clear Content Type Queue',
     'page callback' => 'opencalais_queue_remove_items',
@@ -74,7 +83,6 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_CALLBACK
   );
-
   $items['admin/config/content/opencalais/bulk-re-queue/%'] = array(
     'title' => 'Clear Content Type and Re-Queue',
     'page callback' => 'opencalais_queue_reset',
@@ -383,11 +391,18 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
     // Allow modification of the content sent to Calais
     drupal_alter("opencalais_body", $body, $node);
 
-    $opencalais = opencalais_api_get_service();
+    $opencalais = opencalais_get_service();
     $api_key = variable_get('opencalais_api_key', NULL);
-    $tags = $opencalais->analyzeHTML(strip_tags($body), $api_key);
+    
+    // If the API key has not yet been set, then we short-circuit because we can't
+    // do anything anyway.
+    if (empty($api_key)) {
+      return array();
+    }
+    
+    $tags = $opencalais->analyzeRaw(strip_tags($body), $api_key);
 
-    //get a list of all the fields for this content type
+    // Get a list of all the fields for this content type.
     $fields = opencalais_get_fields_for_content_type($node->type);
 
     $suggestions = array();
@@ -398,7 +413,7 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
       if (isset($fields[$machine_name])) {
         $settings = field_info_instance('node', $fields[$machine_name]['field'], $node->type);
         foreach ($metadata->terms as $guid => $term) {
-          //only add it if its relevant
+          // Only add it if its relevant.
           if (opencalais_check_suggestion($settings, $term)) {
             $terms[$term->name] = array(
               'relevance' => (float)$term->relevance,
@@ -512,22 +527,18 @@ function opencalais_add_fields_submit($form, &$form_state) {
 }
 
 /**
- *  Retrieve a list of extra fields to apply to a vocabulary
+ * Retrieve a list of extra fields to apply to a vocabulary
  */
 function opencalais_get_extra_fields($vocab) {
   $geo = array('City', 'Country', 'ProvinceOrState');
   $company = array('Company');
-  $product = array('Product');
   $person = array('Person');
 
   if (in_array($vocab, $geo)) {
-    return array('Latitude', 'Longitude', 'ContainedByState', 'ContainedByCounty', 'PermID');
+    return array('Latitude', 'Longitude', 'ContainedByState', 'ContainedByCountry', 'PermID');
   }
   elseif (in_array($vocab, $company)) {
     return array('Ticker', 'LegalName', 'PermID URL', 'PermID');
-  }
-  elseif (in_array($vocab, $product)) {
-    return array();
   }
   elseif (in_array($vocab, $person)) {
     return array('PermID');
@@ -543,4 +554,18 @@ function opencalais_cron() {
     module_load_include('inc', 'opencalais', 'opencalais.bulk');
     opencalais_queue_cron();
   }
+}
+
+/**
+ * Declare the supported languages by Calais.
+ */
+function opencalais_supported_languages() {
+  return array('en', 'fr', 'es');
+}
+
+/**
+ * Get the service implementing the Calais interface.
+ */
+function opencalais_get_service($options = array()) {
+  return new CalaisService($options);
 }

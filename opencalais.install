@@ -25,7 +25,20 @@ function opencalais_install() {
  * things "the Drupal way".
  */
 function opencalais_uninstall() {
-
+  require __DIR__ . '/opencalais.module';
+  $entities = opencalais_get_all_entities();
+  foreach ($entities as $value) {
+    $machine_name = _opencalais_make_machine_name($value);
+    $taxonomy = taxonomy_vocabulary_machine_name_load($machine_name);
+    taxonomy_vocabulary_delete($taxonomy->vid);
+  }
+  variable_del('opencalais_default_impl');
+  variable_del('opencalais_api_server');
+  variable_del('opencalais_api_key');
+  variable_del('opencalais_tags_in_verticaltab');
+  variable_del('opencalais_bulk_processing_enabled');
+  variable_del('opencalais_bulk_processing_count');
+  cache_clear_all();
 }
 
 /**
@@ -71,7 +84,6 @@ function opencalais_update_7001() {
   foreach ($content_types as $ct => $info) {
     $fields = _opencalais_update_fields_for_content_type($ct);
   }
-
   return t('Fields Successfully Updated');
 }
 
@@ -105,4 +117,37 @@ function opencalais_update_7101() {
  */
 function opencalais_update_7102() {
   variable_get('opencalais_default_impl', 'CalaisService');
+}
+
+/**
+ * Update to remove our opencalais_default_impl variable no longer needed.
+ */
+function opencalais_update_7103() {
+  variable_del('opencalais_default_impl');
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function opencalais_api_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+  if ($phase == 'runtime') {
+    $apikey = variable_get('opencalais_api_key', FALSE);
+    if ($apikey === FALSE || empty($apikey)) {
+      $settings_uri = array(
+        '!calaissetturi' => l(t('OpenCalais API Settings'),
+        'admin/config/content/opencalais')
+      );
+      $requirements['opencalais-api'] = array(
+        'title' => $t('OpenCalais API'),
+        'value' => $t('API Key is not set.'),
+        'description' => $t('OpenCalais integration module is enabled, but
+                              OpenCalais API Key is not set. Module will not function properly.
+                              Please obtain the key and and set it at !calaissetturi as
+                              soon as possible', $settings_uri),
+        'severity' => REQUIREMENT_ERROR);
+    }
+  }
+  return $requirements;
 }
