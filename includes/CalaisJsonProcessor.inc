@@ -70,9 +70,7 @@ class CalaisJsonProcessor {
         case 'topics':
           $this->extract_categories($keywords, $type, $guid, $data);
           break;
-        //case 'events':
-          //$this->extract_events($keywords, $type, $guid, $data);
-          //break;
+        case 'events':
         case 'relations':
         case 'language':
         case 'industry':
@@ -130,27 +128,7 @@ class CalaisJsonProcessor {
     $metadata = &$keywords->{$entity_type};
     $metadata->set_term_data($guid, $entity_value, $data->relevance);
   }
-
-  /**
-   * Extracts the events & facts from the returned data. For now it is considered best that all
-   * Events & Facts are put into one Vocabulary and identified by their type.
-   *
-   * @param $keywords The result array for CalaisMetadata
-   * @param $type The RDF type for this record
-   * @param $guid The guid for the current Calais Term
-   * @param $data The indexed triple for the current Calais Term/GUID
-   */
-  protected function extract_events(&$keywords, $type, $guid, $data) {
-    $type_guid = $type[0];
-    $type_value = preg_replace('/.*\//ims', '', $type_guid);
-    $type_value = opencalais_api_make_readable($type_value);
-    if (!property_exists($keywords, 'EventsFacts')) {
-      $keywords->EventsFacts = new CalaisMetadata('http://drupal.org/project/opencalais/EventsFacts', 'EventsFacts');
-    }
-    // Not sure if the best number for relevance of an Event/Fact, for now 1 will always include
-    $keywords->EventsFacts->set_term_data($type_guid, $type_value, 1.000);
-  }
-
+  
   /**
    * Extracts the document level categorization from the returned data.
    *

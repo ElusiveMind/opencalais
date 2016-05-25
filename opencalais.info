@@ -1,5 +1,5 @@
 name = OpenCalais 
-description = "Performs automatic tagging on nodes using the Thomson Reuters Calais tagging system."
+description = "Performs a service based auto-tagging on nodes using the Thomson Reuters Calais tagging system."
 package = "Other"
 core = 7.x
 
@@ -9,8 +9,7 @@ dependencies[] = taxonomy
 files[] = opencalais.install
 files[] = opencalais.module
 files[] = opencalais.admin.inc
-files[] = tests/opencalais.test
-files[] = includes/Calais.inc
+files[] = opencalais.utils.inc
 files[] = includes/CalaisMetadata.inc
 files[] = includes/CalaisJsonProcessor.inc
 files[] = includes/CalaisService.inc

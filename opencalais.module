@@ -391,16 +391,19 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
     // Allow modification of the content sent to Calais
     drupal_alter("opencalais_body", $body, $node);
 
-    $opencalais = opencalais_get_service();
-    $api_key = variable_get('opencalais_api_key', NULL);
+    // Set up the options for the OpenCalais service.
+    $options = array(
+      'apiKey' => variable_get('opencalais_api_key', NULL),
+      'contentType' => 'text/plain',
+      'content' => strip_tags($body),
+      'host' => variable_get('opencalais_api_server', 'api.thomsonreuters.com'),
+    );
+
+    // Initialize the OpenCalais class.
+    $opencalais = opencalais_get_service($options);
     
-    // If the API key has not yet been set, then we short-circuit because we can't
-    // do anything anyway.
-    if (empty($api_key)) {
-      return array();
-    }
-    
-    $tags = $opencalais->analyzeRaw(strip_tags($body), $api_key);
+    // Analyze the content and return the tags.    
+    $tags = $opencalais->analyze();
 
     // Get a list of all the fields for this content type.
     $fields = opencalais_get_fields_for_content_type($node->type);
@@ -557,14 +560,10 @@ function opencalais_cron() {
 }
 
 /**
- * Declare the supported languages by Calais.
- */
-function opencalais_supported_languages() {
-  return array('en', 'fr', 'es');
-}
-
-/**
- * Get the service implementing the Calais interface.
+ * Return the OpenCalais Service class.
+ *
+ * @param $options An array of option parameters to be sent to the CalaisService class.
+ * @return $object The initialized CalaisService object.
  */
 function opencalais_get_service($options = array()) {
   return new CalaisService($options);

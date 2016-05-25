@@ -4,11 +4,11 @@
  * @file
  * The main interface to the calais web service
  */
-class CalaisService implements Calais {
+class CalaisService {
 
   private $defaults = array(
     'protocol' => 'https',
-    'contentType' => 'TEXT/HTML',
+    'contentType' => 'text/raw',
     'outputFormat' => 'application/json',
     'externalID' => '',
     'submitter' => 'Drupal',
@@ -17,6 +17,9 @@ class CalaisService implements Calais {
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
+    'apiKey' => '',
+    'content' => '',
+    'host' => 'api.thomsonreuters.com',
   );
 
   public $parameters;
@@ -37,44 +40,7 @@ class CalaisService implements Calais {
    */
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
-    $this->defaults['host'] = variable_get('opencalais_api_server', 'api.thomsonreuters.com');
     $this->parameters = array_merge($this->defaults, $options);
-  }
-
-  /**
-   * Analyze the provided content, passing it to Calais in HTML format .
-   *
-   * @param $content
-   *    The HTML content to process
-   * @return
-   *    The processed Calais results. The raw RDF result is contained in the $this->rdf field.
-   */
-  public function analyzeHTML($content, $api_key) {
-    if (!empty($api_key)) {
-      $this->parameters['contentType'] = 'TEXT/HTML';
-      return $this->analyze($content, $api_key);
-    }
-    else {
-      return array();
-    }
-  }
-
-  /**
-   * Analyze the provided content, passing it to Calais in HTML format .
-   *
-   * @param $content
-   *    The HTML content to process
-   * @return
-   *    The processed Calais results. The raw RDF result is contained in the $this->rdf field.
-   */
-  public function analyzeRaw($content, $api_key) {
-    if (!empty($api_key)) {
-      $this->parameters['contentType'] = 'text/raw';
-      return $this->analyze($content, $api_key);
-    }
-    else {
-      return array();
-    }
   }
 
   /**
@@ -83,15 +49,17 @@ class CalaisService implements Calais {
    * @param $content The content to ship off to Calais for analysis
    * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
    */
-  private function analyze($content, $api_key) {
+  public function analyze() {
 
     $headers = array(
       'Content-Type: ' . $this->parameters['contentType'],
-      'X-AG-Access-Token: ' . $api_key,
-      'Content-Length: ' . strlen($content),
-      'outputformat: application/json',
+      'X-AG-Access-Token: ' . $this->parameters['apiKey'],
+      'Content-Length: ' . strlen($this->parameters['content']),
+      'outputformat: ' . $this->parameters['outputFormat'],
     );
 
+    // Construct the URL to calais based on host name and protocol. This is likely
+    // static, but will keep this as it was for now.
     $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . '/permid/calais';
 
     $curlOptions = array(
@@ -99,7 +67,7 @@ class CalaisService implements Calais {
       CURLOPT_HTTPHEADER => $headers,
       CURLOPT_SSL_VERIFYPEER => FALSE,
       CURLOPT_RETURNTRANSFER => 1,
-      CURLOPT_POSTFIELDS => $content,
+      CURLOPT_POSTFIELDS => $this->parameters['content'],
     );
 
     $ch = curl_init();

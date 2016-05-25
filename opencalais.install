@@ -20,9 +20,6 @@ function opencalais_install() {
 
 /**
  * Implements hook_uninstall().
- *
- * We need to remove all of our fields and taxonomies from Drupal in accordance with doing
- * things "the Drupal way".
  */
 function opencalais_uninstall() {
   require __DIR__ . '/opencalais.module';
@@ -49,24 +46,23 @@ function opencalais_uninstall() {
  */
 function _opencalais_update_fields_for_content_type($content_type) {
   $fields = field_info_instances('node', $content_type);
-
   $entities = opencalais_get_all_entities();
   foreach ($entities as $key => $item) {
     $entities[$key] = opencalais_make_machine_name($item);
   }
 
-  // fields will be an empty array if no instances are found
+  // Fields will be an empty array if no instances are found.
   foreach ($fields as $field_name => $field) {
-
     if (isset($field['settings']['opencalais']) && $field['settings']['opencalais']) {
       $main_field = field_info_field($field_name);
       $opencalais_type = $main_field['settings']['allowed_values'][0]['vocabulary'];
       if (in_array($opencalais_type, $entities)) {
         $field['settings']['opencalais'] = $opencalais_type;
-        try{
+        try {
           field_update_instance($field);
           drupal_set_message(t('%field on %type has been successfully updated', array('%field' => $field['label'], '%type' => $content_type)));
-        } catch (FieldException $fe) {
+        } 
+        catch (FieldException $fe) {
           drupal_set_message(t('Unable to update field %field on %type, you will need to manually update it', array('%field' => $field['label'], '%type' => $content_type)), 'error');
         }
       }
@@ -124,6 +120,16 @@ function opencalais_update_7102() {
  */
 function opencalais_update_7103() {
   variable_del('opencalais_default_impl');
+}
+
+/**
+ * Remove system references to now removed OpenCalais API module.
+ */
+function opencalais_update_7104() {
+  db_query("DELETE FROM {system} WHERE name = 'opencalais_api'");
+  system_list_reset();
+  module_list(TRUE);
+  registry_update();
 }
 
 /**
