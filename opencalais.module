@@ -60,8 +60,7 @@ function opencalais_menu() {
   );
   $items['admin/config/content/opencalais/bulk'] = array(
     'title' => 'Bulk Operations',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('opencalais_bulk_operations_form'),
+    'page callback' => 'opencalais_bulk_operations',
     'access arguments' => array('administer opencalais'),
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_LOCAL_TASK,
@@ -91,7 +90,6 @@ function opencalais_menu() {
     'file' => 'opencalais.bulk.inc',
     'type' => MENU_CALLBACK
   );
-
   return $items;
 }
 
@@ -567,4 +565,42 @@ function opencalais_cron() {
  */
 function opencalais_get_service($options = array()) {
   return new CalaisService($options);
+}
+
+/**
+ * Implements hook_help().
+ */
+function opencalais_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#opencalais':
+     
+      $output  = '<h4>' . t('Overview') . '</h4>';
+      $output .= '<img src="/' . drupal_get_path('module', 'opencalais') . '/images/opencalais-logo.png" width="225" height="225" alt="Open Calais" align="right" />';
+      $output .= t("It’s no secret that one of the most powerful aspects of the Drupal content management system is the ability to tag content using a variety of vocabularies within it’s Taxonomy structure. Being able to relate content in this way is a big help to large content, scholastic, government and news related web sites find appropriate tags which can be assigned on a per-vocabulary level to content.<br /><br />");
+      $output .= t("The OpenCalais module for Drupal makes this process easier by leveraging the power of the Calais service with regard to auto and suggested tagging of Drupal content.<br /><br />");
+      $output .= t("This is accomplished by analyzing the title of the article and body content of a given piece of content and assigning or suggesting tags on a per-vocabulary level. What makes this even more powerful is that you can utilize different vocabularies within different content types to target subject specific tags for each individual content type and piece of content. You can also set thresholds for which tags are recommended or assigned helping to narrow or widen the field of tags that are suggested or assigned.") . '<br clear="right">';
+      $output .= '<div style="border-top: 2px solid #f8981d; margin: 15px 0px; width: 100%"></div>';
+      
+      $output .= '<h4>' . t('Open Calais Settings') . '</h4>';
+      $output .= t('In order to use the Calais API you will need an API key. You can obtain one by signing up for an account at:<br /><br />');
+      $output .= l('https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser', 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser') . "<br /><br />";
+      $output .= t('Once you have the key you can provide it ') . l(t('by clicking here'), 'admin/config/content/opencalais/api') . '.';
+      $output .= '<div style="border-top: 2px solid #f8981d; margin: 15px 0px; width: 100%"></div>';
+
+      $output .= '<h4>' . t('Content Configuration & Tagging') . '</h4>';
+      $output .= t('You can select a variety of vocabularies for any content type. This mesn we expect to have many different article subjects contained within that content type. Also note the scores assigned to each selected vocabulary. This means that tags below a certain threshold will be ignored and those above will be suggested or assigned.') . "<br /><br />";
+      $output .= t('Once you edit the node (or allow it to auto-tag on creation) you can view the tags on your article display page. The terms are presented as tags separated by vocabulary. Certain tags contain additional metadata specific to those vocabularies.');
+      $output .= '<div style="border-top: 2px solid #f8981d; margin: 15px 0px; width: 100%"></div>';
+
+      $output .= '<h4>' . t('More Documentation') . '</h4>';
+      $output .= t('You can read additional documetation by ') . l(t('clicking here'), 'https://www.drupal.org/node/303763');
+      
+      $output .= '<div style="border-top: 2px solid #f8981d; margin: 15px 0px; padding-top: 15px; width: 100%; font-size: 8pt; line-height: 1.3em;">';
+      $output .= '<img src="/' . drupal_get_path('module', 'opencalais') . '/images/flyingflip-logo.png" width="151" height="50" alt="FlyingFlip Studios" align="right" /><br />';
+      $output .= 'Released 2016 - v7.x-1.0 - FlyingFlip Studios, LLC. - Released under GNU GENERAL PUBLIC LICENSE - Version 2, June 1991<br />http://www.flyingflip.com<br clear="right">';
+      $output .= '<style>.item-list, hr { display: none; }</style></div>';      
+      
+      $output .= '<hr />';
+      return $output;
+  }
 }
