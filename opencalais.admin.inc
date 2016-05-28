@@ -90,7 +90,6 @@ function opencalais_add_fields_form($form, &$form_state, $content_type) {
   // handle it.
   $content_type = str_ireplace('-', '_', $content_type);
   if (!isset($content_type)) {
-
     drupal_set_message(t('An error has occured, no content type was specified'), 'error');
     return array();
   }

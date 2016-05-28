@@ -40,12 +40,19 @@ class CalaisJsonProcessor {
    */
   public function parse_json($json) {
     $json = (array) $json;
-    $this->docId = $json['doc']->info->docId;
-    $this->json = $json;
-    $this->keywords = new stdClass();
-    $this->build_entities($this->keywords);
-    $this->extract_entity_metadata($this->keywords);
-    return $this->keywords;
+    if (!empty($json)) {
+      $this->json = $json;
+      if (!empty($json['doc']->info->docId)) {
+        $this->docId = $json['doc']->info->docId;
+      }
+      $this->keywords = new stdClass();
+      $this->build_entities($this->keywords);
+      $this->extract_entity_metadata($this->keywords);
+      return $this->keywords;
+    }
+    else {
+      return new stdClass();
+    }
   }
 
   /**

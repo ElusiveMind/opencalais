@@ -156,10 +156,11 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
   if ($fields) {
     $path = drupal_get_path('module', 'opencalais');
     $form['actions']['suggest_tags'] = array(
-      '#type' => 'submit',
+      '#type' => 'image_button',
       '#value' => t('Suggest Tags'),
-      '#prefix' => '<div class="messages status opencalais_button_holder">',
-      '#suffix' => '</div>',
+      '#src' => '/' . drupal_get_path('module', 'opencalais') . '/images/suggest-terms.png',
+      '#prefix' => '<div class="opencalais-messages opencalais_button_holder">',
+      '#suffix' => '<div class="opencalais-imagry"><img src="/' . drupal_get_path('module', 'opencalais') . '/images/open-calais-verbiage.png"></div></div>',
       '#attributes' => array('class' => array('opencalais_submit')),
       '#weight' => -20,
       '#submit' => array('opencalais_suggest_tags_submit'),
@@ -597,7 +598,7 @@ function opencalais_help($path, $arg) {
       
       $output .= '<div style="border-top: 2px solid #f8981d; margin: 15px 0px; padding-top: 15px; width: 100%; font-size: 8pt; line-height: 1.3em;">';
       $output .= '<img src="/' . drupal_get_path('module', 'opencalais') . '/images/flyingflip-logo.png" width="151" height="50" alt="FlyingFlip Studios" align="right" /><br />';
-      $output .= 'Released 2016 - v7.x-1.0 - FlyingFlip Studios, LLC. - Released under GNU GENERAL PUBLIC LICENSE - Version 2, June 1991<br />http://www.flyingflip.com<br clear="right">';
+      $output .= 'Released 2016 - v7.x-1.1 - FlyingFlip Studios, LLC. - Released under GNU GENERAL PUBLIC LICENSE - Version 2, June 1991<br />http://www.flyingflip.com - @flyingflip - @mbagnall17<br clear="right">';
       $output .= '<style>.item-list, hr { display: none; }</style></div>';      
       
       $output .= '<hr />';

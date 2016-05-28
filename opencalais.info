@@ -14,4 +14,5 @@ files[] = includes/CalaisMetadata.inc
 files[] = includes/CalaisJsonProcessor.inc
 files[] = includes/CalaisService.inc
 
+
 configure = admin/config/content/opencalais/settings

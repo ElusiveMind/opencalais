@@ -150,11 +150,10 @@ function opencalais_queue_get_progress() {
 
   // Only show what we have remaining in the queue.
   if ($items > 0) {
-    $process_count = variable_get('opencalais_bulk_processing_count', 25);
-    return t('%n nodes remaining in the queue. These items will be processed %max at a time during cron runs.', array('%n' => $items, '%max' => $process_count));
+    return $items;
   }
   else {
-    return NULL;
+    return 0;
   }
 }
 
@@ -196,40 +195,50 @@ function opencalais_add_items_to_queue_callback($type) {
 }
 
 /**
- * Create a form for bulk processing
+ * Bulk processing management screen.
  */
-function opencalais_bulk_operations_form() {
-  //print out any messages we have
-  opencalais_get_messages();
-
-  $form = array();
+function opencalais_bulk_operations() {
   $available_types = _opencalais_get_auto_content_types();
 
-  $message = opencalais_queue_get_progress();
-  if (!empty($message)) {
-    drupal_set_message($message, 'status');
+  $queue_size = opencalais_queue_get_progress();
+  $process_count = variable_get('opencalais_bulk_processing_count', 25);
+
+  $output  = '<h2 style="padding: 0px; margin: 0px 0px 10px;">Bulk Operations</h2>';
+  $output .= 'Content types marked for autotagging will be shown below. You can queue all the currently created nodes for processing by clicking the corresponding link below. OpenCalais will keep track of the latest nodes (per content-type) that it has processed to avoid processing them again.<br /><br />';
+
+  if ($queue_size > 0) {
+    $output .= '<b>There are currently ' . $queue_size . ' nodes in the queue to be processed. They will be processed as the cron runs at ' . $process_count . ' nodes per cron.</b><br /><br />';
   }
-  
-  $form['types'] = array(
-    '#type' => 'fieldset',
-    '#attributes' => array(
-      'style' => 'padding: 1.5em 0 0',
-    ),
-  );
+  else {
+    $output .= '<b>There are currently no unprocessed nodes in the queue.</b><br /><br />';
+  }
 
-  $form['types']['message'] = array(
-    '#markup' => '<h2 style="padding: 0px; margin: 0px;">Bulk Operations</h1>Content types marked for autotagging will be shown below. You can queue all the currently created nodes for processing by clicking the corresponding link below. OpenCalais will keep track of the latest nodes (per content-type) that it has processed to avoid processing them again.<br /><br /><ul>',
+  $rows = array();
+  $header = array(
+    'node_type' => array('data' => t('Node Type'), 'style' => 'text-align: center;'),
+    'process' => array('data' => t('Process'), 'style' => 'text-align: center;'),
+    'remove' => array('data' => t('Remove'), 'style' => 'text-align: center;'),
+    'requeue' => array('data' => t('Re-Queue'), 'style' => 'text-align: center;'),
   );
-
   foreach ($available_types as $type) {
-    $form['types']['opencalais_queue_content_type_' . $type] = array(
-      '#markup' => '<li><b>' . $type . '</b>: ' .
-        l(t('Process All Remaining'), 'admin/config/content/opencalais/bulk/' . $type, array('absolute' => TRUE, 'class' => array('button'))) . ' - ' .
-        l(t('Remove All In Queue'), 'admin/config/content/opencalais/bulk-clear/' . $type, array('absolute' => TRUE, 'class' => array('button'))) . ' - ' .
-        l(t('Remove Tags & Re-Queue'), 'admin/config/content/opencalais/bulk-re-queue/' . $type, array('absolute' => TRUE, 'class' => array('button'))) . '</div>',
+    $node_type = node_type_load($type);    
+    $row = array();
+    $row[] = $node_type->name . ' (' . $type . ')';
+    $row[] = (array('data' => l(t('Process All Remaining'), 'admin/config/content/opencalais/bulk/' . $type, array('absolute' => TRUE, 'class' => array('button'))), 'align' => 'center'));
+    $row[] = (array('data' => l(t('Remove All In Queue'), 'admin/config/content/opencalais/bulk-clear/' . $type, array('absolute' => TRUE, 'class' => array('button'))), 'align' => 'center'));
+    $row[] = (array('data' => l(t('Remove Tags & Re-Queue'), 'admin/config/content/opencalais/bulk-re-queue/' . $type, array('absolute' => TRUE, 'class' => array('button'))), 'align' => 'center'));
+    $rows[] = $row;
+  }
+
+  if (count($rows) == 0) {
+    $rows = array(
+      array(
+        'data' => array(array('align' => 'center', 'colspan' => 4, 'data' => t('THERE ARE CURRENTLY NO NODE TYPES CONFIGURED FOR AUTO-TAGGING.')))
+      ),
     );
   }
-  return $form;
+  $output .= theme('table', array('header' => $header, 'rows' => $rows));
+  return $output;
 }
 
 /**
