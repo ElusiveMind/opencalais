@@ -50,7 +50,7 @@ function calais_install() {
   // Module weights: put calais after taxonomy for form altering.
   db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
 
-  calais_install_rdf_repository($ret);
+  //calais_install_rdf_repository($ret);
 }
 
 /**
@@ -517,6 +517,14 @@ function calais_update_6302() {
   db_create_table($ret, 'calais_term_uri', $schema['calais_term_uri']);
 
   return $ret;
+}
+
+/**
+ * Make sure we are after taxonomy #2045369
+ */
+function calais_update_6303() {
+  // Module weights: put calais after taxonomy for form altering.
+  db_query("UPDATE {system} SET weight = 10 WHERE name = 'calais'");
 }
 
 /******************************** Helpers ****************************/

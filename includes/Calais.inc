@@ -1,17 +1,16 @@
 <?php
+
 /**
  * @file
- * The main interface to the calais web service
+ * The main interface to the Calais web service
  */
 
 class Calais {
 
-  const PATH = '/permid/calais';
-
   private $defaults = array(
     'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
-    'outputFormat' => 'XML/RDF',
+    'outputFormat' => 'application/json',
     'externalID' => '',
     'submitter' => 'Drupal',
     'calculateRelevanceScore' => 'true',
@@ -19,12 +18,12 @@ class Calais {
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
+    'apiKey' => '',
+    'host' => 'api.thomsonreuters.com',
+    'path' => '/permid/calais',
   );
 
   public $parameters;
-  public $rdf;
-  public $triples = array();
-  public $flatTriples = array();
   public $keywords = array();
 
   /**
@@ -39,23 +38,7 @@ class Calais {
    */
   function __construct($options = array()) {
     $this->defaults['externalID'] = time();
-    $this->defaults['host'] = variable_get('calais_api_server', 'api.thomsonreuters.com');
-
     $this->parameters = array_merge($this->defaults, $options);
-  }
-
-  /**
-   * Analyze the provided content, passing it to Calais in XML format for more accurate data processing.
-   *
-   * @param $title  The title of the content to process
-   * @param $body   The body ofd the content to process
-   * @param $date   The date of the content, if left blank/null analysis will use "today"
-   * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
-   */
-  public function analyzeXML($title, $body, $date) {
-    $content = $this->build_xml_content($title, $body, $date);
-    $this->parameters['contentType'] = 'TEXT/XML';
-    return $this->analyze($content);
   }
 
   /**
@@ -66,14 +49,23 @@ class Calais {
    */
   public function analyze($content) {
 
+    if (empty($this->parameters['apiKey'])) {
+      $ret = new stdClass();
+      $ret->error = 'API Key';
+      $ret->code = '01';
+      $ret->data = 'API key not provided, unable to process.';
+      self::log_calais_error($ret);
+      return array();
+    }
+
     $headers = array(
-      'Content-Type: text/raw',
-      'X-AG-Access-Token: ' . variable_get('calais_api_key', NULL),
+      'Content-Type: ' . $this->parameters['contentType'],
+      'X-AG-Access-Token: ' . $this->parameters['apiKey'],
       'Content-Length: ' . drupal_strlen($content),
-      'outputformat:XML/RDF',
+      'outputformat: ' . $this->parameters['outputFormat'],
     );
 
-    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . $this->parameters['path'];
 
     $curlOptions = array(
       CURLOPT_URL => $uri,
@@ -86,7 +78,7 @@ class Calais {
     $ch = curl_init();
     curl_setopt_array($ch, $curlOptions);
 
-    // send request and get response from api..........
+    // Send request and get response from API.
     $response = curl_exec($ch);
 
     if (isset($response->error)) {
@@ -94,13 +86,9 @@ class Calais {
       return array();
     }
 
-    $this->rdf = $response;
-    $this->processor = new CalaisRdfProcessor();
-    $this->keywords = $this->processor->parse_rdf($this->rdf);
-    $this->triples = $this->processor->triples;
-    if (isset($this->processor->flatTriples)) {
-      $this->flatTriples = $this->processor->flatTriples;
-    }
+    $this->json = json_decode($response);
+    $this->processor = new CalaisJsonProcessor();
+    $this->keywords = $this->processor->parse_json($this->json);
 
     return $this->keywords;
   }
@@ -109,48 +97,5 @@ class Calais {
     $msg = t('Calais processing error: @msg', array('@msg' => $ret->data));
     drupal_set_message($msg, 'error');
     watchdog('calais', 'Calais processing error: (@code - @error) @msg', array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $ret->data), WATCHDOG_ERROR);
-  }
-
-  /**
-   * Build the XML Parameters required by the Calais Web-Service
-   *
-   * @return XML document of Calais parameters.
-   */
-  protected function build_xml_params() {
-    $attributes = $this->parameters;
-    $ret = <<<EOD
-    <c:params xmlns:c="http://s.opencalais.com/1/pred/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-    <c:processingDirectives c:contentType="$attributes[contentType]"
-                            c:outputFormat="$attributes[outputFormat]"
-                            c:enableMetadataType="$attributes[enableMetadataType]">
-                            c:calculateRelevanceScore="$attributes[calculateRelevanceScore]">
-    </c:processingDirectives>
-    <c:userDirectives c:allowDistribution="$attributes[allowDistribution]"
-                      c:allowSearch="$attributes[allowSearch]"
-                      c:externalID="$attributes[externalID]"
-                      c:submitter="$attributes[submitter]">
-    </c:userDirectives>
-    <c:externalMetadata>
-      <rdf:description>
-        <c:caller>$attributes[caller]</c:caller>
-      </rdf:description>
-    </c:externalMetadata>
-    </c:params>
-EOD;
-    return $ret;
-  }
-
-  /**
-   * Build the XML document request format expected by Calais
-   *
-   * @return an xml string to be submitted to Calais
-   */
-  protected function build_xml_content($title, $body, $date) {
-    $req = "<DOCUMENT>";
-    $req .= "<TITLE><![CDATA[$title]]></TITLE>";
-    $req .= "<DATE>$date</DATE>";
-    $req .= "<BODY><![CDATA[$body]]></BODY>";
-    $req .= "</DOCUMENT>";
-    return $req;
   }
 }

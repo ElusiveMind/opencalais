@@ -11,7 +11,7 @@ function calais_api_init() {
   // Only load these if it is not a cached page
   module_load_include('inc', 'calais_api', 'includes/Calais');
   module_load_include('inc', 'calais_api', 'includes/CalaisMetadata');
-  module_load_include('inc', 'calais_api', 'includes/CalaisRdfProcessor');
+  module_load_include('inc', 'calais_api', 'includes/CalaisJsonProcessor');
 }
 
 /**
@@ -50,7 +50,7 @@ function calais_api_menu() {
 function calais_api_admin_settings() {
   $form = array();
   $calais_url = array(
-    '!calaisurl' => l(t('Need One'), 'http://www.opencalais.com/user/register')
+    '!calaisurl' => l(t('Need One'), 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold')
     );
 
   $form['calais_api_key'] = array(
@@ -79,20 +79,16 @@ function calais_api_admin_settings() {
   *   Whether to display a warning
  */
 function is_calais_api_key_set($show_warning = TRUE) {
-
   $apikey = variable_get('calais_api_key', FALSE);
-
   if (empty($apikey)) {
     if ($show_warning) {
       drupal_set_message(t('Calais semantic analysis skipped because Calais API Key is not set. Please configure it at: ' .
         l('admin/settings/calais', 'admin/settings/calais', array('attributes' => array('target' => '_blank'))
-      )), $type = 'warning', $repeat = FALSE);
+      )), 'warning', FALSE);
     }
     return FALSE;
   }
-
   return TRUE;
-
 }
 
 /**

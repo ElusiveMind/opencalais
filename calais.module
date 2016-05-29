@@ -109,12 +109,12 @@ function calais_menu() {
  */
 function calais_preprocess_node(&$variables) {
   $node = $variables['node'];
-  $count = rdf_count(NULL, NULL, NULL, calais_rdf_options($node->nid));
+  //$count = rdf_count(NULL, NULL, NULL, calais_rdf_options($node->nid));
 
   // Add an RDF autodiscovery link when the node is displayed by itself as a page:
-  if (user_access('access calais rdf') && $count) {
-    rdf_add_autodiscovery_link(t('Calais RDF'), url("node/$node->nid/calais/rdf"), 'rdf+xml');
-  }
+  //if (user_access('access calais rdf') && $count) {
+  //  rdf_add_autodiscovery_link(t('Calais RDF'), url("node/$node->nid/calais/rdf"), 'rdf+xml');
+  //}
 }
 
 /**
@@ -280,14 +280,19 @@ function calais_process_with_calais(&$node) {
   $date = format_date($node->created, 'custom', 'r');
 
   // Allow modification of the content sent to Calais
-  drupal_alter("calais_body", $body, $loaded_node);
+  drupal_alter('calais_body', $body, $loaded_node);
 
+  // If there is no API key then we can't go on. If we do, then assign it to our options
+  // to be sent to the Calais class.
   if (!is_calais_api_key_set()) {
     $node->calais->service = NULL;
     return array();
   }
+  else {
+    $options['apiKey'] = variable_get('calais_api_key', FALSE);
+  }
 
-  $calais = new Calais();
+  $calais = new Calais($options);
   $keywords = $calais->analyze($body);
   $node->calais->service = $calais;
 
@@ -760,12 +765,33 @@ function calais_get_keywords($nid, $type, $vid = NULL, $threshold = NULL) {
 
 /**
  * Creates a new vocabulary for the supplied Calais entity name.
+ *
+ * @param $entity The name of the entity for which we are creating the vocabulary.
+ * @return $vid The vocabulary id of the newly created or existing vocabulary.
  */
 function calais_create_entity_vocabulary($entity) {
-    $description = t("Calais Entity Vocabulary: @name", array('@name' => $entity));
-    db_query("INSERT INTO {vocabulary} (name,description,module,tags)
-              VALUES('%s','%s','calais',1)", $entity, $description);
-    return db_last_insert_id('vocabulary', 'vid');
+  // We need to check to see if this vocubulary already exists. Good sanity checking.
+  $query = db_query("SELECT vid FROM {vocabulary} WHERE name = '%s'", $entity);
+  $result = db_fetch_object($query);
+  if (empty($result->vid)) {  
+    $vocabulary = array(
+      'name' => t($entity),
+      'description' => t('Calais Entity Vocabulary: @name', array('@name' => $entity)),
+      'help' => NULL,
+      'nodes' => array(),
+      'hierarchy' => 1,
+      'relations' => 0,
+      'tags' => 0,
+      'multiple' => 0,
+      'required' => 0,
+      'weight' => 0,
+    );
+    taxonomy_save_vocabulary($vocabulary);
+    return $vocabulary['vid'];
+  }
+  else {
+    return $result->vid;
+  }
 }
 
 /**
