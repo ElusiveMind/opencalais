@@ -224,7 +224,7 @@ function calais_bulk_process() {
   );
   $config = array();
   $rows = array();
-  $result = db_rewrite_sql(db_query("SELECT n.type, COUNT(n.*) AS count FROM {node} n GROUP BY n.type"));
+  $result = db_rewrite_sql(db_query("SELECT n.type FROM {node} n GROUP BY n.type"));
   while ($row = db_fetch_object($result)) {
     $queue_count = db_result(db_query("SELECT COUNT(*) FROM {calais_node_queue} WHERE type = '%s'", $row->type));
 

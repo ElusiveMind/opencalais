@@ -781,10 +781,11 @@ function calais_create_entity_vocabulary($entity) {
       'nodes' => array(),
       'hierarchy' => 1,
       'relations' => 0,
-      'tags' => 0,
+      'tags' => 1,
       'multiple' => 0,
       'required' => 0,
       'weight' => 0,
+      'module' => 'opencalais',
     );
     taxonomy_save_vocabulary($vocabulary);
     return $vocabulary['vid'];
