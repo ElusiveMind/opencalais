@@ -102,7 +102,7 @@ function opencalais_theme($existing, $type, $theme, $path) {
     'opencalais_suggestions' => array(
       'variables' => array('type' => NULL, 'field_name' => NULL, 'suggestions' => NULL, 'language' => LANGUAGE_NONE),
       'path' => "$path/theme",
-      'template' => 'opencalais_suggestions',
+      'template' => 'opencalais-suggestions',
     ),
     'opencalais_preset_form' => array(
       'render element' => 'form',
@@ -156,11 +156,10 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
   if ($fields) {
     $path = drupal_get_path('module', 'opencalais');
     $form['actions']['suggest_tags'] = array(
-      '#type' => 'image_button',
+      '#type' => 'submit',
       '#value' => t('Suggest Tags'),
-      '#src' => '/' . drupal_get_path('module', 'opencalais') . '/images/suggest-terms.png',
-      '#prefix' => '<div class="opencalais-messages opencalais_button_holder">',
-      '#suffix' => '<div class="opencalais-imagry"><img src="/' . drupal_get_path('module', 'opencalais') . '/images/open-calais-verbiage.png"></div></div>',
+      '#prefix' => '<div class="opencalais_button_holder">OpenCalais Tagging Service:',
+      '#suffix' => '</div>',
       '#attributes' => array('class' => array('opencalais_submit')),
       '#weight' => -20,
       '#submit' => array('opencalais_suggest_tags_submit'),
@@ -243,6 +242,9 @@ function opencalais_node_form_submit($form, &$form_state) {
  * This will be used when nodes are created in some way other than through the forms system
  */
 function opencalais_node_presave($node) {
+
+RETURN NULL;
+
   $content_type = $node->type;
   $auto = variable_get('opencalais_autotagging', array());
   $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
@@ -384,11 +386,37 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
       $node->ocid = !empty($node->nid) ? $node->nid : uniqid();
     }
 
-    $body = (!empty($node->body[$node->language][0]['value'])) ? $node->body[$node->language][0]['value'] : '';
     $date = format_date($node->created, 'custom', 'r');
 
+    // adding all text fields and text area in the node to be 
+    // evalulated in OC
+    $node_fields = variable_get('opencalais_nodefields', array());
+    $content = NULL;
+    if (array_key_exists($node->type, $node_fields)) {
+      $content .= $node->title;
+      if ((bool) $node_fields[$node->type]) {
+        $fields = field_info_instances('node', $node->type);
+        foreach ($fields as $field_name => $instance) {
+          // add all textfields and textareas
+          if ($instance['widget']['module'] === 'text') {
+            if (empty($node->{$field_name})) {
+              continue;
+            }
+            // get all of that field into the html render array
+            foreach ($node->{$field_name}[$node->language] as $item) {
+              $content .= $item['value'] . "\n";
+            }
+          }
+        }
+      }
+      $body = $content;
+    }
+    else {
+      $body = (!empty($node->body[$node->language][0]['value'])) ? $node->body[$node->language][0]['value'] : '';
+    }
+    
     // Allow modification of the content sent to Calais
-    drupal_alter("opencalais_body", $body, $node);
+    drupal_alter('opencalais_body', $body, $node);
 
     // Set up the options for the OpenCalais service.
     $options = array(
@@ -523,9 +551,13 @@ function opencalais_add_fields_submit($form, &$form_state) {
   opencalais_remove_fields($content_type, $to_rem);
   // I'm slightly worried about batch operations causing a race condition here - we'll have to see
   $settings = variable_get('opencalais_autotagging', array());
+  $node_fields = variable_get('opencalais_nodefields', array());
 
+  $node_fields[$content_type] = $form_state['values'][$content_type . '_nodefields'];
   $settings[$content_type] = $form_state['values'][$content_type . '_autotagging'];
   variable_set('opencalais_autotagging', $settings);
+  variable_set('opencalais_nodefields', $node_fields);
+  
 }
 
 /**

@@ -48,30 +48,17 @@ div.opencalais-messages {
 }
 
 input.opencalais_submit, a.button {
-  -moz-border-bottom-colors: none;
-  -moz-border-left-colors: none;
-  -moz-border-right-colors: none;
-  -moz-border-top-colors: none;
-  background: transparent !important;
-  border-color: #e4e4e4 #d2d2d2 #b4b4b4;
-  border-image: none;
-  border-radius: 0px !important;
-  border-style: solid;
-  border-width: 0px !important;
-  color: #5a5a5a;
-  cursor: pointer;
-  font-family: "Lucida Grande",Verdana,sans-serif;
-  font-size: 1.077em;
-  font-weight: normal;
-  margin-bottom: 0px !important;
-  margin-right: 0px !important;
-  padding: 0px !important;
-  text-align: center;
+  margin: 5px !important;
+  width: 200px !important;
 }
 
 .opencalais_button_holder {
-  background-color: #FF9100 !important;
-  min-width: 573px !important;
+  background-color: #ff9100 !important;
+  color: #ffffff;
+  font-weight: bold;
+  min-width: 405px;
+  padding: 10px !important;
+  text-align: center;
 }
 
 .ajax-progress {

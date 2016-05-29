@@ -111,12 +111,23 @@ function opencalais_add_fields_form($form, &$form_state, $content_type) {
 
   // Settings for auto tagging.
   $form[$content_type . '_autotagging'] = array(
-    '#type' => 'radios',
-    '#title' => t('Tagging Method'),
+    '#type' => 'select',
+    '#title' => t('Tagging method'),
     '#description' => t('How should OpenCalais manage the tagging?'),
     '#default_value' => $auto,
     '#options' => array( 0 => t('Manual Tagging'), 1 => t('Automatic Tagging'), 2 => t('Automatic & Manual Tagging'))
   );
+
+  // Settings for mapping node fields
+  $nf = variable_get('opencalais_nodefields', array());
+  $nf = (!empty($nf[$content_type])) ? $nf[$content_type] : FALSE;
+  
+  $form[$content_type . '_nodefields'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Index all node text fields'),
+    '#description' => t('Index all textfields/textarea on the content type including the title.'),
+    '#default_value' => $nf,
+  );  
 
   $form['info']['config'] = array('#tree' => TRUE);
   $form['info']['config']['entities'] = array('#tree' => TRUE);
