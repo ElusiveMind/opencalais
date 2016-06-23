@@ -243,10 +243,9 @@ function opencalais_node_form_submit($form, &$form_state) {
  */
 function opencalais_node_presave($node) {
 
-RETURN NULL;
-
   $content_type = $node->type;
   $auto = variable_get('opencalais_autotagging', array());
+
   $auto = isset($auto[$content_type]) ? $auto[$content_type] : 0;
 
   if ($auto > 0) {
@@ -263,7 +262,7 @@ RETURN NULL;
         // this array is empty anyway, then we need to initialize it to have an empty array
         if (empty($node->{$name}[$node->language]) || $auto == 1) {
           $node->{$name} = array(
-            $node->language => array()
+            $node->language => array(),
           );
         }
 
