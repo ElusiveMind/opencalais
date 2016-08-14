@@ -268,13 +268,16 @@ class CalaisJsonProcessor {
   protected function apply_resolved_provinceorstate(&$keywords, $guid, $data) {
     $containedbycountry = isset($data->resolutions[0]->containedbycountry) ? $data->resolutions[0]->containedbycountry : NULL;
     $shortname = isset($data->resolutions[0]->shortname) ? $data->resolutions[0]->shortname : NULL;
+    $latitude = isset($data->resolutions[0]->latitude) ? $data->resolutions[0]->latitude : NULL;
+    $longitude = isset($data->resolutions[0]->longitude) ? $data->resolutions[0]->longitude : NULL;
+    $permid = isset($data->resolutions[0]->permid) ? $data->resolutions[0]->permid : NULL;
 
     $extra = array(
-      'latitude' => $data->resolutions[0]->latitude,
-      'longitude' => $data->resolutions[0]->longitude,
-      'shortname' => $data->resolutions[0]->shortname,
-      'containedbycountry' => $data->resolutions[0]->containedbycountry,
-      'permid' => $data->resolutions[0]->permid,
+      'latitude' => $latitude,
+      'longitude' => $longitude,
+      'shortname' => $shortname,
+      'containedbycountry' => $containedbycountry,
+      'permid' => $permid,
     );
     $this->apply_resolved_data($keywords, $guid, $data, 'province_or_state', $extra);
   }
@@ -287,11 +290,19 @@ class CalaisJsonProcessor {
    * @param $data The indexed triple for the current Calais Term
    */
   protected function apply_resolved_geo_country(&$keywords, $guid, $data) {
-    $extra = array(
-      'latitude' => $data->resolutions[0]->latitude,
-      'longitude' => $data->resolutions[0]->longitude,
-      'permid' => $data->resolutions[0]->permid,
-    );
+    if (!empty($data->resolutions)) {
+      $latitude = isset($data->resolutions[0]->latitude) ? $data->resolutions[0]->latitude : NULL;
+      $longitude = isset($data->resolutions[0]->longitude) ? $data->resolutions[0]->longitude : NULL;
+      $permid = isset($data->resolutions[0]->permid) ? $data->resolutions[0]->permid : NULL;
+      $extra = array(
+        'latitude' => $latitude,
+        'longitude' => $longitude,
+        'permid' => $permid,
+      );
+    }
+    else {
+      $extra = array();
+    }
     $this->apply_resolved_data($keywords, $guid, $data, 'country', $extra);
   }
 

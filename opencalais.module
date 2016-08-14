@@ -137,7 +137,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
       'type' => $opencalais_type,
       'field_name' => $field_name,
       'suggestions' => $suggestions,
-      'language' => $form['language']['#value']
+      'language' => $form[$field_name]['#language'],
     );
 
     $themed_suggestions = theme('opencalais_suggestions', $vars);
@@ -190,6 +190,7 @@ function opencalais_form_node_form_alter(&$form, &$form_state, $form_id) {
       foreach ($fields as $field_name) {
         $form['opencalais'][$field_name] = $form[$field_name];
         unset($form[$field_name]);
+        $form[$field_name] = array('#language' => NULL);
       }
     }
 
@@ -402,7 +403,8 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
               continue;
             }
             // get all of that field into the html render array
-            foreach ($node->{$field_name}[$node->language] as $item) {
+            $field_language = field_language('node', $node, $field_name);
+-           foreach ($node->{$field_name}[$field_language] as $item) {
               $content .= $item['value'] . "\n";
             }
           }
