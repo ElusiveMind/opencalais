@@ -404,7 +404,7 @@ function opencalais_get_suggestions($node, $opencalais_type = NULL) {
             }
             // get all of that field into the html render array
             $field_language = field_language('node', $node, $field_name);
--           foreach ($node->{$field_name}[$field_language] as $item) {
+            foreach ($node->{$field_name}[$field_language] as $item) {
               $content .= $item['value'] . "\n";
             }
           }
