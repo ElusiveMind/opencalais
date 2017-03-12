@@ -254,6 +254,13 @@ function opencalais_node_presave($node) {
 
     $suggestions = array();
     foreach ($fields as $opencalais_type => $field) {
+      /**
+       * Issue 2846807 - checking to make sure the field assignment is still present and can be
+       * processed at update time. Defensive programming.
+       */
+      if (empty($field['field'])) {
+        continue;
+      }
       $name = $field['field'];
       $real_field = field_read_field($name);
 
