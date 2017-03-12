@@ -108,21 +108,17 @@ function opencalais_queue_add_items($content_type) {
 }
 
 /**
- * Process a queue item.
- *
- * Load the node and resave it - autotagging stuff in presave will take care of the rest
+ * Process a queue item. Load the node and resave it - autotagging stuff in presave will 
+ * take care of the rest.
  *
  * @param object $data
  *   The item retrieved from the cache.
- *
  * @return bool $success
  *   Whether or not the process was successful.
  */
 function opencalais_queue_process_node($data) {
   $nid = $data->data['nid'];
   try {
-    // We need to set this so that ARC2 will work and be able to connect with
-    // the OpenCalais service.
     if (!isset($_SERVER['SERVER_NAME'])) {
       global $base_url;
       $parts = parse_url($base_url);
@@ -130,7 +126,15 @@ function opencalais_queue_process_node($data) {
       $_SERVER['SERVER_PORT'] = 80;
     }
     $node = node_load($nid);
-    node_save($node);
+    /** 
+     * Issue #11982297 - We need to make sure the node exists before we try to process it. If it
+     * isn't, then we need to ignore it and move along. We should also skip unpublished nodes.
+     */
+    if ($node !== FALSE) {
+      if ($node->status == NODE_PUBLISHED) {
+        node_save($node);
+      }
+    }
   } catch (Exception $e) {
     opencalais_set_message(t('Could not process node with id %id. You may try to manually resave the node to resolve this issue.', array('%id' => $nid)), 'error');
     return FALSE;
