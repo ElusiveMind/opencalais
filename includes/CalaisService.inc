@@ -19,7 +19,7 @@ class CalaisService {
     'caller' => 'Drupal',
     'apiKey' => '',
     'content' => '',
-    'host' => 'api.thomsonreuters.com',
+    'host' => 'api-eit.refinitiv.com',
   );
 
   public $parameters;
