@@ -14,13 +14,15 @@ function opencalais_admin_api_settings($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('OpenCalais API Key'),
     '#default_value' => variable_get('opencalais_api_key', NULL),
+    '#required' => TRUE,
     '#size' => 60,
-    '#description' => 'Required to utilize the Calais service. ' . l(t('Click here to get one.'), 'https://iameui-eagan-prod.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold'),
+    '#description' => 'Required to utilize the Calais service. ' . l(t('Click here to get one.'), 'https://iamui.thomsonreuters.com/iamui/UI/createUser?app_id=Bold&realm=Bold&realm=Bold'),
   );
   $form['opencalais_api_server'] = array(
     '#type' => 'textfield',
     '#title' => t('OpenCalais Server'),
-    '#default_value' => variable_get('opencalais_api_server', 'api.thomsonreuters.com'),
+    '#default_value' => variable_get('opencalais_api_server', 'api-eit.refinitiv.com'),
+    '#required' => TRUE,
     '#size' => 60,
     '#description' => t('The domain name for the server to use.  Typically you will not have to change this unless you want to test beta functionality.'),
   );

@@ -6,13 +6,10 @@ core = 7.x
 dependencies[] = entity
 dependencies[] = taxonomy
 
-files[] = opencalais.install
-files[] = opencalais.module
 files[] = opencalais.admin.inc
 files[] = opencalais.utils.inc
 files[] = includes/CalaisMetadata.inc
 files[] = includes/CalaisJsonProcessor.inc
 files[] = includes/CalaisService.inc
-
 
 configure = admin/config/content/opencalais/settings

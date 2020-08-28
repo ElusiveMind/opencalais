@@ -133,6 +133,14 @@ function opencalais_update_7104() {
 }
 
 /**
+ * Update the api server to the one for Refinitiv.
+ */
+function opencalais_update_7105() {
+  variable_set('opencalais_api_server', 'api-eit.refinitiv.com');
+}
+
+
+/**
  * Implements hook_requirements().
  */
 function opencalais_api_requirements($phase) {
@@ -152,7 +160,7 @@ function opencalais_api_requirements($phase) {
                               OpenCalais API Key is not set. Module will not function properly.
                               Please obtain the key and and set it at !calaissetturi as
                               soon as possible', $settings_uri),
-        'severity' => REQUIREMENT_ERROR);
+        'severity' => REQUIREMENT_WARNING);
     }
   }
   return $requirements;
