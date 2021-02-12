@@ -1,0 +1,22 @@
+opencalais.open_calais_fields:
+  path: 'admin/structure/types/manage/{node_type}/opencalais'
+  defaults:
+    _form: '\Drupal\opencalais\Form\OpenCalaisFields'
+    _title: 'OpenCalaisField'
+  requirements:
+    _access: 'TRUE'
+  options:
+    parameters:
+      node_type:
+        type: node_type
+  
+
+opencalais.open_calais_config:
+  path: 'admin/config/opencalais'
+  defaults:
+    _form: '\Drupal\opencalais\Form\OpenCalaisConfig'
+    _title: 'OpenCalaisConfig'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _admin_route: TRUE

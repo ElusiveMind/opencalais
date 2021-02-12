@@ -1,0 +1,14 @@
+{
+  "name": "drupal/opencalais",
+  "type": "drupal-module",
+  "description": "Utilize the Open Calais API to tag content.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/opencalais",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/opencalais",
+    "source": "http://cgit.drupalcode.org/opencalais"
+  },
+  "require": { }
+}

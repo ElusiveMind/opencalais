@@ -1,0 +1,4 @@
+opencalais.open_calais_fields:
+  title: 'OpenCalais'
+  route_name: opencalais.open_calais_fields
+  base_route: entity.node_type.edit_form

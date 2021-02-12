@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function opencalais_install() {
+  // Create field storage for the 'Highlight' base field.
+  $entity_manager = \Drupal::entityManager();
+  $definition = $entity_manager->getFieldStorageDefinitions('node')['opencalais'];
+  $entity_manager->onFieldStorageDefinitionCreate($definition);
+}

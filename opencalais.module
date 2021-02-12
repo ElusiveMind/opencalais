@@ -1,0 +1,132 @@
+<?php
+
+/**
+ * @file
+ * Contains opencalais.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\opencalais\CalaisService;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\taxonomy\Entity\Term;
+
+/**
+ * Implements hook_menu().
+ */
+function opencalais_menu() {
+  $items['admin/config/content/opencalais'] = [
+    'title' => 'Open Calais Settings',
+    'description' => "Configure Open Calais module.",
+    'route_name' => 'opencalais.settings',
+  ];
+
+  return $items;
+}
+
+/**
+ * Implements hook_help().
+ */
+function opencalais_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the opencalais module.
+    case 'help.page.opencalais':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Utilize the Open Calais API to tag content.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function opencalais_node_presave($entity) {
+  // Determine if we have any fields that we want to send up.
+  $my_config = \Drupal::config('opencalais.opencalaisnodeconfig')->get($entity->getType());
+
+  $concat_string = '';
+  foreach ($my_config as $key => $value) {
+    // We append a '. ' because we can't depend on users to enter good data.
+    $concat_string .= strip_tags($entity->get($key)->value . '. ');
+  }
+  $concat_string = preg_replace('/\n+/', "\n", trim($concat_string));
+
+  // Send Values.
+  if ($concat_string != '') {
+    $options = [
+      'apiKey' => \Drupal::config('opencalais.opencalaisconfig')->get('api_key'),
+      'contentType' => 'text/plain',
+      'content' => strip_tags($concat_string),
+      'host' => 'api.thomsonreuters.com',
+    ];
+    $calais = new CalaisService($options);
+    // Get your tags.
+    $tags = $calais->analyze();
+  }
+
+  $terms = [];
+  foreach ($tags->SocialTags->terms as $termContainer) {
+    $properties = ['name' => $termContainer->name, 'vid' => 'opencalais'];
+    $term = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($properties);
+    $term = reset($term);
+    // Check if the term exists, create it if it does not.
+    if (empty($term)) {
+      $term = Term::create([
+        'name' => $termContainer->name,
+        'vid' => 'opencalais',
+      ]);
+      $term->enforceIsNew();
+      $term->save();
+    }
+    // Store terms.
+    $terms[] = ['target_id' => $term->id()];
+  }
+  $entity->set('opencalais', $terms);
+}
+
+/**
+ * Return the OpenCalais Service class.
+ *
+ * @param mixed[] $options
+ *   An array of option parameters to be sent to the CalaisService class.
+ *
+ * @return object
+ *   The initialized CalaisService object.
+ */
+function opencalais_get_service(array $options = []) {
+  return new CalaisService($options);
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function opencalais_entity_base_field_info(EntityTypeInterface $entity_type) {
+  if (in_array($entity_type->id(), ['node'], TRUE)) {
+    $fields['opencalais'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('OpenCalais'))
+      ->setDescription(t('What was this tagged with.'))
+      ->setSetting('target_type', 'taxonomy_term')
+      ->setCardinality(-1)
+      ->setSetting('handler_settings', ['target_bundles' => ['OpenCalais' => 'opencalais']])
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'author',
+        'weight' => -3,
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'entity_reference_autocomplete',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+        'weight' => -3,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+    return $fields;
+  }
+}

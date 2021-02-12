@@ -1,0 +1,6 @@
+opencalais.open_calais_config:
+  title: 'OpenCalaisConfig'
+  route_name: opencalais.open_calais_config
+  description: 'A description for the menu entry'
+  parent: system.admin_config_system
+  weight: 99
