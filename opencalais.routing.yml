@@ -9,13 +9,12 @@ opencalais.open_calais_fields:
     parameters:
       node_type:
         type: node_type
-  
 
 opencalais.open_calais_config:
   path: 'admin/config/opencalais'
   defaults:
-    _form: '\Drupal\opencalais\Form\OpenCalaisConfig'
-    _title: 'OpenCalaisConfig'
+    _form: '\Drupal\opencalais\Form\OpenCalaisSettingsForm'
+    _title: 'OpenCalais API'
   requirements:
     _permission: 'access administration pages'
   options:

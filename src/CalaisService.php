@@ -1,6 +1,9 @@
 <?php
+
 namespace Drupal\opencalais;
+
 use Drupal\opencalais\CalaisJsonProcessor;
+
 /**
  * @file
  * The main interface to the calais web service
@@ -96,7 +99,7 @@ class CalaisService {
    */
   private static function log_calais_error($ret) {
     $msg = t('OpenCalais processing error: @msg', array('@msg' => $ret->data));
-    drupal_set_message($msg, 'error');
+    \Drupal::messenger()->setError($msg);
     watchdog('opencalais', 'OpenCalais processing error: (@code - @error) @msg', array('@code' => $ret->code, '@error' => $ret->error, '@msg' => $ret->data), WATCHDOG_ERROR);
   }
 }

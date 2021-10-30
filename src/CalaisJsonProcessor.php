@@ -1,6 +1,6 @@
 <?php
-namespace Drupal\opencalais;
 
+namespace Drupal\opencalais;
 
 /**
  * @file

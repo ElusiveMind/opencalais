@@ -70,7 +70,7 @@ function opencalais_node_presave($entity) {
   $terms = [];
   foreach ($tags->SocialTags->terms as $termContainer) {
     $properties = ['name' => $termContainer->name, 'vid' => 'opencalais'];
-    $term = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($properties);
+    $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties($properties);
     $term = reset($term);
     // Check if the term exists, create it if it does not.
     if (empty($term)) {

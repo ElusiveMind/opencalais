@@ -30,7 +30,6 @@ class OpenCalaisFields extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    // @TODO: Actually divine the node type
     $node_type = \Drupal::routeMatch()->getCurrentRouteMatch()->getRawParameter('node_type');
     $config = $this->config('opencalais.opencalaisnodeconfig')->get($node_type);
     $entityManager = \Drupal::service('entity_field.manager');
@@ -56,14 +55,9 @@ class OpenCalaisFields extends ConfigFormBase {
           $form[$fieldName]['#default_value'] = TRUE;
         } 
       }
-   }
+    }
 
-    $form['submit'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Submit'),
-    ];
-
-    return $form;
+    return parent::buildForm($form, $form_state);
   }
 
   /**
@@ -77,10 +71,7 @@ class OpenCalaisFields extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    // @TODO: Actually divine the content type
-    $node_type = 'event';
-        parent::submitForm($form, $form_state);
-    // Display result.
+    $node_type = \Drupal::routeMatch()->getCurrentRouteMatch()->getRawParameter('node_type');
     $field_values = [];
     foreach ($form_state->getValues() as $field => $value) {
       if ((strpos($field, 'field_') !== false || $field == 'body' || $field == 'title') && $value == 1) {
@@ -88,5 +79,6 @@ class OpenCalaisFields extends ConfigFormBase {
       }
         $this->config('opencalais.opencalaisnodeconfig')->set($node_type , $field_values)->save();
     }
+    parent::submitForm($form, $form_state);
   }
 }

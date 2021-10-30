@@ -1,6 +1,6 @@
 opencalais.open_calais_config:
-  title: 'OpenCalaisConfig'
+  title: 'OpenCalais API'
   route_name: opencalais.open_calais_config
-  description: 'A description for the menu entry'
+  description: 'The API Key used with OpenCalais by Refinitiv's Intelligent Tagging service'
   parent: system.admin_config_system
   weight: 99
